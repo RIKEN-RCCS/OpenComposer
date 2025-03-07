@@ -1,0 +1,149 @@
+---
+form:
+  input_json:
+    widget: path
+    label: "Input JSON file"
+    value: ""
+    show_files: true
+
+  out_dir:
+    widget: path
+    label: Output Directory
+    value: ""
+    show_files: false
+
+  #nodes:
+  #  widget: number
+  #  label: Number of Nodes
+  #  value: 1         # Default value
+  #  min: 1           # Minimum number of nodes
+  #  help: Specify the number of nodes required for your job.
+
+  #tasks_per_node:
+  #  widget: number
+  #  label: Number of Tasks per Node
+  #  value: 1
+  #  min: 1
+  #  help: Specify the number of tasks per node.
+
+  cpus_per_task:
+    widget: number
+    size: 2
+    label: [ Data Pipeline CPUs, Inference CPUs ]
+    value: [ 1, 1 ]
+    min: 1
+    help: Specify the number of CPUs per task.
+
+  time:
+    widget:   number
+    size: 2
+    label:    [ Data Pipeline Run Time, Inference Run time ]
+    value:    [  1, 1 ]
+    min:      [  1, 1 ]
+    max:      [ 168, 168 ]
+    step:     [  1, 1  ]
+    help: Specify the maximum run time in hours. 168 or 7 days is the max.
+
+
+  memory:
+    widget: number
+    size: 2
+    label: [ Data Pipeline Memory (GB), Inference Memory (GB) ]
+    value: [ 1, 1 ]
+    min: [ 1, 1 ]
+    help: Specify the memory requirement for your job.
+
+  gpu_type:
+    widget: checkbox
+    label: GPU Type
+    separator: '|'
+    options:
+      - ["V100", "v100"]
+      - ["A100", "a100"]
+      - ["H100", "h100"]
+      - ["RTX8000", "rtx8000"]
+    value: ""  # Default to "No GPU"
+    help: Select the type of GPU required for your job.
+
+  #gpu_count:
+  #  widget: number
+  #  label: Number of GPUs
+  #  value: 1
+  #  min: 1
+  #  help: Specify the number of GPUs required.
+
+  show_advanced_option:
+    widget: checkbox
+    label:
+    options:
+      - ["Show advanced option", "", show-account, show-email, show-mail_option, show-array, show-log ]
+
+  account:
+    widget: text
+    label: SLURM Account ID
+    help: Specify your SLURM account ID for job submission (Tandon).
+    condition: show-account
+
+  mail_option:
+    label: Mail option
+    widget: checkbox
+    direction: horizontal
+    separator: ","
+    indent: 1
+    options:
+      - [ "Beginning of job execution", 'BEGIN',   enable-email ]
+      - [ "End of job execution",       'END',     enable-email ]
+      - [ "Fail of job",                'FAIL',    enable-email ]
+      - [ "When the job is requeued",   'REQUEUE', enable-email ]
+      - [ "All",                        'ALL',     enable-email ]
+
+  email:
+    widget: email
+    label:  Email
+    indent: 2
+
+  #array:
+  #  widget: number
+  #  label: [ Array Job (start index), Array Job (last index) ]
+  #  size: 2
+  #  min:  [0, 0]
+  #  help: Each job executed from an array job is assigned a task ID, which can be referenced in the shell script via the environment variable SLURM_ARRAY_TASK_ID.
+
+script: |
+  #!/bin/bash
+  #SBATCH --nodes=1
+  #SBATCH --ntasks-per-node=1
+  #SBATCH --cpus-per-task=#{cpus_per_task_1}
+  #SBATCH --time=#{time_1}:00:00
+  #SBATCH --mem=#{memory_1}GB
+  #SBATCH --account=#{account}
+  #SBATCH --mail-user=#{email}
+  #SBATCH --mail-type=#{mail_option}
+
+  INPUT_JSON=#{input_json}
+  OUTPUT_DIR=#{out_dir}
+
+  # DATA PIPELINE
+  /scratch/work/public/apps/alphafold/3.0.0/run-alphafold.bash \
+    --json_path=${INPUT_JSON} \
+    --output_dir=${OUTPUT_DIR} \
+    --run_data_pipeline=true \
+    --run_inference=false
+
+  # INFERENCE
+  sbatch \
+    --nodes=1 \
+    --ntasks-per-node=1 \
+    --cpus-per-task=#{cpus_per_task_2} \
+    --time=#{time_2}:00:00 \
+    --mem=#{memory_2}GB \
+    --gres=gpu:1 \
+    --constraint=#{gpu_type} \
+    --job-name=${SLURM_JOB_NAME}_inference \
+    --account=#{account} \
+    --mail-type=#{mail_option} \
+    /scratch/work/public/apps/alphafold/3.0.0/run-alphafold.bash \
+      --json_path=${OUTPUT_DIR}/EcoRI/EcoRI_data.json \
+      --output_dir=${OUTPUT_DIR} \
+      --run_data_pipeline=false \
+      --run_inference=true
