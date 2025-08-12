@@ -252,7 +252,7 @@ helpers do
       # The data-value is used in Script Content (ocForm.getValue() in form.js)
       # If v[1] is not defined, v[0] is used instead.
       data_value = v[1].nil? ? v[0] : v[1]
-      selected = value['value'] == v[0].to_s ? 'selected' : ''
+      selected = value['value'].to_s == v[0].to_s ? 'selected' : ''
       escaped_data = escape_html(data_value)
       escaped_item = escape_html(v[0])
       html += "<option id=\"#{key}_#{i+1}\" data-value='#{escaped_data}' value='#{escaped_item}' #{selected}>#{escaped_item}</option>\n"
@@ -320,7 +320,7 @@ helpers do
     html = output_label_with_span_tag(key, value)
     value['options'].each_with_index do |v, i|
       div_class = is_horizontal ? "form-check form-check-inline me-4 mt-2" : "form-check mt-2"
-      checked = value['value'] == v[0].to_s ? "checked" : ""
+      checked = value['value'].to_s == v[0].to_s ? "checked" : ""
       data_value = v[1].nil? ? v[0] : v[1]
       escaped_data = escape_html(data_value)
       escaped_item = escape_html(v[0])
@@ -346,7 +346,7 @@ helpers do
     value['options'].each_with_index do |v, i|
       div_class = is_horizontal ? "form-check form-check-inline me-4 mt-2" : "form-check mt-2"
       if value.key?('value')
-        checked = value['value'].is_a?(Array) ? value['value'].include?(v[0].to_s) : [value['value']].include?(v[0].to_s)
+        checked = Array(value['value']).map(&:to_s).include?(v[0].to_s)
       else
         checked = false
       end
