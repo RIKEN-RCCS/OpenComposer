@@ -149,17 +149,25 @@ helpers do
 
     keys = matches.map { |str| str[2..-2] } # "\#{example1}" -> "example1"
 
-    exist_keys = []
-    widgets    = []
-    can_hide   = []
-    separators = []
-    functions  = []
+    exist_keys    = []
+    widgets       = []
+    can_hide      = [] # If the key is preceded by a colon (e.g. #{basename(:input_file)})
+    separators    = []
+    functions     = []
+    zero_paddings = []
     keys.each do |key|
-      if key.match?(/^(:|dirname\(:|basename\(:)/)
+      if key.start_with?(':')
         can_hide << "true"
-        key = key.sub(/^:/, '').sub(/^dirname\(:/, 'dirname(').sub(/^basename\(:/, 'basename(')
+        key = key.delete_prefix(':')
       else
-        can_hide << "false"
+        fn = %w[dirname basename zeropadding].find { |f| key.match?(/^#{f}\(\s*:?/) }
+        if fn
+          can_hide << (key.match?(/^#{fn}\(\s*:/) ? "true" : "false")
+          key  = key.gsub(/\s+/, '').sub(/^#{fn}\(:/, "#{fn}(")
+          line = line.gsub(/#\{#{fn}\((.*?)\)\}/) { "#\{#{fn}(#{$1.gsub(/\s+/, '')})}" }
+        else
+          can_hide << "false"
+        end
       end
       
       base_key, _, suffix = key.rpartition("_")
@@ -168,6 +176,7 @@ helpers do
         widgets << form[key]["widget"]
         separators << form[key]["separator"]
         functions << false
+        zero_paddings << "null"
       elsif key =~ /^dirname\((.+?)\)$/ || key =~ /^basename\((.+?)\)$/
         base_key = $1
         with_suffix = false
@@ -185,11 +194,32 @@ helpers do
         widgets << form[base_key]["widget"]
         separators << form[base_key]["separator"]
         functions << ((key =~ /^dirname\((.+)\)$/) ? "\"dirname\"" : "\"basename\"")
+        zero_paddings << "null"
+      elsif key =~ /^zeropadding\((.+),(\d+)\)$/
+        base_key = $1
+        length = $2
+        with_suffix = false
+        if match = base_key.match(/(.+)_(\d+)/)
+          base_key = match[1]
+          suffix = match[2]
+          with_suffix = true
+        end
+        unless form.key?(base_key)
+          can_hide.pop()
+          next
+        end
+
+        exist_keys << (with_suffix ? "#{base_key}_#{suffix}" : base_key)
+        widgets << form[base_key]["widget"]
+        separators << form[base_key]["separator"]
+        functions << "\"zeroPadding\""
+        zero_paddings << length
       elsif form.key?(base_key) && suffix =~ /^\d+$/
         exist_keys << key
         widgets << form[base_key]["widget"]
         separators << nil # Widgets of number, text, email do not have separator option
         functions << false
+        zero_paddings << "null"
       else
         can_hide.pop()
       end
@@ -197,13 +227,14 @@ helpers do
 
     if exist_keys.length > 0
       # Convert to JavaScript array
-      keys_array       = "['" + exist_keys.join("', '") + "']"
-      widgets_array    = "['" + widgets.join("', '") + "']"
-      can_hide_array   = "["  + can_hide.map  { |r| r }.join(", ") + "]"
-      separators_array = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
-      functions_array  = "["  + functions.join(", ") + "]"
+      keys_array          = "['" + exist_keys.join("', '") + "']"
+      widgets_array       = "['" + widgets.join("', '") + "']"
+      can_hide_array      = "["  + can_hide.map { |r| r }.join(", ") + "]"
+      separators_array    = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
+      functions_array     = "["  + functions.join(", ") + "]"
+      zero_paddings_array = "["  + zero_paddings.join(", ") + "]"
 
-      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array}, #{functions_array});\n"
+      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array}, #{functions_array}, #{zero_paddings_array});\n"
     else
       return "  selectedValues.push('#{line}');\n"
     end
@@ -221,7 +252,7 @@ helpers do
       # The data-value is used in Script Content (ocForm.getValue() in form.js)
       # If v[1] is not defined, v[0] is used instead.
       data_value = v[1].nil? ? v[0] : v[1]
-      selected = value['value'] == v[0] ? 'selected' : ''
+      selected = value['value'] == v[0].to_s ? 'selected' : ''
       escaped_data = escape_html(data_value)
       escaped_item = escape_html(v[0])
       html += "<option id=\"#{key}_#{i+1}\" data-value='#{escaped_data}' value='#{escaped_item}' #{selected}>#{escaped_item}</option>\n"

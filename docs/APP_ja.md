@@ -66,6 +66,24 @@ form:
 ```
 ![Label](img/label2.png)
 
+ジョブスクリプト中の数値に対してゼロパディングを行いたい場合は関数zeropaddingを用います。第1引数はキー、第2引数に数値を指定します。第2引数に指定した桁数に満たない場合、不足分を「0」で埋めます。
+
+```
+form:
+  time:
+    widget: number
+    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
+    size:   2
+    value:  [  1,  0 ]
+    min:    [  0,  0 ]
+    max:    [ 24, 59 ]
+    step:   [  1,  1 ]
+    
+script: |
+  #SBATCH --time=#{time_1}:#{zeropadding(time_2, 2)}:00
+```
+![Zero Padding](img/zeropadding.png)
+
 項目ごとのラベルと一行の長いラベルを記述することもできます。配列形式の最初の要素に長いラベルを、2つ目の要素を配列形式で記述ください。
 
 ```

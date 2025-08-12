@@ -569,8 +569,13 @@ ocForm.basename = function(path) {
   return path.split('/').pop();
 }
 
+// Return value with zero padding
+ocForm.zeroPadding = function(num, length) {
+  return num === "" ? "" : String(num).padStart(length, '0');
+}
+
 // Output lines in the script contents.
-ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separators, functions) {
+ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separators, functions, zeroPaddingLength) {
   // Check if line should be made visible
   for (const k in keys) {
     const value = ocForm.getValue(keys[k], widgets[k]);
@@ -597,6 +602,9 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
     }
     else if (functions[k] === "basename") {
       value = ocForm.basename(value);
+    }
+    else if (functions[k] === "zeroPadding") {
+      value = ocForm.zeroPadding(value, zeroPaddingLength[k]);
     }
     else if (value === null && canHide[k] === true) {
       value = ""
@@ -635,10 +643,14 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
       case "path":
 	if (functions[k] === "dirname" || functions[k] === "basename"){
 	  const _key = (canHide[k] === true) ? ":" + keys[k] : keys[k];
-          line = line.replace(new RegExp("#{" + functions[k] + "\\(" + _key + "\\)}", "g"), value);
+	  line = line.replace(new RegExp(`#{${functions[k]}\\(${_key}\\)}`, "g"), value);
+	}
+	else if (functions[k] === "zeroPadding"){
+	  const _key = (canHide[k] === true) ? ":" + keys[k] : keys[k];
+	  line = line.replace(new RegExp(`#\\{zeropadding\\(${_key},(\\d+)\\)\\}`, "g"), value);
 	}
 	else {
-	  line = line.replace(new RegExp("#{" + keys[k] + "}", "g"), value);
+	  line = line.replace(new RegExp(`#{${keys[k]}}`, "g"), value);
 	}
         break;
       }
@@ -1013,7 +1025,6 @@ ocForm.validateCheckboxForSubmit = function(key) {
 // The form is submitted normally and the button resets after page reload. 
 ocForm.submitEffect = function() {
   const btn = document.getElementById('_submitButton');
-  console.log(btn);
   btn.disabled = true;
   btn.value = 'Submitting...';
   btn.classList.remove('btn-primary');
