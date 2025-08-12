@@ -346,7 +346,7 @@ helpers do
     value['options'].each_with_index do |v, i|
       div_class = is_horizontal ? "form-check form-check-inline me-4 mt-2" : "form-check mt-2"
       if value.key?('value')
-        checked = value['value'].is_a?(Array) ? value['value'].include?(v[0]) : [value['value']].include?(v[0])
+        checked = value['value'].is_a?(Array) ? value['value'].include?(v[0].to_s) : [value['value']].include?(v[0].to_s)
       else
         checked = false
       end
