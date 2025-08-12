@@ -320,7 +320,7 @@ helpers do
     html = output_label_with_span_tag(key, value)
     value['options'].each_with_index do |v, i|
       div_class = is_horizontal ? "form-check form-check-inline me-4 mt-2" : "form-check mt-2"
-      checked = value['value'] == v[0] ? "checked" : ""
+      checked = value['value'] == v[0].to_s ? "checked" : ""
       data_value = v[1].nil? ? v[0] : v[1]
       escaped_data = escape_html(data_value)
       escaped_item = escape_html(v[0])
