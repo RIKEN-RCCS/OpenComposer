@@ -9,7 +9,7 @@ class Miyabi < Pbspro
     # http://nusc.nsu.ru/wiki/lib/exe/fetch.php/doc/pbs/pbsprorefguide13.0.pdf
     # B : Job arrays only: job array is begun
     # E : Job is exiting after having run
-    # F : Job is finished. Job has completed execution, job failed during execution, or job was deleted.
+    # F : Job is finished. Job has completed execution, job failed during execution, or job was canceled.
     # H : Job is held. A job is put into a held state by the server or by a user or administrator. A job stays in a held state
     #     until it is released by a user or administrator.
     # M : Job was moved to another server

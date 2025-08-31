@@ -28,7 +28,7 @@ helpers do
     end
   end
 
-  # Output a modal for a specific action (e.g., DeleteJob or DeleteInfo).
+  # Output a modal for a specific action (e.g., CancelJob or DeleteInfo).
   def output_action_modal(action)
     id = "_history#{action}"
     form_action = "#{@script_name}/history"
@@ -50,7 +50,7 @@ helpers do
               <input type="hidden" name="action" value="#{action}">
               <input type="hidden" name="JobIds" id="#{id}Input">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1">Cancel</button>
-              <button type="submit" class="btn btn-primary" tabindex="-1">Delete</button>
+              <button type="submit" class="btn btn-primary" tabindex="-1">OK</button>
             </form>
           </div>
         </div>
@@ -59,13 +59,13 @@ helpers do
     HTML
   end
 
-  # Output a badge for an action button (e.g., DeleteJob or DeleteInfo) with a modal trigger.
+  # Output a badge for an action button (e.g., CancelJob or DeleteInfo) with a modal trigger.
   def output_action_badge(action)
-    return if action != "DeleteJob" && action != "DeleteInfo"
+    return if action != "CancelJob" && action != "DeleteInfo"
 
     <<~HTML
     <button id="_history#{action}Badge" data-bs-toggle="modal" data-bs-target="#_history#{action}" class="btn btn-sm btn-danger disabled" disabled>
-      #{(action == "DeleteJob") ? "Delete Job" : "Delete Info"} 
+      #{(action == "CancelJob") ? "Cancel Job" : "Delete Info"} 
       <span id="_history#{action}Count" class="badge bg-secondary">0</span>
     </button>
     HTML

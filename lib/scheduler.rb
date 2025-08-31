@@ -13,13 +13,13 @@ class Scheduler
     raise NotImplementedError, "This method should be overridden by a subclass"
   end
 
-  # Delete one or more jobs.
-  # @param job_ids [Array] array of job IDs to be deleted.
+  # Cancel one or more jobs.
+  # @param job_ids [Array] array of job IDs to be canceled.
   # @param bin [String] Same as submit().
   # @param bin_overrides [Array] Same as submit().
   # @param ssh_wrapper [String] Same as submit().
   # @return [String] error message. If successful, the error message is nil.
-  def delete(job_ids, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
+  def cancel(job_ids, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
     raise NotImplementedError, "This method should be overridden by a subclass"
   end
 

@@ -29,8 +29,8 @@ class Sge < Scheduler
     return nil, e.message
   end
 
-  # Delete one or more jobs in Grid Engine using the 'qdel' command.
-  def delete(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
+  # Cancel one or more jobs in Grid Engine using the 'qdel' command.
+  def cancel(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
     qdel = get_command_path("qdel", bin, bin_overrides)
     transformed_jobs = jobs.map do |job_id|
       job_id.include?(".") ? job_id.gsub(".", " -t ") : job_id # "123.4" -> "123 -t 4"

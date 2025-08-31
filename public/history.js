@@ -12,7 +12,7 @@ ocHistory.applyFilter = function() {
   window.location.href = `${window.location.pathname}?${urlParams.toString()}`;
 };
 
-// Update the status of a batch operation (e.g., DeleteJob, DeleteInfo) for selected jobs.
+// Update the status of a batch operation (e.g., CancelJob, DeleteInfo) for selected jobs.
 ocHistory.updateStatusBatch = function(action, jobIds) {
   if (!Array.isArray(jobIds)) return;
 
@@ -38,10 +38,11 @@ ocHistory.updateStatusBatch = function(action, jobIds) {
 
   // Update the modal content.
   const jobCountText = jobIds.length === 1 
-    ? ` one ${action === 'DeleteJob' ? 'job' : 'information'} (Job ID is ${jobIds[0]}) ?`
-    : ` ${jobIds.length} ${action === 'DeleteJob' ? 'jobs' : 'information'} ?`;
+    ? ` one ${action === 'CancelJob' ? 'job' : 'information'} (Job ID is ${jobIds[0]}) ?`
+    : ` ${jobIds.length} ${action === 'CancelJob' ? 'jobs' : 'information'} ?`;
 
-  modalBody.innerHTML = `Do you want to delete ${jobCountText}`;
+  const action_str = action === 'CancelJob' ? "cancel" : "delete";
+  modalBody.innerHTML = `Do you want to ${action_str} ${jobCountText}`;
 
   // If more than one job is selected, display the list of job IDs.
   if (jobIds.length > 1) {
@@ -55,7 +56,7 @@ ocHistory.updateStatusBatch = function(action, jobIds) {
   }
 };
 
-// Update the batch operations for checked rows (e.g., DeleteJob, DeleteInfo).
+// Update the batch operations for checked rows (e.g., CancelJob, DeleteInfo).
 ocHistory.updateBatch = function(rows) {
   const countId = { checked: [], running: [] };
 
@@ -74,7 +75,7 @@ ocHistory.updateBatch = function(rows) {
   });
 
   // Update batch status for deleting job or info action.
-  ocHistory.updateStatusBatch("DeleteJob",  countId.running);
+  ocHistory.updateStatusBatch("CancelJob",  countId.running);
   ocHistory.updateStatusBatch("DeleteInfo", countId.checked);
 };
 

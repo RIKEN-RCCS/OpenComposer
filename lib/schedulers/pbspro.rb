@@ -34,8 +34,8 @@ class Pbspro < Scheduler
     return nil, e.message
   end
 
-  # Delete one or more jobs in PBS using the 'qdel' command.
-  def delete(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
+  # Cancel one or more jobs in PBS using the 'qdel' command.
+  def cancel(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
     qdel = get_command_path("qdel", bin, bin_overrides)
     command = [ssh_wrapper, qdel, jobs.join(' ')].compact.join(" ")
     stdout, stderr, status = Open3.capture3(command)
@@ -82,7 +82,7 @@ class Pbspro < Scheduler
     # http://nusc.nsu.ru/wiki/lib/exe/fetch.php/doc/pbs/pbsprorefguide13.0.pdf
     # B : Job arrays only: job array is begun
     # E : Job is exiting after having run
-    # F : Job is finished. Job has completed execution, job failed during execution, or job was deleted.
+    # F : Job is finished. Job has completed execution, job failed during execution, or job was canceled.
     # H : Job is held. A job is put into a held state by the server or by a user or administrator. A job stays in a held state
     #     until it is released by a user or administrator.
     # M : Job was moved to another server

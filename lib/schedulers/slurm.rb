@@ -35,8 +35,8 @@ class Slurm < Scheduler
     return nil, e.message
   end
 
-  # Delete one or more jobs in the Slurm scheduler using the 'scancel' command.
-  def delete(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
+  # Cancel one or more jobs in the Slurm scheduler using the 'scancel' command.
+  def cancel(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
     scancel = get_command_path("scancel", bin, bin_overrides)
     command = [ssh_wrapper, scancel, jobs.join(',')].compact.join(" ")
     stdout, stderr, status = Open3.capture3(command)

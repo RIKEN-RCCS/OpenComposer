@@ -43,8 +43,8 @@ class Fujitsu_tcs < Scheduler
     return nil, e.message
   end
   
-  # Delete one or more jobs in the Fujitsu TCS scheduler using the 'pjdel' command.
-  def delete(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
+  # Cancel one or more jobs in the Fujitsu TCS scheduler using the 'pjdel' command.
+  def cancel(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
     pjdel = get_command_path("pjdel", bin, bin_overrides)
     command = [ssh_wrapper, pjdel, jobs.join(" ")].compact.join(" ")
     stdout, stderr, status = Open3.capture3(command)
