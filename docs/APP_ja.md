@@ -10,7 +10,7 @@
 
 次の図は`form`、`header`、`script`の担当範囲を示しています。`form`と`header`と`script`からジョブスクリプトが生成されます。`header`を省略した場合は`./lib/header.yml.erb`が代わりに利用されます（ほとんどの場合、`header`を`form.yml`で定義する必要はないでしょう）。なお、左上のアプリケーションの説明などは`manifest.yml`の担当範囲です。
 
-![Sections](img/sections.png)
+<img src="img/sections.png" width="800" alt="Sections">
 
 `check`はウィジットに設定された値のチェックをジョブの投入前に行います。`submit`はジョブスケジューラにジョブを投入する際の前処理を定義します。
 
@@ -551,7 +551,7 @@ form:
       - ["Hide script content", "", hide-<%= SCRIPT_CONTENT %>]
 ```
 
-![Hide script](img/hide-script.png)
+<img src="img/hide-script.png" width="800" alt="Hide script">
 
 チェックボックスを表示させずに、ジョブスクリプトを隠したい場合は、そのチェックボックスに対して`hide-`を設定します。
 
@@ -592,7 +592,7 @@ header:
       - ["Hide script content", "", hide-<%= SCRIPT_CONTENT %>]
 ```
 
-![Hide script in header](img/hide-script-header.png)
+<img src="img/hide-script-header.png" width="800" alt="Hide script in header">
 
 ## manifest.ymlの設定
 アプリケーションの説明を記述します。サンプルは下記の通りです。

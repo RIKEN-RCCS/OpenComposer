@@ -8,21 +8,21 @@ Open ComposerはWebブラウザからジョブスケジューラにバッチジ�
 ナビゲーションバーの右側には、それぞれOpen OnDemandの「Home Directory」、「Shell Access」、「ダッシュボード」へのリンクがあります。
 ただし、「Shell Access」は`conf.yml.erb`で`login_node`が設定されている場合のみ表示されます。
 
-![Home page](img/home_page.png)
+<img src="img/home_page.png" width="800" alt="Home page">
 
 ### アプリケーションページ
 ジョブスクリプトを生成します。ページ左のWebフォームに値を入力すると、ページ右のテキストエリアにジョブスクリプトが動的に生成されます。テキストエリアは自由に編集できます。テキストエリアの下の「Submit」ボタンをクリックすると、生成されたジョブスクリプトがジョブスケジューラに投入されます。
 
-![Application page](img/application_page.png)
+<img src="img/application_page.png" width="800" alt="Application page">
 
 ### 履歴ページ
 これまでのジョブ履歴を閲覧できます。ジョブの実行状況の確認や実行中のジョブの停止も可能です。
 
-![History page](img/history_page.png)
+<img src="img/history_page.png" width="800" alt="History page">
 
 - ヘッダ右の「Filter」に文字を入力してエンターキーを押すと、その文字と「Script Name」もしくは「Job Name」とが一致しているジョブのみが表示されます。
 - ヘッダ右の「All」、「Running」、「Queued」、「Completed」のラジオボタンをクリックすると、それぞれの状態に対応したジョブのみが表示されます。
-- 実行中のジョブやキューに登録されているジョブをキャンセルしたい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Delete Job」をクリックします。
+- 実行中のジョブやキューに登録されているジョブをキャンセルしたい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Cancel Job」をクリックします。
 - 完了したジョブの情報を表から削除したい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Delete Info」をクリックします。
 - 「Job ID」のリンクをクリックすると、ジョブの詳細が表示されます。
 - 「Application」のリンクをクリックすると、そのアプリケーションのページが開きます。また、その横にアイコンがある場合、そのアイコンをクリックすると該当のOpen OnDemandのアプリケーションページが開きます。

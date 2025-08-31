@@ -15,7 +15,7 @@ A job script is generated from `form`, `header`, and `script` sections.
 However, `header` is optional, and if omitted, `./lib/header.yml.erb` is used instead (in most cases, there is no need to define `header`).
 Note that the application name in the upper left is the scope of `manifest.yml`.
 
-![Sections](img/sections.png)
+<img src="img/sections.png" width="800" alt="Sections">
 
 The `check` section performs validation of the widget inputs before job submission.
 The `submit` section defines the pre-processing when submitting a job to the job scheduler.
@@ -608,7 +608,7 @@ form:
       - ["Hide script content", "", hide-<%= SCRIPT_CONTENT %>]
 ```
 
-![Hide script](img/hide-script.png)
+<img src="img/hide-script.png" width="800" alt="Hide script">
 
 If you want to hide the job script without displaying the checkbox, set `hide-` to the checkbox itself.
 
@@ -651,7 +651,7 @@ header:
       - ["Hide script content", "", hide-<%= SCRIPT_CONTENT %>]
 ```
 
-![Hide script in header](img/hide-script-header.png)
+<img src="img/hide-script-header.png" width="800" alt="Hide script in header">
 
 ## Settings of manifest.yml
 Describes your application. Here is a sample:

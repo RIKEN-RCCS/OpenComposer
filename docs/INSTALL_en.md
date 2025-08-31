@@ -108,21 +108,20 @@ However, the [App Development](https://osc.github.io/ood-documentation/latest/ho
 
 Select "My Sandbox Apps (Development)" under "</> Develop" in the navigation bar. (Note that if your web browser window size is small, it will display "</>" instead of "</> Develop".)
 
-![Navbar](img/navbar.png)
+<img src="img/navbar.png" width="400" alt="Navbar">
 
 Click "New App".
 
-![New App](img/newapp.png)
+<img src="img/newapp.png" width="400" alt="New App">
 
 Click "Clone Existing App".
 
-![Clone an existing app](img/clone.png)
+<img src="img/clone.png" width="400" alt="Clone an existing app">
 
 Enter any name in "Directory name" (here we enter OpenComposer), enter "[https://github.com/RIKEN-RCCS/OpenComposer.git](https://github.com/RIKEN-RCCS/OpenComposer.git)" in "Git remote", and click "Submit".
 
-![New repository](img/new_repo.png)
+<img src="img/new_repo.png" width="800" alt="New repository">
 
 Click "Launch Open Composer".
 
-![Bundle Install](img/bundle.png)
-
+<img src="img/bundle.png" width="800" alt="Bundle Install">

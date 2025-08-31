@@ -99,21 +99,20 @@ url: https://example.net/pun/sys/OpenComposer/Slurm
 
 ナビゲーションバーの「</> Develop」の「My Sandbox Apps (Development)」を選択します（Webブラウザのウィンドウサイズが小さい場合は、「</> Develop」ではなく「</>」と表示されますので注意ください）。
 
-![Navbar](img/navbar.png)
+<img src="img/navbar.png" width="400" alt="Navbar">
 
 「New App」をクリックします。
 
-![New App](img/newapp.png)
+<img src="img/newapp.png" width="400" alt="New App">
 
 「Clone Existing App」をクリックします。
 
-![Clone an existing app](img/clone.png)
+<img src="img/clone.png" width="400" alt="Clone an existing app">
 
 「Directory name」に任意の名前（ここではOpenComposer）、「Git remote」に「[https://github.com/RIKEN-RCCS/OpenComposer.git](https://github.com/RIKEN-RCCS/OpenComposer.git)」を記入し、「Submit」をクリックします。
 
-![New repository](img/new_repo.png)
+<img src="img/new_repo.png" width="800" alt="New repository">
 
 「Launch Open Composer」をクリックします。
 
-![Bundle Install](img/bundle.png)
-
+<img src="img/bundle.png" width="800" alt="Bundle Install">
