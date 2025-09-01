@@ -384,6 +384,7 @@ post "/*" do
     case params["action"]
     when "CancelJob"
       error_msg = scheduler.cancel(job_ids, bin, bin_overrides, ssh_wrapper)
+      puts "[#{Time.now} ] [Open Composer] Cancel job : job_ids=#{job_ids}" # Output log
     when "DeleteInfo"
       if File.exist?(history_db)
         db = PStore.new(history_db)
@@ -392,6 +393,7 @@ post "/*" do
             db.delete(job_id)
           end
         end
+        puts "[#{Time.now} ] [Open Composer] Delete job information : job_ids=#{job_ids}" # Output log
       end
     end
 
@@ -526,6 +528,10 @@ post "/*" do
         db[id] = params
       end
     end
+
+    # Output log
+    manifest = create_manifest(app_path)
+    puts "[#{Time.now} ] [Open Composer] Submit job : job_ids=#{job_id} : app_dir=#{manifest["dirname"]} : app_name=#{manifest["name"]} : category=#{manifest["category"]} : scheduler=#{scheduler.class.name}"
 
     return show_website(job_id, error_msg, params)
   end
