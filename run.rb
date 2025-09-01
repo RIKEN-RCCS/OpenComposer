@@ -321,6 +321,16 @@ def oc_assert(condition, message = "Error exists in script content.")
   raise RuntimeError, message unless condition
 end
 
+# Output log
+def output_log(action, scheduler, **details)
+  base = "[#{Time.now}] [Open Composer] #{action} : scheduler=#{scheduler.class.name}"
+  extra = details
+            .reject { |_k, v| v.nil? || v.to_s.strip.empty? }
+            .map    { |k, v| "#{k}=#{v}" }
+            .join(" : ")
+  puts [base, extra].reject(&:empty?).join(" : ")
+end
+
 # Send an application icon.
 get "/:apps_dir/:folder/:icon" do
   icon_path = File.join(create_conf["apps_dir"], params[:folder], params[:icon])
@@ -384,7 +394,7 @@ post "/*" do
     case params["action"]
     when "CancelJob"
       error_msg = scheduler.cancel(job_ids, bin, bin_overrides, ssh_wrapper)
-      puts "[#{Time.now} ] [Open Composer] Cancel job : job_ids=#{job_ids}" # Output log
+      output_log("Cancel job", scheduler, cluster: cluster_name, job_ids: job_ids)
     when "DeleteInfo"
       if File.exist?(history_db)
         db = PStore.new(history_db)
@@ -393,7 +403,7 @@ post "/*" do
             db.delete(job_id)
           end
         end
-        puts "[#{Time.now} ] [Open Composer] Delete job information : job_ids=#{job_ids}" # Output log
+        output_log("Delete job information", scheduler, cluster: cluster_name, job_ids: job_ids)
       end
     end
 
@@ -531,7 +541,7 @@ post "/*" do
 
     # Output log
     manifest = create_manifest(app_path)
-    puts "[#{Time.now} ] [Open Composer] Submit job : job_ids=#{job_id} : app_dir=#{manifest["dirname"]} : app_name=#{manifest["name"]} : category=#{manifest["category"]} : scheduler=#{scheduler.class.name}"
+    output_log("Submit job", scheduler, cluster: cluster_name, job_ids: Array(job_id), app_dir: manifest["dirname"], app_name: manifest["name"], category: manifest["category"])
 
     return show_website(job_id, error_msg, params)
   end
