@@ -6,7 +6,7 @@
 - `./apps/test/manifest.yml`: Description of the application
 
 ## Settings of form.yml
-The `form.yml` is composed of three main keys: `form`, `header`, `script`, `check` and `submit`.
+The `form.yml` is composed of five main keys: `form`, `header`, `script`, `check` and `submit`.
 Each key defines main widgets, header widgets, a job script, validation of a job script, and pre-processing when submitting a job script, respectively.
 `form` and `script` are required fields, but `header`, `check` and `submit` can be omitted.
 
