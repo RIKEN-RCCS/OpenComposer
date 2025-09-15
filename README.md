@@ -16,6 +16,7 @@ Open Composer is a web application to generate batch job scripts and submit batc
 - Fujitsu_TCS
 
 ## Sample configuration
+- https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps
 - https://github.com/RIKEN-RCCS/composer_fugaku
 - https://github.com/RIKEN-RCCS/composer_rccs_cloud
 
