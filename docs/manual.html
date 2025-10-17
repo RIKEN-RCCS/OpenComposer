@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Open Composer User Manual</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+</head>
+<body>
+
+  <div class="container-fluid">
+    <nav class="sidebar bg-body-secondary">
+      <h5 class="ps-3 pe-1 d-inline">Contents</h5>
+      <ul class="nav flex-column px-3 py-2">
+	<li class="nav-item"><a href="#intro" class="nav-link">1. Introduction</a></li>
+        <li class="nav-item"><a href="#home" class="nav-link">2. Home Page</a></li>
+        <li class="nav-item"><a href="#application" class="nav-link">3. Application Page</a></li>
+	<li class="nav-item"><a href="#history" class="nav-link">4. History Page</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <h2 id="intro">1. Introduction</h2>
+      <p>
+	Open Composer is a web application to submit batch jobs to an HPC cluster system from a web browser.
+	Open Composer consists of "Home page", "Application page", and "History page".
+      </p>
+      
+      <h2 id="home">2. Home Page</h2>
+      <p>
+	Displays application icons by category.
+	On the left side of the navigation bar are links to the "Home page", "Application page", and "History page".
+	On the right side of the navigation bar are links to the Open OnDemand "Home Directory", "Shell Access", and "Dashboard".
+	Note that "Shell Access" is only displayed if <code>login_node</code> is set in <code>conf.yml.erb</code>.
+      </p>
+      <img src="img/home_page.png" width="800" alt="Home page">
+      
+      <h2 id="application">3. Application Page</h2>
+      <p>
+	Generates a job script.
+	When you enter values in the web form on the left side of the page,
+	a job script is dynamically generated in the text area on the right side of the page.
+	The text area can be freely edited.
+	When you click the "Submit" button below the text area, the generated job script is submitted to an HPC cluster system.
+      </p>
+      <img src="img/application_page.png" width="800" alt="Application page">
+
+      <h2 id="history">4. History Page</h2>
+      <p>
+	Displays the job history.
+	You can check the execution status of jobs and stop currently running jobs.
+      </p>
+      <img src="img/history_page.png" width="800" alt="History page">
+
+      <ul class="mt-4">
+	<li>Enter text in the "Filter" box to the right of the header and press the Enter key to display only jobs whose text matches each element in the table.</li>
+	<li>Click the "All", "Running", "Queued", or "Completed" radio button on the right of the header to display only jobs that correspond to that status.</li>
+        <li>To cancel a running job or a queued job, check the leftmost check box of the job and click "Cancel Job" above the table.</li>
+        <li>To delete a completed job information from the table, check the leftmost check box of the job and click "Delete Info" above the table.</li>
+        <li>Click the "Job ID" link to view job details.</li>
+	<li>Click the "Application" link to go to the application page. If there is an icon next to it, clicking that icon will open the corresponding Open OnDemand application page.</li>
+        <li>Click the "Script Location" link will launch the Open OnDemand Home Directory application. If there is a terminal icon, clicking that icon will launch the Open OnDemand Terminal application.</li>
+        <li>Click the "Script Name" link to go to the application page with the parameters used in the script loaded.</li>
+      </ul>
+    </main>
+  </div>
+
+  <footer class="d-flex justify-content-center">
+    <p class="mb-0 text-white">&copy; RIKEN Center for Computational Science</p>
+  </footer>
+</body>
+</html>

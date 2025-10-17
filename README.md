@@ -2,9 +2,9 @@
 
 Open Composer is a web application to generate batch job scripts and submit batch jobs for HPC clusters on [Open OnDemand](https://openondemand.org/).
 
-- Installation ([English](./docs/install.html) | [Japanese](./docs/install_ja.html))
+- Installation (<a href="https://riken-rccs.github.io/OpenComposer/docs/install.html">English</a> | <a href="https://riken-rccs.github.io/OpenComposer/docs/install_ja.html">Japanese</a>)
 - Settings of application ([English](./docs/APP_en.md)  | [Japanese](./docs/APP_ja.md))
-- Manual ([English](./docs/MANUAL_en.md) | [Japanese](./docs/MANUAL_ja.md))
+- Manual (<a href="https://riken-rccs.github.io/OpenComposer/docs/manual.html">English</a> | <a href="https://riken-rccs.github.io/OpenComposer/docs/manual_ja.html">Japanese</a>)
 
 ## Disscussions
 - https://github.com/RIKEN-RCCS/OpenComposer/discussions

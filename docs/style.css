@@ -33,7 +33,7 @@
   font-size: 0.9rem; 
 }
 .table th {
-  background: forestgreen;
+  background: darkcyan;
   color: #ffffff;
 }
 .supplement-list li {
@@ -41,12 +41,12 @@
   margin-bottom: 0.5em;
 }
 code {
-  color: forestgreen;
+  color: darkcyan;
 }
 h2 {
   font-size: 1.5rem;
-  color: forestgreen;
-  border-left: 6px solid forestgreen;
+  color: darkcyan;
+  border-left: 6px solid darkcyan;
   padding-left: 0.75rem;
   margin: 1.5rem 0 0.7rem 0;
   font-weight: bold;
@@ -69,7 +69,7 @@ img {
   border: 1px black solid;
 }
 footer {
-  background-color: forestgreen;
+  background-color: darkcyan;
   margin-left: 270px;
   margin-top: 1rem;
 }
