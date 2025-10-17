@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Open Composerインストールマニュアル</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+</head>
+<body>
+
+  <div class="container-fluid">
+    <nav class="sidebar bg-body-secondary">
+      <h5 class="ps-3 pe-1 d-inline">目次</h5>
+      <ul class="nav flex-column px-3 py-2">
+        <li class="nav-item"><a href="#install" class="nav-link">1. インストール</a></li>
+        <li class="nav-item"><a href="#setting" class="nav-link">2. 設定</a></li>
+	<li class="nav-item"><a href="#registor" class="nav-link">3. Open OnDemandへの登録</a></li>
+      </ul>
+    </nav>
+
+    <main class="main-content">
+      <h2 id="install">1. インストール</h2>
+      <p>
+      Open Composerは<a target="_blank" href="https://openondemand.org/">Open OnDemand</a>上で動作します。Open OnDemandのアプリケーションディレクトリ<code>/var/www/ood/apps/sys/</code>にOpen Composerを保存してください。
+      </p>
+      <pre>
+# cd /var/www/ood/apps/sys/
+# git clone https://github.com/RIKEN-RCCS/OpenComposer.git
+</pre>
+
+      <h2 id="setting">2. 設定</h2>
+      <h3>2.1. 概要</h3>
+      <p>
+        <code>./conf.yml.erb.sample</code>を参考にして<code>./conf.yml.erb</code>を作成してください。
+      </p>
+      <pre># cd OpenComposer
+# cp conf.yml.erb.sample conf.yml.erb
+</pre>
+      <table class="table">
+	<tr><th>項目名</th><th>設定内容</th></tr>
+	<tr><td>apps_dir</td><td>アプリケーションのディレクトリ</td></tr>
+	<tr><td>scheduler</td><td>利用するスケジューラ（<code>slurm</code>、<code>pbspro</code>、<code>sge</code>、<code>fujitsu_tcs</code>）</td></tr>
+	<tr><td>cluster</td><td>クラスタの定義</td></tr>
+	<tr><td>data_dir</td><td>投入したジョブの情報の保存先（デフォルトは<code>${HOME}/composer</code>）</td></tr>
+	<tr><td>login_node</td><td>Open OnDemandのWebターミナルを起動した際のログイン先</td></tr>
+	<tr><td>ssh_wrapper</td><td>SSHを用いて他のノードのジョブスケジューラを用いる場合のコマンド</td></tr>
+	<tr><td>bin</td><td>ジョブスケジューラのコマンドのパス</td></tr>
+	<tr><td>bin_overrides</td><td>ジョブスケジューラの各コマンドのパス</td></tr>
+	<tr><td>sge_root</td><td>Grid Engineのルート用ディレクトリ（<code>SGE_ROOT</code>）</td></tr>
+	<tr><td>footer</td><td>フッタに記載する文字</td></tr>
+	<tr><td>thumbnail_width</td><td>ホームページの各アプリケーションのサムネイルの横幅</td></tr>
+	<tr><td>navbar_color</td><td>ナビゲーションバーの色</td></tr>
+	<tr><td>dropdown_color</td><td>ドロップダウンメニューの色</td></tr>
+	<tr><td>footer_color</td><td>フッタの色</td></tr>
+	<tr><td>category_color</td><td>ホームページのカテゴリの背景色</td></tr>
+	<tr><td>description_color</td><td>アプリケーションページのアプリケーション説明の背景色</td></tr>
+	<tr><td>form_color</td><td>アプリケーションページのテキストエリアの背景色</td></tr>
+      </table>
+      <p>
+	<code>apps_dir</code>は必須です。<code>scheduler</code>もしくは<code>cluster</code>のどちらか1つも必須です。
+      </p>
+      
+      <h3>2.2. <code>bin_overrides</code>の設定（省略可能）</h3>
+      <p>
+	ジョブスケジューラが<code>slurm</code>の場合は、<code>sbatch</code>、<code>scontrol</code>、<code>scancel</code>、<code>sacct</code>を設定できます。
+      </p>
+      <pre>bin_overrides:
+  sbatch:   "/usr/local/bin/sbatch"
+  scontrol: "/usr/local/bin/scontrol"
+  scancel:  "/usr/local/bin/scancel"
+  sacct:    "/usr/local/bin/sacct"</pre>
+
+      <p>
+	ジョブスケジューラが<code>pbspro</code>の場合は、<code>qsub</code>、<code>qstat</code>、<code>qdel</code>を設定できます。
+      </p>
+      <pre>bin_overrides:
+  qsub:   "/usr/local/bin/qsub"
+  qstat: "/usr/local/bin/qstat"
+  qdel:  "/usr/local/bin/qdel"</pre>
+
+      <p>
+	ジョブスケジューラが<code>sge</code>の場合は、<code>qsub</code>、<code>qstat</code>、<code>qdel</code>、<code>qacct</code>を設定できます。
+      </p>
+      <pre>bin_overrides:
+  qsub:   "/usr/local/bin/qsub"
+  qstat: "/usr/local/bin/qstat"
+  qdel:  "/usr/local/bin/qdel"
+  qacct: "/usr/local/bin/qacct"</pre>
+
+      <p>
+	ジョブスケジューラが<code>fujitsu_tcs</code>の場合は、<code>pjsub</code>、<code>pjstat</code>、<code>pjdel</code>を設定できます。
+      </p>
+      <pre>bin_overrides:
+  pjsub:  "/usr/local/bin/pjsub"
+  pjstat: "/usr/local/bin/pjstat"
+  pjdel:  "/usr/local/bin/pjdel"</pre>
+
+      <h3>2.3. <code>cluster</code>の設定（省略可能）</h3>
+      <p>
+	複数のジョブスケジューラを用いる場合に設定します。<code>name</code>と<code>scheduler</code>は必須で、それぞれクラスタの名前とスケジューラを設定します。また、他のスケジューラに関する設定（<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>）も可能です。注意点として、<code>cluster</code>を設定する場合は、<code>cluster</code>の外部で<code>scheduler</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>を設定することはできません。
+      </p>
+
+      <pre>cluster:
+  - name: "fugaku"
+    scheduler: "fujitsu_tcs"
+  - name: "prepost"
+    scheduler: "slurm"
+    bin_overrides:
+      sbatch:   "/usr/local/bin/sbatch"</pre>
+
+      <h2 id="registor">3. Open OnDemandへの登録</h2>
+      <h3>3.1. 管理者による登録</h3>
+      <p>
+	Open Composerを<code>/var/www/ood/apps/sys/</code>に保存すると、Open OnDemandのホームページにOpen Composerのアイコンが表示されます。Open Composerのアイコンが表示されない場合は、Open OnDemand用の設定ファイル<code>./manifest.yml</code>を確認してください。
+      </p>
+      <p>
+	Open Composer上のアプリケーションをOpen OnDemandのホームページに表示することもできます。例えば、<code>./sample_apps/Slurm/</code>というアプリケーションを表示させたい場合は、同名のディレクトリをOpen OnDemandのアプリケーションディレクトリに作成します（<code># mkdir /var/www/ood/apps/sys/Slurm</code>）。そして、そのディレクトリ内に下記のようなOpen OnDemand用の設定ファイル<code>manifest.yml</code>を作成します。
+      </p>
+
+      <pre># /var/www/ood/apps/sys/Slurm/manifest.yml
+---
+name: Slurm
+url: https://example.net/pun/sys/OpenComposer/Slurm</pre>
+
+      <h3>3.2. 一般ユーザによる登録</h3>
+      <p>
+	一般ユーザ権限でOpen Composerをインストールすることもできます。ただし、事前に管理者権限でOpen OnDemandの<a target="_blank" href="https://osc.github.io/ood-documentation/latest/how-tos/app-development/enabling-development-mode.html">App Development</a>の機能を有効化する必要があります。
+      </p>
+      <p>
+	ナビゲーションバーの「&lt;/&gt; Develop」の「My Sandbox Apps (Development)」を選択します（Webブラウザのウィンドウサイズが小さい場合は、「&lt;/&gt; Develop」ではなく「&lt;/&gt;」と表示されます）。
+      </p>
+      <img src="img/navbar.png" width="250" alt="Navbar">
+      <p>
+	「New App」をクリックします。
+      </p>
+      <img src="img/newapp.png" width="250" alt="New App">
+      <p>
+	「Clone Existing App」をクリックします。
+      </p>
+      <img src="img/clone.png" width="400" alt="Clone an existing app">
+      <p>
+	「Directory name」に任意の名前（ここではOpenComposer）、「Git remote」に「<a target="_blank" href="https://github.com/RIKEN-RCCS/OpenComposer.git">https://github.com/RIKEN-RCCS/OpenComposer.git</a>」を記入し、「Submit」をクリックします。
+      </p>
+      <img src="img/new_repo.png" width="800" alt="New repository">
+      <p>
+	「Launch Open Composer」をクリックします。
+      </p>
+      <img src="img/bundle.png" width="800" alt="Bundle Install">
+    </main>
+  </div>
+
+  <footer class="bg-purple d-flex justify-content-center align-items-center">
+    <p class="mb-0 text-white">&copy; RIKEN Center for Computational Science</p>
+  </footer>
+</body>
+</html>

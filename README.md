@@ -2,7 +2,7 @@
 
 Open Composer is a web application to generate batch job scripts and submit batch jobs for HPC clusters on [Open OnDemand](https://openondemand.org/).
 
-- Installation ([English](./docs/INSTALL_en.md) | [Japanese](./docs/INSTALL_ja.md))
+- Installation ([English](./docs/install.html) | [Japanese](./docs/install_ja.html))
 - Settings of application ([English](./docs/APP_en.md)  | [Japanese](./docs/APP_ja.md))
 - Manual ([English](./docs/MANUAL_en.md) | [Japanese](./docs/MANUAL_ja.md))
 
