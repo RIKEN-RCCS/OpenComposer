@@ -32,7 +32,8 @@
 	<li class="nav-item"><a href="#combination" class="nav-link">4. Available combinations</a></li>
 	<li class="nav-item"><a href="#hide-script" class="nav-link">5. Job script hiding</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">6. Header section</a></li>
-	<li class="nav-item"><a href="#supplement" class="nav-link">7. Supplement</a></li>
+	<li class="nav-item"><a href="#sample" class="nav-link">7. Sample</a></li>
+	<li class="nav-item"><a href="#supplement" class="nav-link">8. Supplement</a></li>
       </ul>
     </nav>
 
@@ -721,7 +722,15 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
 
       <img src="img/hide-script-header.png" width="600" alt="Hide script in header">
 
-      <h2 id="supplement">7. Supplement</h2>
+      <h2 id="sample">7. Sample</h2>
+      <p>The sample applications are as follows:</p>
+      <ul>
+        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps">https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps</a></li>
+        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_fugaku">https://github.com/RIKEN-RCCS/composer_fugaku</a></li>
+        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_rccs_cloud">https://github.com/RIKEN-RCCS/composer_rccs_cloud</a></li>
+      </ul>
+      
+      <h2 id="supplement">8. Supplement</h2>
       <ul>
 	<li>Widget names can only contain alphanumeric characters and underscores. Numbers and underscores cannot start the name. The same rule applies to the directory name in which the application is saved. Note that widget names ending with an underscore and a number (e.g. <code>nodes_1</code>) may conflict when referencing the value of a widget with the <code>size</code> attribute. However, when defining the <code>header</code> section in <code>form.yml</code>, the widget names beginning with underscores (<code>_script_location</code> and <code>_script</code>) used in <code>lib/header.yml.erb</code> can be used.</li>
 	<li>If there is no second element in <code>options</code>, the first element is used instead.</li>
@@ -737,13 +746,6 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
 	<li>When developing Open Composer with general user privileges, it is recommended to run Open Composer in development mode. When an error occurs, its cause will be displayed in the web browser. Please edit <code>./run.rb</code> as follows.
 <pre>#set :environment, :production
 set :environment, :development</pre></li>
-	<li>The sample applications are as follows:
-          <ul>
-	    <li><a target="_blank" href="https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps">https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps</a></li>
-	    <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_fugaku">https://github.com/RIKEN-RCCS/composer_fugaku</a></li>
-	    <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_rccs_cloud">https://github.com/RIKEN-RCCS/composer_rccs_cloud</a></li>
-          </ul>
-	</li>
       </ul>
     </main>
   </div>

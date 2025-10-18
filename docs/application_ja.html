@@ -32,7 +32,8 @@
 	<li class="nav-item"><a href="#combination" class="nav-link">4. 利用可能な組合せ</a></li>
 	<li class="nav-item"><a href="#hide-script" class="nav-link">5. ジョブスクリプトの非表示化</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">6. headerの設定</a></li>
-	<li class="nav-item"><a href="#supplement" class="nav-link">7. 補足</a></li>
+	<li class="nav-item"><a href="#sample" class="nav-link">7. サンプル</a></li>
+	<li class="nav-item"><a href="#supplement" class="nav-link">8. 補足</a></li>
       </ul>
     </nav>
 
@@ -669,7 +670,15 @@ script: |
 
       <img src="img/hide-script-header.png" width="600" alt="Hide script in header">
 
-      <h2 id="supplement">7. 補足</h2>
+      <h2 id="sample">7. サンプル</h2>
+      <p>アプリケーションのサンプルは下記の通りです。</p>
+      <ul>
+        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps">https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps</a></li>
+        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_fugaku">https://github.com/RIKEN-RCCS/composer_fugaku</a></li>
+        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_rccs_cloud">https://github.com/RIKEN-RCCS/composer_rccs_cloud</a></li>
+      </ul>
+	  
+      <h2 id="supplement">8. 補足</h2>
       <ul>
 	<li>ウィジット名に利用できるのは英数字とアンダースコアのみです。また、数字とアンダースコアを先頭に用いることもできません。アプリケーションを保存するディレクトリ名も同様です。末尾がアンダースコア+数字のウィジット名（例：<code>nodes_1</code>）は、<code>size</code>の属性を持つウィジットの値を参照するときに衝突する可能性があるので注意ください。ただし、<code>header</code>を<code>form.yml</code>で定義する場合、<code>lib/header.yml.erb</code>で用いられているアンダースコアで始まるウィジット名（<code>_script_location</code>と<code>_script</code>）は利用可能です。</li>
 	<li><code>options</code>で2つ目の要素がない場合、1つ目の要素が代わりに用いられます。</li>
@@ -685,13 +694,6 @@ script: |
 	<li>一般ユーザ権限でOpen Composerの開発を行う場合、Open Composerを開発モードに設定すると便利です。エラーが発生した場合、Webブラウザのその原因が表示されます。<code>./run.rb</code>を下記のように編集してください。
 <pre>#set :environment, :production
 set :environment, :development</pre></li>
-	<li>アプリケーションのサンプルは下記の通りです。
-	  <ul>
-	    <li><a target="_blank" href="https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps">https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps</a></li>
-	    <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_fugaku">https://github.com/RIKEN-RCCS/composer_fugaku</a></li>
-	    <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_rccs_cloud">https://github.com/RIKEN-RCCS/composer_rccs_cloud</a></li>
-	  </ul>
-	</li>
       </ul>
     </main>
   </div>
