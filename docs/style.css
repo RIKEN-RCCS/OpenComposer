@@ -17,6 +17,9 @@
   padding-left: 1rem;
   padding-right: 1rem;
 }
+.main-content ul {
+  text-align: justify;
+}
 .table {
   width: auto;
   text-align: left;
@@ -35,13 +38,6 @@
 .table th {
   background: #007070;
   color: #ffffff;
-}
-.supplement-list li {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-}
-ul {
-    text-align: justify;
 }
 code {
     color: mediumvioletred;
