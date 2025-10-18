@@ -3,7 +3,7 @@
 Open Composer is a web application to generate batch job scripts and submit batch jobs for HPC clusters on [Open OnDemand](https://openondemand.org/).
 
 - Installation (<a href="https://riken-rccs.github.io/OpenComposer/docs/install.html">English</a> | <a href="https://riken-rccs.github.io/OpenComposer/docs/install_ja.html">Japanese</a>)
-- Settings of application ([English](./docs/APP_en.md)  | [Japanese](./docs/APP_ja.md))
+- Settings of application (<a href="https://riken-rccs.github.io/OpenComposer/docs/application.html">English</a> | <a href="https://riken-rccs.github.io/OpenComposer/docs/application_ja.html">Japanese</a>)
 - Manual (<a href="https://riken-rccs.github.io/OpenComposer/docs/manual.html">English</a> | <a href="https://riken-rccs.github.io/OpenComposer/docs/manual_ja.html">Japanese</a>)
 
 ## Disscussions
@@ -22,17 +22,6 @@ Open Composer is a web application to generate batch job scripts and submit batc
 
 ## Demo
 https://github.com/user-attachments/assets/0eee0b62-9364-465a-ae1e-7d412c1c9de9
-
-## Tips
-When developing Open Composer on Open OnDemand with general user privileges,
-it is recommended to run Open Composer in development mode.
-When an error occurs, its cause will be displayed in the web browser.
-Please edit `run.sh` as follows.
-
-```
-#set :environment, :production
-set :environment, :development
-```
 
 ## Reference
 - [SupercomputingAsia 2025](https://sca25.sc-asia.org/), Singapore, Mar., 2025 [[Poster](https://mnakao.net/data/2025/sca.pdf)]

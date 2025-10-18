@@ -1,5 +1,5 @@
 .sidebar {
-  width: 270px;
+  width: 275px;
   min-height: 100%;
   position: fixed;
   top: 0;
@@ -13,7 +13,7 @@
   padding-bottom: 0.25rem;
 }
 .main-content {
-  margin-left: 270px;
+  margin-left: 275px;
   padding-left: 1rem;
   padding-right: 1rem;
 }
@@ -33,20 +33,29 @@
   font-size: 0.9rem; 
 }
 .table th {
-  background: darkcyan;
+  background: #007070;
   color: #ffffff;
 }
 .supplement-list li {
   margin-top: 0.5em;
   margin-bottom: 0.5em;
 }
+ul {
+    text-align: justify;
+}
 code {
-  color: darkcyan;
+    color: mediumvioletred;
+}
+h1 {
+  font-size: 2.2rem;
+  color: black;
+  margin: 0.5rem 0 0.7rem 0;
+  font-weight: bold;
 }
 h2 {
   font-size: 1.5rem;
-  color: darkcyan;
-  border-left: 6px solid darkcyan;
+  color: #007070;
+  border-left: 6px solid #007070;
   padding-left: 0.75rem;
   margin: 1.5rem 0 0.7rem 0;
   font-weight: bold;
@@ -69,7 +78,7 @@ img {
   border: 1px black solid;
 }
 footer {
-  background-color: darkcyan;
+  background-color: #007070;
   margin-left: 270px;
   margin-top: 1rem;
 }

@@ -15,11 +15,16 @@
       <ul class="nav flex-column px-3 py-2">
         <li class="nav-item"><a href="#install" class="nav-link">1. Installation</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. Setting</a></li>
+	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.1. bin_overrides</a></li>
+	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.2. cluster</a></li>
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Registration for Open OnDemand</a></li>
+	<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. By administrator</a></li>
+        <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. By general user</a></li>
       </ul>
     </nav>
 
     <main class="main-content">
+      <h1>How to install Open Composer</h1>
       <h2 id="install">1. Installation</h2>
       <p>
 	Open Composer runs on <a target="_blank" href="https://openondemand.org/">Open OnDemand</a>. Save Open Composer in your Open OnDemand application directory: <code>/var/www/ood/apps/sys/</code>.
@@ -30,7 +35,6 @@
 </pre>
 
       <h2 id="setting">2. Setting</h2>
-      <h3>2.1. General</h3>
       <p>
 	Create <code>./conf.yml.erb</code> with reference to <code>./conf.yml.erb.sample</code>.
       </p>
@@ -61,7 +65,10 @@
 	The <code>apps_dir</code> is required and either <code>scheduler</code> or <code>cluster</code> is required.
       </p>
       
-      <h3>2.2. Setting <code>bin_overrides</code> (Optional)</h3>
+      <h3 id="bin_overrides">2.1. bin_overrides</h3>
+      <p>
+	This setting is optional.
+      </p>
       <p>
 	If the job scheduler is <code>slurm</code>, set <code>sbatch</code>, <code>scontrol</code>, <code>scancel</code>, and <code>sacct</code> as follows.
       </p>
@@ -96,7 +103,10 @@
   pjstat: "/usr/local/bin/pjstat"
   pjdel:  "/usr/local/bin/pjdel"</pre>
 
-      <h3>2.3. Setting <code>cluster</code> (Optional)</h3>
+      <h3 id="cluster">2.2. cluster</h3>
+      <p>
+	This setting is	optional.
+      </p>
       <p>
 	Set this when using multiple job schedulers.
 	The <code>name</code> and <code>scheduler</code> are required and set the cluster name and scheduler respectively.
@@ -113,14 +123,14 @@
       sbatch:   "/usr/local/bin/sbatch"</pre>
 
       <h2 id="registor">3. Registration for Open OnDemand</h2>
-      <h3>3.1. By administrator</h3>
+      <h3 id="admin">3.1. By administrator</h3>
       <p>
-	When you save Open Composer to <code>/var/www/ood/apps/sys/</code>, the Open Composer icon will be displayed on the Open OnDemand page.
-If it is not displayed, check <code>./manifest.yml</code>.
+	When you save Open Composer to <code>/var/www/ood/apps/sys/</code>, the Open Composer icon will be displayed on the Open OnDemand home page.
+If it is not displayed, check <code>/var/www/ood/apps/sys/OpenComposer/manifest.yml</code>.
       </p>
       <p>
-	You can also display Open Composer applications on the Open OnDemand page.
-	For example, if you want to display an application <code>./sample_apps/apps/Slurm/</code>,
+	You can also display Open Composer applications on the Open OnDemand home page.
+	For example, if you want to display an application <code>/var/www/ood/apps/sys/OpenComposer/sample_apps/Slurm</code>,
 	create a directory with the same name in the Open OnDemand application directory (<code># mkdir /var/www/ood/apps/sys/Slurm</code>).
 	Then, create the following Open OnDemand configuration file <code>manifest.yml</code> in that directory.
       </p>
@@ -128,15 +138,15 @@ If it is not displayed, check <code>./manifest.yml</code>.
       <pre># /var/www/ood/apps/sys/Slurm/manifest.yml
 ---
 name: Slurm
-url: https://example.net/pun/sys/OpenComposer/Slurm</pre>
+url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
 
-      <h3>3.2. By general user</h3>
+      <h3 id="general">3.2. By general user</h3>
       <p>
 	You can also install Open Composer with general user privileges.
 	However, the <a target="_blank" href="https://osc.github.io/ood-documentation/latest/how-tos/app-development/enabling-development-mode.html">App Development</a> feature in Open OnDemand needs to be enabled in advance by an administrator.
       </p>
       <p>
-	Select "My Sandbox Apps (Development)" under "&lt;/&gt; Develop" in the navigation bar. (If your web browser window size is small, it will display "&lt;/&gt;" instead of "&lt;/&gt; Develop".)
+	Select "My Sandbox Apps (Development)" under "&lt;/&gt; Develop" in the navigation bar (If your web browser window size is small, it will display "&lt;/&gt;" instead of "&lt;/&gt; Develop").
       </p>
       <img src="img/navbar.png" width="250" alt="Navbar">
       <p>

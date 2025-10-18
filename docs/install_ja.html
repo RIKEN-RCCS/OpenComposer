@@ -15,11 +15,16 @@
       <ul class="nav flex-column px-3 py-2">
         <li class="nav-item"><a href="#install" class="nav-link">1. インストール</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. 設定</a></li>
+	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.1. bin_overrides</a></li>
+	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.2. cluster</a></li>
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Open OnDemandへの登録</a></li>
+	<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. 管理者による登録</a></li>
+        <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. 一般ユーザによる登録</a></li>
       </ul>
     </nav>
 
     <main class="main-content">
+      <h1>Open Composerインストールマニュアル</h1>
       <h2 id="install">1. インストール</h2>
       <p>
       Open Composerは<a target="_blank" href="https://openondemand.org/">Open OnDemand</a>上で動作します。Open OnDemandのアプリケーションディレクトリ<code>/var/www/ood/apps/sys/</code>にOpen Composerを保存してください。
@@ -30,7 +35,6 @@
 </pre>
 
       <h2 id="setting">2. 設定</h2>
-      <h3>2.1. 概要</h3>
       <p>
         <code>./conf.yml.erb.sample</code>を参考にして<code>./conf.yml.erb</code>を作成してください。
       </p>
@@ -61,7 +65,10 @@
 	<code>apps_dir</code>は必須です。<code>scheduler</code>もしくは<code>cluster</code>のどちらか1つも必須です。
       </p>
       
-      <h3>2.2. <code>bin_overrides</code>の設定（省略可能）</h3>
+      <h3 id="bin_overrides">2.1. bin_overrides</h3>
+      <p>
+	本設定は省略可能です。
+      </p>
       <p>
 	ジョブスケジューラが<code>slurm</code>の場合は、<code>sbatch</code>、<code>scontrol</code>、<code>scancel</code>、<code>sacct</code>を設定できます。
       </p>
@@ -96,7 +103,10 @@
   pjstat: "/usr/local/bin/pjstat"
   pjdel:  "/usr/local/bin/pjdel"</pre>
 
-      <h3>2.3. <code>cluster</code>の設定（省略可能）</h3>
+      <h3 id="cluster">2.2. cluster</h3>
+      <p>
+	本設定は省略可能です。
+      </p>
       <p>
 	複数のジョブスケジューラを用いる場合に設定します。<code>name</code>と<code>scheduler</code>は必須で、それぞれクラスタの名前とスケジューラを設定します。また、他のスケジューラに関する設定（<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>）も可能です。注意点として、<code>cluster</code>を設定する場合は、<code>cluster</code>の外部で<code>scheduler</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>を設定することはできません。
       </p>
@@ -110,20 +120,20 @@
       sbatch:   "/usr/local/bin/sbatch"</pre>
 
       <h2 id="registor">3. Open OnDemandへの登録</h2>
-      <h3>3.1. 管理者による登録</h3>
+      <h3 id="admin">3.1. 管理者による登録</h3>
       <p>
-	Open Composerを<code>/var/www/ood/apps/sys/</code>に保存すると、Open OnDemandのホームページにOpen Composerのアイコンが表示されます。Open Composerのアイコンが表示されない場合は、Open OnDemand用の設定ファイル<code>./manifest.yml</code>を確認してください。
+	Open Composerを<code>/var/www/ood/apps/sys/</code>に保存すると、Open OnDemandのホームページにOpen Composerのアイコンが表示されます。Open Composerのアイコンが表示されない場合は、Open OnDemand用の設定ファイル<code>/var/www/ood/apps/sys/OpenComposer/manifest.yml</code>を確認してください。
       </p>
       <p>
-	Open Composer上のアプリケーションをOpen OnDemandのホームページに表示することもできます。例えば、<code>./sample_apps/Slurm/</code>というアプリケーションを表示させたい場合は、同名のディレクトリをOpen OnDemandのアプリケーションディレクトリに作成します（<code># mkdir /var/www/ood/apps/sys/Slurm</code>）。そして、そのディレクトリ内に下記のようなOpen OnDemand用の設定ファイル<code>manifest.yml</code>を作成します。
+	Open Composer上のアプリケーションをOpen OnDemandのホームページに表示することもできます。例えば、<code>/var/www/ood/apps/sys/OpenComposer/sample_apps/Slurm</code>というアプリケーションを表示させたい場合は、同名のディレクトリをOpen OnDemandのアプリケーションディレクトリに作成します（<code># mkdir /var/www/ood/apps/sys/Slurm</code>）。そして、そのディレクトリ内に下記のようなOpen OnDemand用の設定ファイル<code>manifest.yml</code>を作成します。
       </p>
 
       <pre># /var/www/ood/apps/sys/Slurm/manifest.yml
 ---
 name: Slurm
-url: https://example.net/pun/sys/OpenComposer/Slurm</pre>
+url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
 
-      <h3>3.2. 一般ユーザによる登録</h3>
+      <h3 id="general">3.2. 一般ユーザによる登録</h3>
       <p>
 	一般ユーザ権限でOpen Composerをインストールすることもできます。ただし、事前に管理者権限でOpen OnDemandの<a target="_blank" href="https://osc.github.io/ood-documentation/latest/how-tos/app-development/enabling-development-mode.html">App Development</a>の機能を有効化する必要があります。
       </p>

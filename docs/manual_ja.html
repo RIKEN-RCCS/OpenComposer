@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Open Composer利用マニュアル</title>
+  <title>Open Composerユーザマニュアル</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="style.css" rel="stylesheet">
@@ -21,6 +21,7 @@
     </nav>
 
     <main class="main-content">
+      <h1>Open Composerユーザマニュアル</h1>
       <h2 id="intro">1. はじめに</h2>
       <p>
 	Open ComposerはWebブラウザからHPCクラスタにバッチジョブを投入することができるWebアプリケーションです。Open Composerは「ホームページ」、「アプリケーションページ」、「履歴ページ」の3つのページから構成されています。
@@ -46,7 +47,7 @@
 
       <ul class="mt-4">
 	<li>ヘッダ右の「Filter」に文字を入力してエンターキーを押すと、その文字と表の各要素とが一致しているジョブのみが表示されます。</li>
-	<li>ヘッダ右の「All」、「Running」、「Queued」、「Completed」のラジオボタンをクリックすると、それぞれの状態に対応したジョブのみが表示されます。</li>
+	<li>ヘッダ右の「All」、「Running」、「Queued」、「Completed」のラジオボタンをクリックすると、それぞれの状態に対応したジョブのみが表示されます。その下のラジオボタンは複数のジョブスケジューラを設定している場合のみ表示されます（図では「Fugaku」と「Prepost」と表示されていますが、表示名は設定によります）。そのラジオボタンをクリックすると、選択されたジョブスケジューラのジョブだけが表示されます。</li>
 	<li>実行中のジョブやキューに登録されているジョブをキャンセルしたい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Cancel Job」をクリックします。</li>
 	<li>完了したジョブの情報を表から削除したい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Delete Info」をクリックします。</li>
 	<li>「Job ID」のリンクをクリックすると、ジョブの詳細が表示されます。</li>
