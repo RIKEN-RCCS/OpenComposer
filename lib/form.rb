@@ -285,14 +285,15 @@ helpers do
 
     html += <<~HTML
     <div class="input-group">
-      <input type="text" class="form-control" id="#{key}" onkeydown="ocForm.handleKeyDown(event, '#{key}')" oninput="ocForm.showSuggestions('#{key}')" onfocus="ocForm.showSuggestions('#{key}', true)" onblur="ocForm.hideSuggestions('#{key}')" data-required=\"#{required}\">
+      <input type="text" tabindex=\"#{@table_index}\" class="form-control" id="#{key}" onkeydown="ocForm.handleKeyDown(event, '#{key}')" oninput="ocForm.showSuggestions('#{key}')" onfocus="ocForm.showSuggestions('#{key}', true)" onblur="ocForm.hideSuggestions('#{key}')" data-required=\"#{required}\">
       <button class="btn btn-dark" id="#{add_button_id}" disabled onclick="ocForm.addSelectedItem('#{key}')">add</button>
     </div>
     <ul class="list-group position-absolute w-100" id="#{suggestions_list_id}"></ul>
     <div id="#{selected_items_id}" class="d-flex flex-wrap gap-2 mt-2"></div>
     <div id="#{hidden_values_id}"></div>
     HTML
-
+    @table_index += 1
+    
     return html + output_help(key, value)
   end
 
