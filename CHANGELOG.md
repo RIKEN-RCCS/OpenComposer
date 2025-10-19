@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.6.0] - 2025-10-19
+### Add
+- The function for zeropadding.
+- The function to output log.
+- The custom PBS Pro scheduler for Miyabi.
+
+### Fixed
+- The initial value was not set correctly when the value was a number.
+- Consolidate querying both running and history jobs in PBS Pro in [9](https://github.com/RIKEN-RCCS/OpenComposer/pull/9).
+- PBS Pro qstat bug in [8](https://github.com/RIKEN-RCCS/OpenComposer/pull/8).
+
+### Changed
+- Change the manual format from Markdown to HTML.
+- Change "cancel job" from "delete job" in history page.
+- The name of the page from Top Page to Home Page.
+
 ## [1.5.0] - 2025-05-08
 ### Add
 - Add highlights to filtered results in history page.
@@ -9,7 +25,7 @@
 - Filter in history page searches all job information.
 
 ### Fixed
-- Sanitization for XSS
+- Sanitization for XSS.
 
 ## [1.4.0] - 2025-04-08
 
