@@ -70,7 +70,7 @@ related_app:
       
       <h3 id="form">1.2. form.yml</h3>
       <p>
-	The <code>form.yml</code> is composed of five main keys: <code>form</code>, <code>header</code>, <code>script</code>, <code>check</code> and <code>submit</code>.
+	The <code>form.yml</code> is composed of five main sections: <code>form</code>, <code>header</code>, <code>script</code>, <code>check</code> and <code>submit</code>.
 	The <code>form</code> and <code>script</code> are required fields, but <code>header</code>, <code>check</code> and <code>submit</code> can be omitted.
       </p>
       <p>
@@ -107,7 +107,7 @@ related_app:
 	<code>min</code> and <code>max</code> set the range, and <code>step</code> determines the increment.
 	The <code>required</code> key specifies whether the input is mandatory, and <code>help</code> provides a tooltip below the input field.
 	The <code>script</code> section specifies how the input value will appear in the job script.
-	The <code>#{nodes}</code> in the <code>script</code> will be replaced with the input value.
+	The <code>#{nodes}</code> in the <code>script</code> section will be replaced with the input value.
       </p>
       <pre>form:
   nodes:
@@ -178,7 +178,7 @@ script: |
       <pre>form:
   time:
     widget: number
-    label:  [Maximum run time, [0 - 24 h, 0 - 59 m]]
+    label:  [ Maximum run time, [0 - 24 h, 0 - 59 m] ]
     size:   2
     value:  [  1,  0 ]
     min:    [  0,  0 ]
@@ -186,7 +186,7 @@ script: |
     step:   [  1,  1 ]</pre>
       <img src="img/label3.png" alt="label">
       <p>
-	If you want to change the label of the job script (default is "Script Content"), set <code>label</code> for <code>script</code>.
+	If you want to change the label of the job script (default is "Script Content"), set <code>label</code> in the <code>script</code> section.
 	In that case, write the job script in <code>content</code>.
       </p>
       <pre>script:
@@ -311,8 +311,8 @@ script: |
     widget: select
     label: Select package
     options:
-      - [A, [packageA, a.out]]
-      - [B, [packageB, b.out]]
+      - [ A, [packageA, a.out] ]
+      - [ B, [packageB, b.out] ]
 
 script: |
   module load #{package_1}
@@ -329,11 +329,11 @@ script: |
     label: Add modules
     value: mpi/mpich-x86_64
     options:
-      - [mpi/mpich-x86_64, mpi/mpich-x86_64]
-      - [mpi/openmpi-x86_64, mpi/openmpi-x86_64]
-      - [nvhpc/24.3, nvhpc/24.3]
-      - [nvhpc/24.5, nvhpc/24.5]
-      - [nvhpc/24.7, nvhpc/24.7]
+      - [ mpi/mpich-x86_64, mpi/mpich-x86_64 ]
+      - [ mpi/openmpi-x86_64, mpi/openmpi-x86_64 ]
+      - [ nvhpc/24.3, nvhpc/24.3 ]
+      - [ nvhpc/24.5, nvhpc/24.5 ]
+      - [ nvhpc/24.7, nvhpc/24.7 ]
 
 script: |
   module load #{load_modules}</pre>
@@ -352,11 +352,11 @@ module load nvhpc/24.7</pre>
     value: mpi/mpich-x86_64
     separator: " "
     options:
-      - [mpi/mpich-x86_64, mpi/mpich-x86_64]
-      - [mpi/openmpi-x86_64, mpi/openmpi-x86_64]
-      - [nvhpc/24.3, nvhpc/24.3]
-      - [nvhpc/24.5, nvhpc/24.5]
-      - [nvhpc/24.7, nvhpc/24.7]
+      - [ mpi/mpich-x86_64, mpi/mpich-x86_64 ]
+      - [ mpi/openmpi-x86_64, mpi/openmpi-x86_64 ]
+      - [ nvhpc/24.3, nvhpc/24.3 ]
+      - [ nvhpc/24.5, nvhpc/24.5 ]
+      - [ nvhpc/24.7, nvhpc/24.7 ]
       
 script: |
   module load #{load_modules}</pre>
@@ -371,13 +371,13 @@ script: |
   load_modules:
     widget: multi_select
     label: Add modules
-    value: [mpi/mpich-x86_64, nvhpc/24.7]
+    value: [ mpi/mpich-x86_64, nvhpc/24.7 ]
     options:
-      - [mpi/mpich-x86_64, mpi/mpich-x86_64]
-      - [mpi/openmpi-x86_64, mpi/openmpi-x86_64]
-      - [nvhpc/24.3, nvhpc/24.3]
-      - [nvhpc/24.5, nvhpc/24.5]
-      - [nvhpc/24.7, nvhpc/24.7]</pre>
+      - [ mpi/mpich-x86_64, mpi/mpich-x86_64 ]
+      - [ mpi/openmpi-x86_64, mpi/openmpi-x86_64 ]
+      - [ nvhpc/24.3, nvhpc/24.3 ]
+      - [ nvhpc/24.5, nvhpc/24.5 ]
+      - [ nvhpc/24.7, nvhpc/24.7 ]</pre>
 
       <h3 id="radio">2.6. radio widget</h3>
       <p>
@@ -551,7 +551,7 @@ script: |
       <p>
 	In the following example, when <code>Fugaku</code> is selected for <code>cluster</code>,
 	the <code>GPU</code> option for <code>node_type</code> and the <code>cuda_ver</code> widget will be disabled.
-	If a key is disabled, its line in <code>script</code> will also be deleted.
+	If a key is disabled, its line in the <code>script</code> section will also be deleted.
       </p>
       <pre>form:
   cluster:
@@ -732,6 +732,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
       
       <h2 id="supplement">8. Supplement</h2>
       <ul>
+	<li>All the samples on this page are written in <code>bash</code>, but you can use other shells as well. However, the <code>submit</code> section can only be written in <code>bash</code>.</li>
 	<li>Widget names can only contain alphanumeric characters and underscores. Numbers and underscores cannot start the name. The same rule applies to the directory name in which the application is saved. Note that widget names ending with an underscore and a number (e.g. <code>nodes_1</code>) may conflict when referencing the value of a widget with the <code>size</code> attribute. However, when defining the <code>header</code> section in <code>form.yml</code>, the widget names beginning with underscores (<code>_script_location</code> and <code>_script</code>) used in <code>lib/header.yml.erb</code> can be used.</li>
 	<li>If there is no second element in <code>options</code>, the first element is used instead.</li>
 	<li>In the <code>script</code> section, if a variable used in a line does not have a value, the line is not displayed. However, if you add a colon to the beginning of the variable (e.g. <code>#{:nodes}</code> or <code>#{basename(:input_file)}</code>), the line will be output even if the variable does not have a value.</li>

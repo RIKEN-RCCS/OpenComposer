@@ -70,7 +70,7 @@ related_app:
       
       <h3 id="form">1.2. form.ymlの設定</h3>
       <p>
-	<code>form.yml</code>は、<code>form</code>、<code>header</code>、<code>script</code>、<code>check</code>、<code>submit</code>というキーで構成されています。<code>form</code>と<code>script</code>は必須項目ですが、<code>header</code>、<code>check</code>、<code>submit</code>は省略できます。
+	<code>form.yml</code>は、<code>form</code>、<code>header</code>、<code>script</code>、<code>check</code>、<code>submit</code>というセクションで構成されています。<code>form</code>と<code>script</code>は必須項目ですが、<code>header</code>、<code>check</code>、<code>submit</code>は省略できます。
       </p>
       <p>
 	次の図は<code>form</code>、<code>header</code>、<code>script</code>の担当範囲を示しています。<code>form</code>と<code>header</code>と<code>script</code>からジョブスクリプトが生成されます。<code>header</code>を省略した場合は<code>./lib/header.yml.erb</code>が代わりに利用されます（ほとんどの場合、<code>header</code>を<code>form.yml</code>で定義する必要はないでしょう）。なお、左上のアプリケーションの説明などは<code>manifest.yml</code>の担当範囲です。<code>check</code>はウィジットに設定された値のチェックをジョブの投入前に行います。<code>submit</code>はジョブを投入する際の前処理を定義します。
@@ -94,7 +94,7 @@ related_app:
       
       <h3 id="number">2.1. numberウィジット</h3>
       <p>
-	数値の入力欄を表示します。下の例の<code>nodes</code>はウィジットの変数名です。<code>label</code>はラベル、<code>value</code>は初期値、<code>min</code>は最小値、<code>max</code>は最大値、<code>step</code>はステップ幅です。<code>required</code>は必須であるかどうかを指定します。<code>help</code>は入力欄の下に表示されるヘルプメッセージです。ジョブスクリプトには<code>script</code>内の文字列が表示されます。<code>script</code>の中の<code>#{nodes}</code>は入力した値に置き換えられます。
+	数値の入力欄を表示します。下の例の<code>nodes</code>はウィジットの変数名です。<code>label</code>はラベル、<code>value</code>は初期値、<code>min</code>は最小値、<code>max</code>は最大値、<code>step</code>はステップ幅です。<code>required</code>は必須であるかどうかを指定します。<code>help</code>は入力欄の下に表示されるヘルプメッセージです。ジョブスクリプトには<code>script</code>セクション内の文字列が表示されます。<code>script</code>セクション内の<code>#{nodes}</code>は入力した値に置き換えられます。
       </p>
       <pre>form:
   nodes:
@@ -110,7 +110,7 @@ related_app:
 script: |
   #SBATCH --nodes=#{nodes}</pre>
       <p>
-	複数の数値の入力欄を表示することもできます。その場合、<code>size</code>で入力欄の数を記述し、各項目を配列形式で記述します。<code>script</code>の<code>#{time_1}</code>と<code>#{time_2}</code>は、1つ目と2つ目に入力した値に置き換えられます。
+	複数の数値の入力欄を表示することもできます。その場合、<code>size</code>で入力欄の数を記述し、各項目を配列形式で記述します。<code>script</code>セクションの<code>#{time_1}</code>と<code>#{time_2}</code>は、1つ目と2つ目に入力した値に置き換えられます。
       </p>
       <pre>form:
   time:
@@ -160,7 +160,7 @@ script: |
       <pre>form:
   time:
     widget: number
-    label:  [Maximum run time, [0 - 24 h, 0 - 59 m]]
+    label:  [ Maximum run time, [0 - 24 h, 0 - 59 m] ]
     size:   2
     value:  [  1,  0 ]
     min:    [  0,  0 ]
@@ -168,17 +168,17 @@ script: |
     step:   [  1,  1 ]</pre>
       <img src="img/label3.png" alt="label">
       <p>
-	ジョブスクリプトのラベル（デフォルトは「Script Content」）を変更したい場合は<code>script</code>に対して<code>label</code>を設定します。その場合、ジョブスクリプトは<code>content</code>に記述します。	
+	ジョブスクリプトのラベル（デフォルトは「Script Content」）を変更したい場合は<code>script</code>セクションで<code>label</code>を設定します。その場合、ジョブスクリプトは<code>content</code>に記述します。	
       </p>
       <pre>script:
   label: Script Details
   content: |
     #SBATCH --nodes=#{nodes}</pre>
       <p>
-	<code>check</code>では、Rubyスクリプトと関数<code>oc_assert(condition, message)</code>を利用できます。この関数は<code>condition</code>が<code>false</code>の場合、<code>message</code>を出力して処理を終了します。下記のサンプルでは、24時間よりも大きな値が入力された状態で「Submit」ボタンをクリックすると、エラーメッセージが出力され、ジョブスクリプトの投入は行わないことを意味しています。<code>form</code>の変数を参照する場合は、@マークの後に変数名を記述してください。なお、すべての変数は文字列であることに注意ください。
+	<code>check</code>セクションでは、Rubyスクリプトと関数<code>oc_assert(condition, message)</code>を利用できます。この関数は<code>condition</code>が<code>false</code>の場合、<code>message</code>を出力して処理を終了します。下記のサンプルでは、24時間よりも大きな値が入力された状態で「Submit」ボタンをクリックすると、エラーメッセージが出力され、ジョブスクリプトの投入は行わないことを意味しています。<code>form</code>の変数を参照する場合は、@マークの後に変数名を記述してください。なお、すべての変数は文字列であることに注意ください。
       </p>
       <p>
-	<code>check</code>では、下記の特殊な変数も利用できます。
+	<code>check</code>セクションでは、下記の特殊な変数も利用できます。
       </p>
       <ul>
 	<li>@OC_APP_NAME: <code>manifest.yml</code>の<code>name</code>で定義しているアプリケーション名</li>
@@ -207,7 +207,7 @@ check: |
   message = "Exceeded Time"
   oc_assert(time_1 != 24 || time_2 == 0, message)</pre>
       <p>
-	<code>submit</code>のサンプルは下記の通りです。シェルスクリプトで記述します。<code>form</code>の変数を参照する場合は、<code>script</code>セクションと同様に<code>#{...}</code>を利用してください。環境変数<code>OC_SUBMIT_OPTIONS</code>は、ジョブスクリプト投入コマンドに追加のオプションを設定できます。この処理の実行後に、ジョブスクリプトを投入するためのコマンド（例えば、<code>sbatch #{OC_SUBMIT_OPTIONS} -J #{OC_JOB_NAME} #{OC_SCRIPT_NAME}</code>）が実行されます。
+	<code>submit</code>セクションのサンプルは下記の通りです。シェルスクリプトで記述します。<code>form</code>の変数を参照する場合は、<code>script</code>セクションと同様に<code>#{...}</code>を利用してください。環境変数<code>OC_SUBMIT_OPTIONS</code>は、ジョブスクリプト投入コマンドに追加のオプションを設定できます。この処理の実行後に、ジョブスクリプトを投入するためのコマンド（例えば、<code>sbatch #{OC_SUBMIT_OPTIONS} -J #{OC_JOB_NAME} #{OC_SCRIPT_NAME}</code>）が実行されます。
       </p>
       <pre>submit: |
   #!/bin/bash
@@ -256,7 +256,7 @@ script: |
 
       <h3 id="select">2.4. selectウィジット</h3>
       <p>
-	セレクトボックスを表示します。<code>options</code>に選択肢を配列形式で記述します。配列の1つ目の要素はセレクトボックスの項目名です。<code>script</code>の<code>#{partition}</code>は<code>options</code>の2つ目の要素に置き換えられます。
+	セレクトボックスを表示します。<code>options</code>に選択肢を配列形式で記述します。配列の1つ目の要素はセレクトボックスの項目名です。<code>script</code>セクションの<code>#{partition}</code>は<code>options</code>の2つ目の要素に置き換えられます。
       </p>
       <pre>form:
   partition:
@@ -270,15 +270,15 @@ script: |
 script: |
   #SBATCH --partition=#{partition}</pre>
       <p>
-	<code>options</code>の2つ目の要素は配列で記述することも可能です。下記の例では、<code>script</code>の<code>#{package_1}</code>と<code>#{package_2}</code>は、配列の第1要素と第2要素に置き換えられます。後述の<code>multi_select</code>ウィジット、<code>radio</code>ウィジット、<code>checkbox</code>ウィジットも同様です。
+	<code>options</code>の2つ目の要素は配列で記述することも可能です。下記の例では、<code>script</code>セクションの<code>#{package_1}</code>と<code>#{package_2}</code>は、配列の第1要素と第2要素に置き換えられます。後述の<code>multi_select</code>ウィジット、<code>radio</code>ウィジット、<code>checkbox</code>ウィジットも同様です。
       </p>
       <pre>form:
   package:
     widget: select
     label: Select package
     options:
-      - [A, [packageA, a.out]]
-      - [B, [packageB, b.out]]
+      - [ A, [packageA, a.out] ]
+      - [ B, [packageB, b.out] ]
 
 script: |
   module load #{package_1}
@@ -294,11 +294,11 @@ script: |
     label: Add modules
     value: mpi/mpich-x86_64
     options:
-      - [mpi/mpich-x86_64, mpi/mpich-x86_64]
-      - [mpi/openmpi-x86_64, mpi/openmpi-x86_64]
-      - [nvhpc/24.3, nvhpc/24.3]
-      - [nvhpc/24.5, nvhpc/24.5]
-      - [nvhpc/24.7, nvhpc/24.7]
+      - [ mpi/mpich-x86_64, mpi/mpich-x86_64 ]
+      - [ mpi/openmpi-x86_64, mpi/openmpi-x86_64 ]
+      - [ nvhpc/24.3, nvhpc/24.3 ]
+      - [ nvhpc/24.5, nvhpc/24.5 ]
+      - [ nvhpc/24.7, nvhpc/24.7 ]
 
 script: |
   module load #{load_modules}</pre>
@@ -319,11 +319,11 @@ module load nvhpc/24.7</pre>
     value: mpi/mpich-x86_64
     separator: " "
     options:
-      - [mpi/mpich-x86_64, mpi/mpich-x86_64]
-      - [mpi/openmpi-x86_64, mpi/openmpi-x86_64]
-      - [nvhpc/24.3, nvhpc/24.3]
-      - [nvhpc/24.5, nvhpc/24.5]
-      - [nvhpc/24.7, nvhpc/24.7]
+      - [ mpi/mpich-x86_64, mpi/mpich-x86_64 ]
+      - [ mpi/openmpi-x86_64, mpi/openmpi-x86_64 ]
+      - [ nvhpc/24.3, nvhpc/24.3 ]
+      - [ nvhpc/24.5, nvhpc/24.5 ]
+      - [ nvhpc/24.7, nvhpc/24.7 ]
       
 script: |
   module load #{load_modules}</pre>
@@ -340,13 +340,13 @@ script: |
   load_modules:
     widget: multi_select
     label: Add modules
-    value: [mpi/mpich-x86_64, nvhpc/24.7]
+    value: [mpi/mpich-x86_64, nvhpc/24.7 ]
     options:
-      - [mpi/mpich-x86_64, mpi/mpich-x86_64]
-      - [mpi/openmpi-x86_64, mpi/openmpi-x86_64]
-      - [nvhpc/24.3, nvhpc/24.3]
-      - [nvhpc/24.5, nvhpc/24.5]
-      - [nvhpc/24.7, nvhpc/24.7]</pre>
+      - [ mpi/mpich-x86_64, mpi/mpich-x86_64 ]
+      - [ mpi/openmpi-x86_64, mpi/openmpi-x86_64 ]
+      - [ nvhpc/24.3, nvhpc/24.3 ]
+      - [ nvhpc/24.5, nvhpc/24.5 ]
+      - [ nvhpc/24.7, nvhpc/24.7 ]</pre>
 
       <h3 id="radio">2.6. radioウィジット</h3>
       <p>
@@ -426,7 +426,7 @@ script: |
 script: |
   cd #{working_dir}</pre>
       <p>
-	<code>script</code>中で利用できる関数として<code>dirname(FILE_PATH)</code>と<code>basename(FILE_PATH)</code>を提供しています。
+	<code>script</code>セクション中で利用できる関数として<code>dirname(FILE_PATH)</code>と<code>basename(FILE_PATH)</code>を提供しています。
 ディレクトリ名とファイル名を含むパス名から、<code>dirname()</code>はディレクトリ部分を、<code>basename()</code>はファイル部分だけを返します。
       </p>
       <pre>form:
@@ -507,7 +507,7 @@ script: |
 	ウィジットとオプションを無効化・有効化します。<code>options</code>の各配列の第3要素以降に<code>[disable|enable]-(KEY)[-(1st element in options)][_num]</code>を指定します。
       </p>
       <p>
-	次の例では<code>cluster</code>で<code>Fugaku</code>を選択すると、<code>node_type</code>の<code>GPU</code>のオプションと<code>cuda_ver</code>のウィジットが無効化されます。キーを無効化された場合は、そのキーを利用している<code>script</code>中の行も削除されます。
+	次の例では<code>cluster</code>で<code>Fugaku</code>を選択すると、<code>node_type</code>の<code>GPU</code>のオプションと<code>cuda_ver</code>のウィジットが無効化されます。キーを無効化された場合は、そのキーを利用している<code>script</code>セクション中の行も削除されます。
       </p>
       <pre>form:
   cluster:
@@ -546,7 +546,7 @@ script: |
 	ウィジットを非表示・表示します。<code>options</code>の各配列の第3要素以降に<code>[hide|show]-(KEY)</code>を指定します。
       </p>
       <p>
-	次の例では、<code>hide_advanced_options</code>をチェックすると<code>comment</code>が非表示になります。無効化とは異なり、そのキーのウィジットが表示されないだけであり、そのキーを利用している<code>script</code>の行には影響しません。<code>indent</code>はWebフォームの左側にインデントを作成します。数値は1〜5が入力でき、数値が大きくなるほどインデント幅は大きくなります。
+	次の例では、<code>hide_advanced_options</code>をチェックすると<code>comment</code>が非表示になります。無効化とは異なり、そのキーのウィジットが表示されないだけであり、そのキーを利用している<code>script</code>セクションの行には影響しません。<code>indent</code>はWebフォームの左側にインデントを作成します。数値は1〜5が入力でき、数値が大きくなるほどインデント幅は大きくなります。
       </p>
       <pre>form:
   hide_advanced_option:
@@ -680,6 +680,7 @@ script: |
 	  
       <h2 id="supplement">8. 補足</h2>
       <ul>
+	<li>本ページのサンプルはすべて<code>bash</code>で記述されていますが、他のシェルも利用することができます。ただし、<code>submit</code>セクションだけは<code>bash</code>しか記述できません。</li>
 	<li>ウィジット名に利用できるのは英数字とアンダースコアのみです。また、数字とアンダースコアを先頭に用いることもできません。アプリケーションを保存するディレクトリ名も同様です。末尾がアンダースコア+数字のウィジット名（例：<code>nodes_1</code>）は、<code>size</code>の属性を持つウィジットの値を参照するときに衝突する可能性があるので注意ください。ただし、<code>header</code>を<code>form.yml</code>で定義する場合、<code>lib/header.yml.erb</code>で用いられているアンダースコアで始まるウィジット名（<code>_script_location</code>と<code>_script</code>）は利用可能です。</li>
 	<li><code>options</code>で2つ目の要素がない場合、1つ目の要素が代わりに用いられます。</li>
 	<li><code>script</code>セクションにおいて、ある行で利用されている変数が値を持たない場合、その行は表示されません。ただし、その変数の先頭にコロンを付加する（例：<code>#{:nodes}</code>や<code>#{basename(:input_file)}</code>）と、その変数が値を持たなくても行は出力されます。</li>
