@@ -31,6 +31,15 @@ JOB_NAME               = "Job Name"
 JOB_SUBMISSION_TIME    = "Submission Time"
 JOB_PARTITION          = "Partition"
 JOB_KEYS               = "job_keys"
+SKIP_KEYS = ['splat', SCRIPT_CONTENT]
+DEFINED_KEYS = {
+  JOB_APP_NAME           => 'OC_APP_NAME',
+  JOB_APP_PATH           => 'OC_APP_PATH',
+  HEADER_SCRIPT_LOCATION => 'OC_SCRIPT_LOCATION',
+  HEADER_SCRIPT_NAME     => 'OC_SCRIPT_NAME',
+  HEADER_JOB_NAME        => 'OC_JOB_NAME',
+  HEADER_CLUSTER_NAME    => 'OC_CLUSTER_NAME'
+}
 
 # Structure of manifest
 Manifest = Struct.new(:dirname, :name, :category, :description, :icon, :related_app)
@@ -321,6 +330,34 @@ def oc_assert(condition, message = "Error exists in script content.")
   raise RuntimeError, message unless condition
 end
 
+# Set value to the specified instance variable (@#{key}) in the check section.
+# If a value already exists, add value like [old, value] or "#{old}#{separator}#{value}".
+def set_check_value(key, value, separator = nil)
+  k = :"@#{key}"
+
+  if instance_variable_defined?(k)
+    old = instance_variable_get(k)
+
+    if separator.nil?
+      new_val =
+        if old.is_a?(Array)
+          if value.is_a?(Array)
+            old.first.is_a?(Array) ? (old + [value]) : [old, value]
+          else
+            old + [value]
+          end
+        else
+          [old, value]
+        end
+      instance_variable_set(k, new_val)
+    else
+      instance_variable_set(k, "#{old}#{separator}#{value}")
+    end
+  else
+    instance_variable_set(k, value)
+  end
+end
+
 # Output log
 def output_log(action, scheduler, **details)
   base = "[#{Time.now}] [Open Composer] #{action} : scheduler=#{scheduler.class.name}"
@@ -438,27 +475,57 @@ post "/*" do
     job_id         = nil
     submit_options = nil
     
-    # Run commands in check block
+    # Run commands in the check section
+    # Define the variables in params with instance_variable_set()
     check = form["check"]
-    unless check.nil?
+    submit = form["submit"]
+    if !check.nil? || !submit.nil?
       params.each do |key, value|
-        next if ['splat', SCRIPT_CONTENT].include?(key)
-        
-        suffix = case key
-                 when JOB_APP_NAME           then "OC_APP_NAME"
-                 when JOB_APP_PATH           then "OC_APP_PATH"
-                 when HEADER_SCRIPT_LOCATION then "OC_SCRIPT_LOCATION"
-                 when HEADER_SCRIPT_NAME     then "OC_SCRIPT_NAME"
-                 when HEADER_JOB_NAME        then "OC_JOB_NAME"
-                 when HEADER_CLUSTER_NAME    then "OC_CLUSTER_NAME"
-                 else key
-                 end
+        next if SKIP_KEYS.include?(key)
+        if DEFINED_KEYS.key?(key)
+          set_check_value(DEFINED_KEYS[key], value)
+          next
+        end
 
-        instance_variable_set("@#{suffix}", value)
+        base_key = num = nil
+        if key =~ /^(.*)_(\d+)$/
+          base_key, num = $1, $2
+        end
+        widget = form["form"][key]&.dig("widget") || (base_key && form["form"][base_key]&.dig("widget"))
+        next unless widget
+        
+        if ["number"].include?(widget)
+          set_check_value(key, value.to_f == value.to_i ? value.to_i : value.to_f)
+        elsif ["text", "email", "path"].include?(widget)
+          set_check_value(key, value)
+        elsif ["select", "radio"].include?(widget)
+          option = form["form"][key]["options"].find { |x| x[0].to_s == value }
+          if option.size == 1
+            set_check_value(key, option[0])
+          else
+            set_check_value(key, option[1])
+            if option[1].is_a?(Array)
+              option[1].each_with_index { |v, i| set_check_value("#{key}_#{i+1}", v) }
+            end
+          end
+        elsif ["multi_select", "checkbox"].include?(widget)
+          separator = form["form"][base_key]["separator"]
+          option = form["form"][base_key]["options"].find { |x| x[0].to_s == value }
+          if option.size == 1
+            set_check_value(base_key, option[0], separator)
+          else
+            set_check_value(base_key, option[1], separator)
+            if option[1].is_a?(Array)
+              option[1].each_with_index { |v, i| set_check_value("#{base_key}_#{i+1}", v, separator) }
+            end
+          end
+        end
       end
-      
+    end
+
+    if !check.nil?
       begin
-        eval(check)
+        eval(check) 
       rescue Exception => e
         return show_website(nil, e.message, params)
       end
@@ -468,41 +535,37 @@ post "/*" do
     FileUtils.mkdir_p(script_location)
     File.open(script_path, "w") { |file| file.write(script_content) }
     
-    # Run commands in submit block
-    submit = form["submit"]
-    unless submit.nil?
-      replacements = params.each_with_object({}) do |(key, value), env|
-        next if ['splat', SCRIPT_CONTENT].include?(key)
-
-        suffix = case key
-                 when JOB_APP_NAME           then "OC_APP_NAME"
-                 when JOB_APP_PATH           then "OC_APP_PATH"
-                 when HEADER_SCRIPT_LOCATION then "OC_SCRIPT_LOCATION"
-                 when HEADER_SCRIPT_NAME     then "OC_SCRIPT_NAME"
-                 when HEADER_JOB_NAME        then "OC_JOB_NAME"
-                 when HEADER_CLUSTER_NAME    then "OC_CLUSTER_NAME"
-                 else key
-                 end
-        
-        env[suffix] = value
-      end
-
-      replacements.each do |key, value|
-        if form.dig("form", key)
-          widget = form["form"][key]["widget"]
-          
-          if ["select", "radio", "checkbox"].include?(widget) # TODO: Add support for "multi_select"
-            options = form["form"][key]["options"]
-            
-            options.each do |option|
-              if option.is_a?(Array) && value.to_s == option[0]
-                value = option[1] if option.size > 1
-              end
-            end
-          end
+    # Run commands in the submit section
+    if !submit.nil?
+      params.each do |key, value|
+        next if SKIP_KEYS.include?(key)
+        if DEFINED_KEYS.key?(key)
+          submit.gsub!(/\#\{#{DEFINED_KEYS[key]}\}/, value)
+          next
         end
 
-        submit.gsub!(/\#\{#{key}\}/, value.to_s)
+        base_key = num = nil
+        if key =~ /^(.*)_(\d+)$/
+          base_key, num = $1, $2
+        end
+        widget = form["form"][key]&.dig("widget") || (base_key && form["form"][base_key]&.dig("widget"))
+        next unless widget
+        
+        if ["number", "text", "email", "path"].include?(widget)
+          submit.gsub!(/\#\{#{key}\}/, instance_variable_get(:"@#{key}").to_s)
+        elsif ["select", "radio"].include?(widget)
+          option = form["form"][key]["options"].find { |x| x[0].to_s == value }
+          submit.gsub!(/\#\{#{key}\}/, instance_variable_get(:"@#{key}").to_s)
+          if option.size != 1 && option[1].is_a?(Array)
+            option[1].each_with_index { |_v, i| submit.gsub!(/\#\{#{key}_#{i+1}\}/, instance_variable_get(:"@#{key}_#{i+1}").to_s) }
+          end
+        elsif ["multi_select", "checkbox"].include?(widget)
+          option = form["form"][base_key]["options"].find { |x| x[0].to_s == value }
+          submit.gsub!(/\#\{#{base_key}\}/, instance_variable_get(:"@#{base_key}").to_s)
+          if option.size != 1 && option[1].is_a?(Array)
+            option[1].each_with_index { |_v, i| submit.gsub!(/\#\{#{base_key}_#{i+1}\}/, instance_variable_get(:"@#{base_key}_#{i+1}").to_s) }
+          end
+        end
       end
 
       submit_with_echo = <<~BASH

@@ -236,18 +236,18 @@ script: |
   cd ${PBS_O_WORKDIR}
   
 check: |
-  if @time_1.to_i == 0 && @time_2.to_i == 0
+  if @time_1 == 0 && @time_2 == 0
     halt 500, "Time is too short."
-  elsif ((@queue == "short-g" || @queue == "short-mig" || @queue == "short-c") && @time_1.to_i == 8) && @time_2.to_i > 0
+  elsif ((@queue == "short-g" || @queue == "short-mig" || @queue == "short-c") && @time_1 == 8) && @time_2 > 0
     halt 500, "Exceeded Time (#{@time_1}:#{@time_2}:00)."
-  elsif ((@queue == "reqular-g" || @queue == "reqular-mig" || @queue == "reqular-c") && @time_1.to_i == 48) && @time_2.to_i > 0
+  elsif ((@queue == "reqular-g" || @queue == "reqular-mig" || @queue == "reqular-c") && @time_1 == 48) && @time_2 > 0
     halt 500, "Exceeded Time (#{@time_1}:#{@time_2}:00)."
-  elsif @queue == "reqular-g" && (@time_1.to_i > 24 || @time_1.to_i == 24 && @time_2.to_i > 0)
+  elsif @queue == "reqular-g" && (@time_1 > 24 || @time_1 == 24 && @time_2 > 0)
     halt 500, "Exceeded Time (#{@time_1}:#{@time_2}:00)."
   end
 
-  procs   = @npt_2.to_i
-  threads = @npt_3.to_i
+  procs   = @npt_2
+  threads = @npt_3
   if (@queue == "debug-c" || @queue == "short-c" || @queue == "regular-c")
     halt 500, 'The condition "Processes x Threads >= 112" is not met.' if procs * threads >= 112
   else
