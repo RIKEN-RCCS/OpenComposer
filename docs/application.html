@@ -30,10 +30,12 @@
 	<li class="nav-item ms-3"><a href="#disable" class="nav-link">3.2. Widget disabling</a></li>
 	<li class="nav-item ms-3"><a href="#hide" class="nav-link">3.3. Widget hiding</a></li>
 	<li class="nav-item"><a href="#combination" class="nav-link">4. Available combinations</a></li>
-	<li class="nav-item"><a href="#hide-script" class="nav-link">5. Job script hiding</a></li>
-	<li class="nav-item"><a href="#header" class="nav-link">6. Header section</a></li>
-	<li class="nav-item"><a href="#sample" class="nav-link">7. Sample</a></li>
-	<li class="nav-item"><a href="#supplement" class="nav-link">8. Supplement</a></li>
+	<li class="nav-item"><a href="#check" class="nav-link">5. Check section</a></li>
+	<li class="nav-item"><a href="#submit" class="nav-link">6. Submit section</a></li>
+	<li class="nav-item"><a href="#script" class="nav-link">7. Script section</a></li>
+	<li class="nav-item"><a href="#header" class="nav-link">8. Header section</a></li>
+	<li class="nav-item"><a href="#sample" class="nav-link">9. Sample</a></li>
+	<li class="nav-item"><a href="#supplement" class="nav-link">10. Supplement</a></li>
       </ul>
     </nav>
 
@@ -71,12 +73,12 @@ related_app:
       <h3 id="form">1.2. form.yml</h3>
       <p>
 	The <code>form.yml</code> is composed of five main sections: <code>form</code>, <code>header</code>, <code>script</code>, <code>check</code> and <code>submit</code>.
-	The <code>form</code> and <code>script</code> are required fields, but <code>header</code>, <code>check</code> and <code>submit</code> can be omitted.
+	The <code>form</code> and <code>script</code> sections are required fields, but <code>header</code>, <code>check</code> and <code>submit</code> sections can be omitted.
       </p>
       <p>
 	The following figure shows the scope of <code>form</code>, <code>header</code> and <code>script</code> sections.
 	A job script is generated from <code>form</code>, <code>header</code>, and <code>script</code> sections.
-	However, <code>header</code> is optional, and if omitted, <code>./lib/header.yml.erb</code> is used instead (in most cases, there is no need to define <code>header</code>).
+	However, the <code>header</code> section is optional, and if omitted, <code>./lib/header.yml.erb</code> is used instead (in most cases, there is no need to define <code>header</code>).
 	Note that the application name in the upper left is the scope of <code>manifest.yml</code>.
 	The <code>check</code> section performs validation of the inputs before job submission.
 	The <code>submit</code> section defines the pre-processing when submitting a job.
@@ -123,8 +125,8 @@ related_app:
 script: |
   #SBATCH --nodes=#{nodes}</pre>
       <p>
-	You can display multiple numeric input fields.
-	For instance, specifying <code>size</code> indicates the number of input fields, with each item defined as an array.
+	You can also display multiple numeric input fields in a single line.
+	For example, specifying <code>size</code> indicates the number of input fields, with each item defined as an array.
 	In the <code>script</code> section, <code>#{time_1}</code> and <code>#{time_2}</code> will be replaced with the respective values entered in the fields.
       </p>
       <pre>form:
@@ -155,7 +157,6 @@ script: |
       <img src="img/label2.png" alt="label">
       <p>
 	To pad a number in a job script with zeros, use the function <code>zeropadding(key, digit)</code>.
-	The first argument is the key, and the second argument is the number.
 	If the number of digits is less than the number specified in the second argument, the missing digits will be filled with "0".
       </p>
       <pre>form:
@@ -185,64 +186,6 @@ script: |
     max:    [ 24, 59 ]
     step:   [  1,  1 ]</pre>
       <img src="img/label3.png" alt="label">
-      <p>
-	If you want to change the label of the job script (default is "Script Content"), set <code>label</code> in the <code>script</code> section.
-	In that case, write the job script in <code>content</code>.
-      </p>
-      <pre>script:
-  label: Script Details
-  content: |
-    #SBATCH --nodes=#{nodes}</pre>
-      <p>
-	In the <code>check</code> section, a Ruby script and the function <code>oc_assert(condition, message)</code> ensures validation.
-	This function outputs a <code>message</code> and terminates if <code>condition</code> is <code>false</code>.
-	In the example below, if a total time exceeding 24 hours is entered,
-	an error message will be displayed when the "Submit" button is clicked,
-	preventing the script from being submitted.
-	To refer to variables defined in the <code>form</code> section, write the variable name after the @ sign, and all variables are treated as strings.
-      </p>
-      <p>
-	The <code>check</code> section also supports the following special variables:
-      </p>
-      <ul>
-	<li>@OC_APP_NAME: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
-	<li>@OC_APP_PATH: The path to the application where <code>form.yml</code> is stored (e.g. <code>/Slurm</code>)</li>
-	<li>@OC_SCRIPT_LOCATION: <code>Script Location</code> defined in <code>header</code></li>
-	<li>@OC_CLUSTER_NAME: <code>Cluster name</code> defined in <code>header</code> (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
-	<li>@OC_SCRIPT_NAME: <code>Script Name</code> defined in <code>header</code></li>
-	<li>@OC_JOB_NAME: <code>Job Name</code> defined in <code>header</code></li>
-      </ul>
-      <pre>form:
-  time:
-    widget: number
-    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
-    size:   2
-    value:  [  1,  0 ]
-    min:    [  0,  0 ]
-    max:    [ 24, 59 ]
-    step:   [  1,  1 ]
-
-script: |
-  #SBATCH --time=#{time_1}:#{time_2}:00
-  
-check: |
-  time_1 = @time_1.to_i
-  time_2 = @time_2.to_i
-  message = "Exceeded Time"
-  oc_assert(time_1 != 24 || time_2 == 0, message)</pre>
-      <p>
-	In the <code>submit</code> section, a shell script is written to process before the job is submitted.
-	When referencing variables defined in the <code>form</code> section, use <code>#{...}</code> in the same way as the <code>script</code> section.
-	The environment variable <code>OC_SUBMIT_OPTIONS</code> allows you to set additional options to the job submission command.
-	After this process is executed, the command to submit the job script (for example, <code>sbatch #{OC_SUBMIT_OPTIONS} -J #{OC_JOB_NAME} #{OC_SCRIPT_NAME}</code>) is executed.
-      </p>
-      <pre>submit: |
-  #!/bin/bash
-
-  cd #{OC_SCRIPT_LOCATION}
-  mv #{OC_SCRIPT_NAME} param.conf
-  genjs_ct param.conf > #{OC_SCRIPT_NAME}
-  OC_SUBMIT_OPTIONS="-n 1"</pre>
 
       <h3 id="text">2.2. text widget</h3>
       <p>
@@ -446,7 +389,7 @@ script: |
       <h3 id="path">2.8. path widget</h3>
       <p>
 	Displays an input field for path of a file or directory on the Open OnDemand server.
-	The default value of value is <code>${HOME}</code>.
+	The default value of <code>value</code> is <code>${HOME}</code>.
 	The <code>show_files</code> key toggles whether files are displayed (default: true).
 	The <code>favorites</code> key sets shortcut paths.
       </p>
@@ -663,8 +606,77 @@ script: |
 	  </tr>
 	</tbody>
       </table>
+
+      <h2 id="check">5. Check section</h2>
+      <p>
+	Variables defined in the <code>form</code> section can be validated in the <code>check</code> section using the Ruby language and the function <code>oc_assert(condition, message)</code>.
+	This function displays the specified <code>message</code> and terminates execution if the <code>condition</code> evaluates to <code>false</code>.
+      </p>
+      <p>
+	In the example below, if a total time exceeding 24 hours is entered, an error message will be shown when the "Submit" button is clicked, preventing the script from being submitted.
+	To reference variables defined in the form section, prefix the variable name with the @ symbol.
+      </p>
+      <pre>form:
+  time:
+    widget: number
+    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
+    size:   2
+    value:  [  1,  0 ]
+    min:    [  0,  0 ]
+    max:    [ 24, 59 ]
+    step:   [  1,  1 ]
+
+script: |
+  #SBATCH --time=#{time_1}:#{time_2}:00
+
+check: |
+  message = "Exceeded Time"
+  oc_assert(@time_1 != 24 || @time_2 == 0, message)</pre>
+      <p>
+        The <code>check</code> section also supports the following special variables:
+      </p>
+      <ul>
+        <li>@OC_APP_NAME: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
+        <li>@OC_APP_PATH: The path to the application where <code>form.yml</code> is stored (e.g. <code>/Slurm</code>)</li>
+        <li>@OC_SCRIPT_LOCATION: <code>Script Location</code> defined in the <code>header</code> section</li>
+        <li>@OC_CLUSTER_NAME: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
+        <li>@OC_SCRIPT_NAME: <code>Script Name</code> defined in the <code>header</code> section</li>
+        <li>@OC_JOB_NAME: <code>Job Name</code> defined in the <code>header</code> section</li>
+      </ul>
       
-      <h2 id="hide-script">5. Job script hiding</h2>
+      <h2 id="submit">6. Submit section</h2>
+      <p>
+	In the <code>submit</code> section, you define the processing to be executed before job submission (after the validation performed in the <code>check</code> section) using the Bash language.
+      </p>
+      <p>An example of the <code>submit</code> section is shown below.
+	To reference variables defined in the <code>form</code> section, use the <code>#{...}</code> syntax.
+	Special variables available in the <code>check</code> section can also be used in the same way (for example, <code>#{OC_APP_NAME}</code>).
+	Additionally, a special variable available only in the <code>submit</code> section, <code>OC_SUBMIT_OPTIONS</code>, allows you to specify additional options for the job submission command.
+	After this process is executed, the command to submit the job script (for example, <code>sbatch #{OC_SUBMIT_OPTIONS} -J #{OC_JOB_NAME} #{OC_SCRIPT_NAME}</code>) will be run.
+      </p>
+      
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+submit: |
+  #!/bin/bash
+
+  cd #{OC_SCRIPT_LOCATION}
+  mv #{OC_SCRIPT_NAME} param_#{nodes}.conf
+  genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
+  OC_SUBMIT_OPTIONS="-n 1"</pre>
+		  
+      <h2 id="script">7. Script section</h2>
+      <p>
+        If you want to change the label of the job script (default is "Script Content"), set <code>label</code> in the <code>script</code> section.
+        In that case, write the job script in <code>content</code>.
+      </p>
+      <pre>script:
+  label: Script Details
+  content: |
+    #SBATCH --nodes=#{nodes}</pre>
       <p>
 	You can hide your job script in the text area on the right side.
 Use the special variable <code>SCRIPT_CONTENT</code> and the <code>hide-</code> of the Dynamic Form Widget in the following way.
@@ -689,7 +701,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
     options:
       - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
 
-      <h2 id="header">6. Header section</h2>
+      <h2 id="header">8. Header section</h2>
       <p>
 	You can define the <code>header</code> section.
 	However, widgets with the same names as those defined in <code>lib/headers.yml.erb</code> must be defined.
@@ -722,7 +734,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
 
       <img src="img/hide-script-header.png" width="600" alt="Hide script in header">
 
-      <h2 id="sample">7. Sample</h2>
+      <h2 id="sample">9. Sample</h2>
       <p>The sample applications are as follows:</p>
       <ul>
         <li><a target="_blank" href="https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps">https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps</a></li>
@@ -730,10 +742,10 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
         <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_rccs_cloud">https://github.com/RIKEN-RCCS/composer_rccs_cloud</a></li>
       </ul>
       
-      <h2 id="supplement">8. Supplement</h2>
+      <h2 id="supplement">10. Supplement</h2>
       <ul>
-	<li>All the samples on this page are written in <code>bash</code>, but you can use other shells as well. However, the <code>submit</code> section can only be written in <code>bash</code>.</li>
-	<li>Widget names can only contain alphanumeric characters and underscores. Numbers and underscores cannot start the name. The same rule applies to the directory name in which the application is saved. Note that widget names ending with an underscore and a number (e.g. <code>nodes_1</code>) may conflict when referencing the value of a widget with the <code>size</code> attribute. However, when defining the <code>header</code> section in <code>form.yml</code>, the widget names beginning with underscores (<code>_script_location</code> and <code>_script</code>) used in <code>lib/header.yml.erb</code> can be used.</li>
+	<li>All the samples on this page are written in the Bash language, but you can use other shells as well. However, the <code>submit</code> section can only be written in the Bash language.</li>
+	<li>Widget names can only contain alphanumeric characters and underscores. Numbers and underscores cannot start the name. Please also avoid using widget names that end with an underscore followed by a number (e.g., <code>nodes_1</code>). The same rule applies to the directory name in which the application is saved. However, when defining the <code>header</code> section in <code>form.yml</code>, the widget names beginning with underscores (e.g. <code>_script_location</code>) used in <code>lib/header.yml.erb</code> can be used.</li>
 	<li>If there is no second element in <code>options</code>, the first element is used instead.</li>
 	<li>In the <code>script</code> section, if a variable used in a line does not have a value, the line is not displayed. However, if you add a colon to the beginning of the variable (e.g. <code>#{:nodes}</code> or <code>#{basename(:input_file)}</code>), the line will be output even if the variable does not have a value.</li>
 	<li>The order of processing that Open Composer performs before submitting a job script is as follows.

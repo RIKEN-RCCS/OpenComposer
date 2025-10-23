@@ -217,7 +217,7 @@ helpers do
       elsif form.key?(base_key) && suffix =~ /^\d+$/
         exist_keys << key
         widgets << form[base_key]["widget"]
-        separators << nil # Widgets of number, text, email do not have separator option
+        separators << form[base_key]["separator"]
         functions << false
         zero_paddings << "null"
       else
