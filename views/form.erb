@@ -1,4 +1,4 @@
-<% if @job_id && @error_msg.nil? %>
+<% if @job_id && @error_msg.nil? && @script_path.nil? %>
   <div class="alert alert-success alert-dismissible mx-1 mb-0">
     Job was successfully submitted (Job ID is <%= @job_id %>).
     <% if @conf.key?("cluster") && @conf["cluster"].size > 1 %>
@@ -8,9 +8,14 @@
     <% end %>
     <button class="btn-close" data-bs-dismiss="alert"></button>
   </div>
-<% elsif @error_msg %>
+<% elsif !@error_msg.nil? %>
   <div class="alert alert-warning alert-dismissible mx-1 mb-0">
     Job submission failed. (<%= @error_msg %>)
+    <button class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% elsif !@script_path.nil? %>
+  <div class="alert alert-info alert-dismissible mx-1 mb-0">
+    Saved to the following path: <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files/fs<%= File.dirname(@script_path) %>"><%= @script_path %></a>
     <button class="btn-close" data-bs-dismiss="alert"></button>
   </div>
 <% end %>
@@ -48,7 +53,7 @@
         (Something wrong)
       </textarea>
       <!-- Submit Button -->
-      <input type="submit" class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" value="Submit" tabindex="<%= @table_index + 1 %>">
+      <input type="submit" class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" value="<%= @script_action.capitalize %>" tabindex="<%= @table_index + 1 %>">
     </div>
   </div>
 </form>

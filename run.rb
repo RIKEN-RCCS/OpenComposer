@@ -194,8 +194,21 @@ def create_scheduler(conf)
   schedulers
 end
 
+# Get the action key defined in the script section.
+def get_script_action(script)
+  action = if script.is_a?(Hash)
+             script["action"] || "submit"
+           else
+             return "submit"
+           end
+  
+  action = "submit" if action != "submit" && action != "save"
+
+  return action
+end
+
 # Create a website of Home, Application, and History.
-def show_website(job_id = nil, error_msg = nil, error_params = nil)
+def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path = nil)
   @conf          = create_conf
   @apps_dir      = @conf["apps_dir"]
   @login_node    = @conf["login_node"]
@@ -254,7 +267,8 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil)
         return erb :error
       end
       @name = @manifest["name"]
-      
+      @script_action = get_script_action(@body["script"])
+
       # Since the widget name is used as a variable in Ruby, it should consist of only
       # alphanumeric characters and underscores, and numbers should not be used at the
       # beginning of the name. Furthermore, underscores are also prohibited at the
@@ -302,20 +316,26 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil)
         replace_with_cache(@header, cache)
         replace_with_cache(@body["form"], cache)
         @script_content = escape_html(cache[SCRIPT_CONTENT])
-      elsif !error_msg.nil? # When job submission failed
+      elsif !error_msg.nil? || !script_path.nil? # When job submission failed or script_path != nil (because after script file has been saved)
         replace_with_cache(@header, error_params)
         replace_with_cache(@body["form"], error_params)
         @script_content = escape_html(error_params[SCRIPT_CONTENT])
       end
 
       # Set script content
-      @script_label = @body["script"].is_a?(Hash) ? @body["script"]["label"] : "Script Content"
+      @script_label = if @body["script"].is_a?(Hash)
+                        @body["script"]["label"] || "Script Content"
+                      else
+                        "Script Content"
+                      end
+
       if @body["script"].is_a?(Hash) && @body["script"].key?("content")
         @body["script"] = @body["script"]["content"]
       end
 
       @job_id    = job_id.is_a?(Array) ? job_id.join(", ") : job_id
       @error_msg = error_msg&.force_encoding('UTF-8')
+      @script_path = script_path
       return erb :form
     else
       @error_msg = "#{request.url} is not found."
@@ -447,6 +467,7 @@ post "/*" do
     return show_website(nil, error_msg)
   else # application form
     app_path = File.join(conf["apps_dir"], request.path_info)
+    manifest = create_manifest(app_path)
     
     script_location = params[HEADER_SCRIPT_LOCATION]
     script_name     = params[HEADER_SCRIPT_NAME]
@@ -472,6 +493,7 @@ post "/*" do
 
     script_path    = File.join(script_location, script_name)
     script_content = params[SCRIPT_CONTENT].gsub("\r\n", "\n")
+    script_action  = get_script_action(form["script"])
     job_id         = nil
     submit_options = nil
     
@@ -588,6 +610,11 @@ post "/*" do
     end
 
     # Submit a job script
+    if script_action == "save"
+      output_log("Save job file", scheduler, cluster: cluster_name, app_dir: manifest["dirname"], app_name: manifest["name"], category: manifest["category"], script_path: script_path)
+      return show_website(nil, nil, params, script_path)
+    end
+    
     Dir.chdir(File.dirname(script_path)) do
       job_id, error_msg = scheduler.submit(script_path, escape_html(job_name.strip), submit_options, bin, bin_overrides, ssh_wrapper)
       params[JOB_SUBMISSION_TIME] = Time.now.strftime("%Y-%m-%d %H:%M:%S")
@@ -603,7 +630,6 @@ post "/*" do
     end
 
     # Output log
-    manifest = create_manifest(app_path)
     output_log("Submit job", scheduler, cluster: cluster_name, job_ids: Array(job_id), app_dir: manifest["dirname"], app_name: manifest["name"], category: manifest["category"])
 
     return show_website(job_id, error_msg, params)

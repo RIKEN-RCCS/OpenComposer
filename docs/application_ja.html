@@ -33,6 +33,9 @@
 	<li class="nav-item"><a href="#check" class="nav-link">5. checkセクション</a></li>
 	<li class="nav-item"><a href="#submit" class="nav-link">6. submitセクション</a></li>
 	<li class="nav-item"><a href="#script" class="nav-link">7. scriptセクション</a></li>
+	<li class="nav-item ms-3"><a href="#label" class="nav-link">7.1. ラベルの変更</a></li>
+	<li class="nav-item ms-3"><a href="#parameter" class="nav-link">7.2. パラメータファイルの生成</a></li>
+	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">7.3. 非表示化</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">8. headerセクション</a></li>
 	<li class="nav-item"><a href="#sample" class="nav-link">9. サンプル</a></li>
 	<li class="nav-item"><a href="#supplement" class="nav-link">10. 補足</a></li>
@@ -534,7 +537,7 @@ script: |
 
       <h2 id="combination">4. 利用可能な組合せ</h2>
       <p>
-	各ウィジットと利用可能なオプションとの組合せは下記の表の通りです。<code>options</code>のみは必須項目ですが、他の項目は省略可能です。
+	<code>form</code>セクションと<code>header</code>セクションにおいて、各ウィジットと利用可能なオプションとの組合せは下記の表の通りです。<code>options</code>のみは必須項目ですが、他の項目は省略可能です。
       </p>
       <table class="table">
 	<thead>
@@ -625,13 +628,46 @@ submit: |
   OC_SUBMIT_OPTIONS="-n 1"</pre>
       
       <h2 id="script">7. scriptセクション</h2>
+      <h3 id="label">7.1. ラベルの変更</h3>
       <p>
         ジョブスクリプトのラベル（デフォルトは「Script Content」）を変更したい場合は<code>script</code>セクションで<code>label</code>を設定します。その場合、ジョブスクリプトは<code>content</code>に記述します。
       </p>
-      <pre>script:
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+script:
   label: Script Details
   content: |
     #SBATCH --nodes=#{nodes}</pre>
+      <img src="img/label.png" width="200" alt="label">
+      
+      <h3 id="parameter">7.2. パラメータファイルの生成</h3>
+      <p>
+	Open Composerはジョブスクリプトの生成だけでなく、アプリケーションで利用するパラメータファイルや設定ファイルの生成も行うことができます。そのような場合、ジョブスクリプトを投入せずに、ジョブスクリプトの保存のみを行う方が適しています。ジョブスクリプトの保存のみを行いたい場合、<code>script</code>セクションで<code>action: save</code>を設定します。なお、デフォルトは<code>action: submit</code>で、ジョブスクリプトの投入も行います。
+      </p>
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+script:
+  label: Parameter file
+  action: save
+  content: |
+    num_of_nodes: #{nodes}</pre>
+
+      <p>
+	この設定を行うと、ボタンのラベルが「Submit」から「Save」に変化します。
+      </p>
+      <img src="img/save.png" width="400" alt="Save">
+      <p>
+	ボタンをクリックすると保存が実行され、画面上部にその保存先が表示されます。そのリンクをクリックすると、Open OnDemandのHome Directoryが起動します。
+      </p>
+      <img src="img/save2.png" width="400" alt="Save">
+
+      <h3 id="hide-script">7.3. 非表示化</h3>
       <p>
 	<code>script</code>セクションを非表示化することができます。特殊な変数<code>SCRIPT_CONTENT</code>とDynamic Form Widgetの<code>hide-</code>とを下記のように組み合せて利用します（ERBを用いるため、ファイル名は<code>form.yml.erb</code>であることに注意ください）。
       </p>

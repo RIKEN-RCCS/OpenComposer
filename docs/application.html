@@ -33,6 +33,9 @@
 	<li class="nav-item"><a href="#check" class="nav-link">5. Check section</a></li>
 	<li class="nav-item"><a href="#submit" class="nav-link">6. Submit section</a></li>
 	<li class="nav-item"><a href="#script" class="nav-link">7. Script section</a></li>
+	<li class="nav-item ms-3"><a href="#label" class="nav-link">7.1. Change label</a></li>
+	<li class="nav-item ms-3"><a href="#parameter" class="nav-link">7.2. Generate parameter file</a></li>
+	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">7.3. Hide script</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">8. Header section</a></li>
 	<li class="nav-item"><a href="#sample" class="nav-link">9. Sample</a></li>
 	<li class="nav-item"><a href="#supplement" class="nav-link">10. Supplement</a></li>
@@ -572,7 +575,7 @@ script: |
 
       <h2 id="combination">4. Available combinations</h2>
       <p>
-	The combinations of each widget and available options are shown in the table below. Only <code>options</code> is required, but the other items are optional.
+	The available combinations of widgets and options in the <code>form</code> and <code>header</code> sections are shown in the table below. Only <code>options</code> is required, but the other items are optional.
       </p>
       <table class="table">
 	<thead>
@@ -669,14 +672,49 @@ submit: |
   OC_SUBMIT_OPTIONS="-n 1"</pre>
 		  
       <h2 id="script">7. Script section</h2>
+      <h3 id="label">7.1. Change label</h3>
       <p>
         If you want to change the label of the job script (default is "Script Content"), set <code>label</code> in the <code>script</code> section.
         In that case, write the job script in <code>content</code>.
       </p>
-      <pre>script:
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+script:
   label: Script Details
   content: |
     #SBATCH --nodes=#{nodes}</pre>
+      <img src="img/label.png" width="200" alt="label">
+
+      <h3 id="config">7.2. Generate parameter file</h3>
+      <p>
+	Open Composer is capable of generating not only job scripts but also parameter and configuration files used by applications.
+	In such cases, it is often preferable to save the job script without submitting it.
+	To do so, specify <code>action: save</code> in the script section.
+	By default, <code>action: submit</code> is used, which saves and submits the job script.
+      </p>
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+script:
+  label: Parameter file
+  action: save
+  content: |
+    num_of_nodes: #{nodes}</pre>
+
+      <p>
+	When you make this setting, the button label will change from "Submit" to "Save."
+      </p>
+      <img src="img/save.png" width="400" alt="Save">
+      <p>
+	Clicking the button will save the file, and the save destination will be displayed at the top of the screen. Clicking the link will launch the Open OnDemand Home Directory.
+      </p>
+      <img src="img/save2.png" width="400" alt="Save">
+      <h3 id="hide-script">7.3. Hide script</h3>
       <p>
 	You can hide your job script in the text area on the right side.
 Use the special variable <code>SCRIPT_CONTENT</code> and the <code>hide-</code> of the Dynamic Form Widget in the following way.
