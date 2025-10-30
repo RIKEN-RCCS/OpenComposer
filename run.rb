@@ -329,8 +329,13 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
                         "Script Content"
                       end
 
-      if @body["script"].is_a?(Hash) && @body["script"].key?("content")
-        @body["script"] = @body["script"]["content"]
+      if @body["script"].is_a?(Hash)
+        if !@body["script"].key?("content")
+          @error_msg = "The content key in form.yml is not found. (#{@body["script"]})"
+          return erb :error
+        else
+          @body["script"] = @body["script"]["content"]
+        end
       end
 
       @job_id    = job_id.is_a?(Array) ? job_id.join(", ") : job_id
