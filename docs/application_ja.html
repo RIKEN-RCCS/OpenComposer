@@ -181,8 +181,8 @@ script: |
       <pre>form:
   comment:
     widget: text
-    value: test
     label: Comment
+    value: test
 
 script: |
   #SBATCH --comment=#{comment}</pre>
@@ -193,8 +193,8 @@ script: |
       <pre>form:
   option:
     widget: text
-    value: [ --comment=, test ]
     label: [ option, argument ]
+    value: [ --comment=, test ]
     size: 2
 
 script: |
@@ -228,6 +228,7 @@ script: |
       
 script: |
   #SBATCH --partition=#{partition}</pre>
+      <img width="800" src="img/select1.png" alt="select">
       <p>
 	<code>options</code>の2つ目の要素は配列で記述することも可能です。下記の例では、<code>script</code>セクションの<code>#{package_1}</code>と<code>#{package_2}</code>は、配列の第1要素と第2要素に置き換えられます。後述の<code>multi_select</code>ウィジット、<code>radio</code>ウィジット、<code>checkbox</code>ウィジットも同様です。
       </p>
@@ -242,7 +243,8 @@ script: |
 script: |
   module load #{package_1}
   mpiexec #{package_2}</pre>	
-
+      <img width="800" src="img/select2.png" alt="select">
+      
       <h3 id="multi_select">2.5. multi_selectウィジット</h3>
       <p>
 	複数の項目を選択できる入力欄を表示します。<code>options</code>に選択肢を配列形式で記述します。

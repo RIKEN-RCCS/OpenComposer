@@ -198,8 +198,8 @@ script: |
       <pre>form:
   comment:
     widget: text
-    value: test
     label: Comment
+    value: test
 
 script: |
   #SBATCH --comment=#{comment}</pre>
@@ -210,8 +210,8 @@ script: |
       <pre>form:
   option:
     widget: text
-    value: [ --comment=, test ]
     label: [ option, argument ]
+    value: [ --comment=, test ]
     size: 2
 
 script: |
@@ -249,6 +249,7 @@ script: |
       
 script: |
   #SBATCH --partition=#{partition}</pre>
+      <img width="800" src="img/select1.png" alt="select">
       <p>
 	For multi-dimensional values,
 	<code>options</code> can use an array for the second element.
@@ -266,7 +267,8 @@ script: |
 script: |
   module load #{package_1}
   mpiexec #{package_2}</pre>	
-
+      <img width="800" src="img/select2.png" alt="select">
+      
       <h3 id="multi_select">2.5. multi_select widget</h3>
       <p>
 	Displays an input field where multiple items can be selected.
