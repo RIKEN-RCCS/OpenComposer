@@ -203,7 +203,7 @@ script: |
       
       <h3 id="email">2.3. emailウィジット</h3>
       <p>
-	Emailの入力欄を表示します。Textウィジットとほぼ同じですが、「Submit」ボタンをクリックする際にメールアドレスの形式がチェックされます。
+	Emailの入力欄を表示します。<code>text</code>ウィジットとほぼ同じですが、「Submit」ボタンをクリックする際にメールアドレスの形式がチェックされます。
       </p>
       <pre>form:
   email:
@@ -320,7 +320,20 @@ script: |
 
 script: |
   module load #{jupyter}</pre>
+      <img width="800" src="img/radio1.png" alt="radio">
+      <pre>form:
+  jupyter:
+    widget: radio
+    label: Jupyter
+    value: Jupyter Lab
+    options:
+      - [ Jupyter Lab,      jupyterlab ]
+      - [ Jupyter Notebook, jupyter    ]
 
+script: |
+  module load #{jupyter}</pre>
+      <img width="800" src="img/radio2.png" alt="radio">
+      
       <h3 id="checkbox">2.7. checkboxウィジット</h3>
       <p>
 	チェックボックスを表示します。次のように<code>required</code>を配列形式で設定した場合、チェックボックスの各項目が必須かどうかを設定します。
@@ -341,6 +354,7 @@ script: |
 
 script: |
   #SBATCH --mail-type=#{mail_option}</pre>
+      <img width="800" src="img/checkbox1.png" alt="checkbox">
       <p>
 	次のように<code>required</code>が配列形式でない場合かつ値が<code>true</code>の場合、そのチェックボックスで1つ以上の項目がチェックがされていないとジョブの投入を行うことができない、という設定になります。
       </p>
@@ -360,27 +374,30 @@ script: |
 
 script: |
   #SBATCH --mail-type=#{mail_option}</pre>
-
+      <img width="800" src="img/checkbox2.png" alt="checkbox">
       <p>
 	<code>multi_select</code>ウィジットと同様に<code>separator</code>の設定を行うことや、<code>radio</code>ウィジットと同様に<code>direction</code>の設定を行うことができます。
       </p>
 
       <h3 id="path">2.8. pathウィジット</h3>
       <p>
-	Open Composerが動作しているサーバ上のファイルやディレクトリのパスを選択できる入力欄を表示します。<code>value</code>のデフォルトは<code>${HOME}</code>です。<code>show_files</code>はファイルを表示するかどうかのフラグであり、デフォルトは<code>true</code>です。<code>favorites</code>はショートカットパスを設定できます。
+	Open Composerが動作しているサーバ上のファイルやディレクトリのパスを選択できる入力欄を表示します。<code>show_files</code>はファイルを表示するかどうかのフラグであり、デフォルトは<code>true</code>です。<code>favorites</code>はショートカットパスを設定できます。
       </p>
       <pre>form:
   working_dir:
     widget: path
     label: Working Directory
-    value: /work
     show_files: false
     favorites:
-      - /fs/ess
-      - /fs/scratch
+      - /lvs0/rccs-aot
 
 script: |
   cd #{working_dir}</pre>
+      <img width="800" src="img/path1.png" alt="path">
+      <p>
+	<code>text</code>ウィジットのように任意の文字列を入力することができます。また、「Select Path」ボタンをクリックすると、下記のようなモーダルを利用してファイルやディレクトリを選択できます。
+      </p>
+      <img width="600" src="img/path2.png" alt="path">
       <p>
 	<code>script</code>セクション中で利用できる関数として<code>dirname(FILE_PATH)</code>と<code>basename(FILE_PATH)</code>を提供しています。
 ディレクトリ名とファイル名を含むパス名から、<code>dirname()</code>はディレクトリ部分を、<code>basename()</code>はファイル部分だけを返します。
@@ -389,11 +406,13 @@ script: |
   input_file:
     widget: path
     label: Input file
+    value: /home/test/foo.txt
 
 script: |
   cd #{dirname(input_file)}
   mpiexec ./#{basename(input_file)}</pre>
-
+      <img width="800" src="img/path3.png" alt="path">
+      
       <h2 id="dynamic">3. Dynamic Form Widget</h2>
       <p>
 	ウィジットの設定を動的に変更できます。<code>select</code>、<code>radio</code>、<code>checkbox</code>ウィジットのoptionで設定します。

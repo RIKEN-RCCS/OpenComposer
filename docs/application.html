@@ -221,7 +221,7 @@ script: |
       <h3 id="email">2.3. email widget</h3>
       <p>
 	Displays an email input field.
-	Similar to the text widget, but validates the input to ensure it follows the email format when the "Submit" button is clicked.
+	Similar to the <code>text</code> widget, but validates the input to ensure it follows the email format when the "Submit" button is clicked.
       </p>
       <pre>form:
   email:
@@ -346,7 +346,20 @@ script: |
 
 script: |
   module load #{jupyter}</pre>
+      <img width="800" src="img/radio1.png" alt="radio">
+      <pre>form:
+  jupyter:
+    widget: radio
+    label: Jupyter
+    value: Jupyter Lab
+    options:
+      - [ Jupyter Lab,      jupyterlab ]
+      - [ Jupyter Notebook, jupyter    ]
 
+script: |
+  module load #{jupyter}</pre>
+      <img width="800" src="img/radio2.png" alt="radio">
+      
       <h3 id="checkbox">2.7. checkbox widget</h3>
       <p>
 	Displays checkboxes. If you set <code>required</code> in array format as follows, it will set whether each item is required.
@@ -367,6 +380,7 @@ script: |
 
 script: |
   #SBATCH --mail-type=#{mail_option}</pre>
+      <img width="800" src="img/checkbox1.png" alt="checkbox">
       <p>
 	When <code>required</code> is a single boolean value (e.g., true), at least one checkbox must be selected before submission.
       </p>
@@ -386,6 +400,7 @@ script: |
 
 script: |
   #SBATCH --mail-type=#{mail_option}</pre>
+      <img width="800" src="img/checkbox2.png" alt="checkbox">
       <p>
 	You can set the <code>separator</code> similar to the <code>multi_select</code> widget, and you can set the <code>direction</code> similar to the <code>radio</code> widget.
       </p>
@@ -393,7 +408,6 @@ script: |
       <h3 id="path">2.8. path widget</h3>
       <p>
 	Displays an input field for path of a file or directory on the Open OnDemand server.
-	The default value of <code>value</code> is <code>${HOME}</code>.
 	The <code>show_files</code> key toggles whether files are displayed (default: true).
 	The <code>favorites</code> key sets shortcut paths.
       </p>
@@ -401,14 +415,17 @@ script: |
   working_dir:
     widget: path
     label: Working Directory
-    value: /work
     show_files: false
     favorites:
-      - /fs/ess
-      - /fs/scratch
+      - /lvs0/rccs-aot
 
 script: |
   cd #{working_dir}</pre>
+      <img width="800" src="img/path1.png" alt="path">
+      <p>
+	You can enter any string like in a <code>text</code> widget. Also, by clicking the "Select Path" button, you can select a file or directory using the modal shown below.
+      </p>
+      <img width="600" src="img/path2.png" alt="path">
       <p>
 	The functions <code>dirname(FILE_PATH)</code> and <code>basename(FILE_PATH)</code> can be used in the <code>script</code> section to extract the directory or file name from a path.
       </p>
@@ -416,11 +433,13 @@ script: |
   input_file:
     widget: path
     label: Input file
+    value: /home/test/foo.txt
 
 script: |
   cd #{dirname(input_file)}
   mpiexec ./#{basename(input_file)}</pre>
-
+      <img width="800" src="img/path3.png" alt="path">
+      
       <h2 id="dynamic">3. Dynamic Form Widget</h2>
       <p>
 	You can dynamically change the settings of other widgets based on the selected option in <code>select</code>, <code>radio</code>, and <code>checkbox</code> widgets.
