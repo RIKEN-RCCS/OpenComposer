@@ -160,23 +160,6 @@ script: |
     step:   [  1,  1 ]</pre>
       <img src="img/label2.png" alt="label">
       <p>
-	To pad a number in a job script with zeros, use the function <code>zeropadding(key, digit)</code>.
-	If the number of digits is less than the number specified in the second argument, the missing digits will be filled with "0".
-      </p>
-      <pre>form:
-  time:
-    widget: number
-    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
-    size:   2
-    value:  [  1,  0 ]
-    min:    [  0,  0 ]
-    max:    [ 24, 59 ]
-    step:   [  1,  1 ]
-    
-script: |
-  #SBATCH --time=#{time_1}:#{zeropadding(time_2, 2)}:00</pre>
-      <img src="img/zeropadding.png" alt="Zero Padding">
-      <p>
 	You can also write a label for each item and a long label on one line.
 	Write the long label as the first element of the array format, and write the second element in array format.
       </p>
@@ -190,7 +173,24 @@ script: |
     max:    [ 24, 59 ]
     step:   [  1,  1 ]</pre>
       <img src="img/label3.png" alt="label">
+      <p>
+        To pad a number in a job script with zeros, use the function <code>zeropadding(key, digit)</code>.
+        If the number of digits is less than the number specified in the second argument, the missing digits will be filled with "0".
+      </p>
+      <pre>form:
+  time:
+    widget: number
+    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
+    size:   2
+    value:  [  1,  0 ]
+    min:    [  0,  0 ]
+    max:    [ 24, 59 ]
+    step:   [  1,  1 ]
 
+script: |
+  #SBATCH --time=#{time_1}:#{zeropadding(time_2, 2)}:00</pre>
+      <img src="img/zeropadding.png" alt="Zero Padding">
+      
       <h3 id="text">2.2. text widget</h3>
       <p>
 	Displays a text input field.
