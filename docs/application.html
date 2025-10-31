@@ -291,8 +291,7 @@ script: |
       <p>
 	If <code>mpi/mpich-x86_64</code> and <code>nvhpc/24.7</code> are selected, the job script will display them on separate lines:
       </p>
-      <pre>module load mpi/mpich-x86_64
-module load nvhpc/24.7</pre>
+      <img width="800" src="img/multi_select1.png" alt="multi select">
       <p>
 	To display selected items in a single line, set the <code>separator</code> key with a delimiter.
       </p>
@@ -311,10 +310,7 @@ module load nvhpc/24.7</pre>
       
 script: |
   module load #{load_modules}</pre>
-      <p>
-	This will generate:
-      </p>
-      <pre>module load mpi/mpich-x86_64 nvhpc/24.7</pre>
+      <img width="800" src="img/multi_select2.png" alt="multi select">
       <p>
 	Multiple default values can also be set using an array format.
       </p>

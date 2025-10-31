@@ -263,13 +263,10 @@ script: |
 
 script: |
   module load #{load_modules}</pre>
-
       <p>
 	例えば<code>mpi/mpich-x86_64</code>と<code>nvhpc/24.7</code>を選択した場合は、ジョブスクリプトは下記のように複数行で表示されます。
       </p>
-      <pre>module load mpi/mpich-x86_64
-module load nvhpc/24.7</pre>
-
+      <img width="800" src="img/multi_select1.png" alt="multi select">
       <p>
 	1行で表示したい場合は、<code>separator</code>で区切り文字を設定します。
       </p>
@@ -288,12 +285,10 @@ module load nvhpc/24.7</pre>
       
 script: |
   module load #{load_modules}</pre>
-
       <p>
 	選択された項目が、<code>separator</code>で設定した区切り文字を用いて1行で表示されます。
       </p>
-      <pre>module load mpi/mpich-x86_64 nvhpc/24.7</pre>
-
+      <img width="800" src="img/multi_select2.png" alt="multi select">
       <p>
 	<code>value</code>に複数の初期値を設定する場合は、配列形式で記述します。
       </p>
