@@ -127,6 +127,7 @@ related_app:
     
 script: |
   #SBATCH --nodes=#{nodes}</pre>
+      <img width="800" src="img/number.png" alt="number widget">
       <p>
 	You can also display multiple numeric input fields in a single line.
 	For example, specifying <code>size</code> indicates the number of input fields, with each item defined as an array.
@@ -144,7 +145,7 @@ script: |
     
 script: |
   #SBATCH --time=#{time_1}:#{time_2}:00</pre>
-      <img src="img/label1.png" alt="label">
+      <img width="800" src="img/label1.png" alt="label">
       <p>
 	If <code>label</code> is not an array, a single-line label can be provided. The same applies to <code>help</code>.
       </p>
@@ -202,6 +203,7 @@ script: |
 
 script: |
   #SBATCH --comment=#{comment}</pre>
+      <img width="800" src="img/text1.png" alt="text">
       <p>
 	You can also display multiple text input fields in a single line.
       </p>
@@ -214,7 +216,8 @@ script: |
 
 script: |
   #SBATCH #{option_1}#{option_2}</pre>
-
+      <img width="800" src="img/text2.png" alt="text">
+      
       <h3 id="email">2.3. email widget</h3>
       <p>
 	Displays an email input field.

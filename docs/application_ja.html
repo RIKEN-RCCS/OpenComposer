@@ -114,6 +114,7 @@ related_app:
     
 script: |
   #SBATCH --nodes=#{nodes}</pre>
+      <img width="800" src="img/number.png" alt="number widget">
       <p>
 	複数の数値の入力欄を1行で表示することも可能です。その場合、<code>size</code>で入力欄の数を記述し、各項目を配列形式で記述します。<code>script</code>セクションの<code>#{time_1}</code>と<code>#{time_2}</code>は、1つ目と2つ目に入力した値に置き換えられます。
       </p>
@@ -129,7 +130,7 @@ script: |
     
 script: |
   #SBATCH --time=#{time_1}:#{time_2}:00</pre>
-      <img src="img/label1.png" alt="label">
+      <img width="800" src="img/label1.png" alt="label">
       <p>
 	<code>label</code>が配列形式ではない場合、一行の長いラベルを記述することができます。<code>help</code>も同様です。
       </p>
@@ -185,6 +186,7 @@ script: |
 
 script: |
   #SBATCH --comment=#{comment}</pre>
+      <img width="800" src="img/text1.png" alt="text">
       <p>
 	複数のテキストの入力欄を1行で表示することも可能です。
       </p>
@@ -197,7 +199,8 @@ script: |
 
 script: |
   #SBATCH #{option_1}#{option_2}</pre>
-
+      <img width="800" src="img/text2.png" alt="text">
+      
       <h3 id="email">2.3. emailウィジット</h3>
       <p>
 	Emailの入力欄を表示します。Textウィジットとほぼ同じですが、「Submit」ボタンをクリックする際にメールアドレスの形式がチェックされます。
