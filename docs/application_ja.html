@@ -440,11 +440,11 @@ script: |
     min: 1
     max: 4
     step: 1</pre>
-
+      <img width="400" src="img/setting1.png" alt="setting">
       <p>
-	<code>number</code>、<code>text</code>、<code>email</code>において複数の入力欄を作っていた場合、設定対象の入力欄の指定に<code>_(num)</code>を用います。次の例では、<code>node_type</code>で<code>GPU</code>を選択すると、<code>time</code>の1つ目の入力欄のラベルと最大値が<code>Maximum run time hours (0 - 24)</code>と<code>24</code>になります。
+	<code>number</code>、<code>text</code>、<code>email</code>ウィジットにおいて複数の入力欄を作っていた場合、設定対象の入力欄の指定に<code>_(num)</code>を用います。次の例では、<code>node_type</code>で<code>GPU</code>を選択すると、<code>time</code>の1つ目の入力欄のラベルと最大値が<code>Maximum run time hours (0 - 24)</code>と<code>24</code>になります。
       </p>
-
+      
       <pre>form:
   node_type:
     widget: select
@@ -461,8 +461,9 @@ script: |
     max:     [ 72, 59 ]
     min:     [  0,  0 ]
     step:    [  1,  1 ]</pre>
+      <img width="400" src="img/setting2.png" alt="setting">
       <p>
-	<code>select</code>、<code>radio</code>、<code>checkbox</code>の場合、設定対象のオプションの指定に<code>1st element in options</code>を用います。次の例では、<code>node_type</code>で<code>GPU</code>を選択すると、<code>enable_gpu</code>の<code>Enable GPU</code>がチェックされます。
+	<code>select</code>、<code>radio</code>、<code>checkbox</code>ウィジットの場合、設定対象のオプションの指定に<code>1st element in options</code>を用います。次の例では、<code>node_type</code>で<code>GPU</code>を選択すると、<code>enable_gpu</code>の<code>Enable GPU</code>がチェックされます。
       </p>
       <pre>form:
   node_type:
@@ -476,7 +477,8 @@ script: |
     widget: checkbox
     options:
       - [ Enable GPU, gpu ]</pre>
-
+      <img width="400" src="img/setting3.png" alt="setting">
+      
       <h3 id="disable">3.2. ウィジットの無効化</h3>
       <p>
 	ウィジットとオプションを無効化・有効化します。<code>options</code>の各配列の第3要素以降に<code>[disable|enable]-(KEY)[-(1st element in options)][_num]</code>を指定します。
@@ -509,6 +511,8 @@ script: |
 script: |
   module load system/#{node_type}
   module load cuda/#{cuda_ver}</pre>
+      <img width="400" src="img/disable1.png" alt="disable"><br><br>
+      <img width="800" src="img/disable2.png" alt="disable">
       <p>
 	上の例の<code>options</code>は下記のように記述することもできます。この場合、<code>Tsubame</code>を選択したときのみ、<code>node_type</code>と<code>cuda_ver</code>が有効になります。
       </p>
@@ -532,10 +536,12 @@ script: |
   comment:
     widget: text
     label: Comment
+    value: test
     indent: 1
 
 script: |
   #SBATCH --comment=#{comment}</pre>
+      <img width="800" src="img/hide1.png" alt="hide">
       <p>
 	次の例では、<code>show_advanced_options</code>をチェックすると<code>comment</code>が表示されます。
       </p>
@@ -549,11 +555,13 @@ script: |
   comment:
     widget: text
     label: Comment
+    value: test
     indent: 1
 
 script: |
   #SBATCH --comment=#{comment}</pre>
-
+      <img width="800" src="img/hide2.png" alt="hide">
+      
       <h2 id="combination">4. 利用可能な組合せ</h2>
       <p>
 	<code>form</code>セクションと<code>header</code>セクションにおいて、各ウィジットと利用可能なオプションとの組合せは下記の表の通りです。<code>options</code>のみは必須項目ですが、他の項目は省略可能です。

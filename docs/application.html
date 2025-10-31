@@ -468,6 +468,7 @@ script: |
     min: 1
     max: 4
     step: 1</pre>
+      <img width="400" src="img/setting1.png" alt="setting">
       <p>
 	For <code>number</code>, <code>text</code>, or <code>email</code> widgets with multiple input fields,
 	you can specify the target input field using <code>_(num)</code>.
@@ -475,6 +476,7 @@ script: |
 	if you select <code>GPU</code> for <code>node_type</code>,
 	the label and maximum value of the first <code>time</code> input field will be <code>Maximum run time hours (0 - 24)</code> and <code>24</code>.
       </p>
+      
       <pre>form:
   node_type:
     widget: select
@@ -491,6 +493,7 @@ script: |
     max:     [ 72, 59 ]
     min:     [  0,  0 ]
     step:    [  1,  1 ]</pre>
+      <img width="400" src="img/setting2.png" alt="setting">
       <p>
 	For <code>select</code>, <code>radio</code>, and <code>checkbox</code> widgets,
 	use <code>1st element in options</code> to specify the target option.
@@ -508,7 +511,7 @@ script: |
     widget: checkbox
     options:
       - [ Enable GPU, gpu ]</pre>
-
+      
       <h3 id="disable">3.2. Widget disabling</h3>
       <p>
 	Disables or enables the widget.
@@ -544,6 +547,8 @@ script: |
 script: |
   module load system/#{node_type}
   module load cuda/#{cuda_ver}</pre>
+      <img width="400" src="img/disable1.png" alt="disable"><br><br>
+      <img width="800" src="img/disable2.png" alt="disable">
       <p>
 	The <code>options</code> in the above example can also be written as shown below. In this case, <code>node_type</code> and <code>cuda_ver</code> are enabled only when <code>Tsubame</code> is selected.
       </p>
@@ -572,10 +577,12 @@ script: |
   comment:
     widget: text
     label: Comment
+    value: test
     indent: 1
 
 script: |
   #SBATCH --comment=#{comment}</pre>
+      <img width="800" src="img/hide1.png" alt="hide">
       <p>
 	In the following example, <code>comment</code> will be displayed if <code>show_advanced_options</code> is checked.
       </p>
@@ -588,11 +595,13 @@ script: |
   comment:
     widget: text
     label: Comment
+    value: test
     indent: 1
 
 script: |
   #SBATCH --comment=#{comment}</pre>
-
+      <img width="800" src="img/hide2.png" alt="hide">
+      
       <h2 id="combination">4. Available combinations</h2>
       <p>
 	The available combinations of widgets and options in the <code>form</code> and <code>header</code> sections are shown in the table below. Only <code>options</code> is required, but the other items are optional.
