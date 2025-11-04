@@ -6,6 +6,7 @@ require "./lib/index"
 require "./lib/form"
 require "./lib/history"
 require "./lib/scheduler"
+require "fileutils"
 
 set :environment, :production
 #set :environment, :development
