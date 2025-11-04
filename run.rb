@@ -112,6 +112,9 @@ def create_conf
     conf["history_db"] = File.join(conf["data_dir"], conf["scheduler"] + ".db")
   end
 
+  # Create data directory
+  FileUtils.mkdir_p(conf["data_dir"])
+
   return conf
 end
 
