@@ -585,7 +585,7 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
   for (const k in keys) {
     let value = ocForm.getValue(keys[k], widgets[k]);
     value = typeof value === "number" ? String(value) : value;
-    if (!Array.isArray(value)) { // If nothing is checked in the checkbox, value = [].
+    if (value != null && !Array.isArray(value)) { // If nothing is checked in the checkbox, value = [].
       const escapeSequences = {
 	"\\n": "\n",
 	"\\t": "\t",
