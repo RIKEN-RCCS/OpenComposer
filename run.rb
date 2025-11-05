@@ -6,6 +6,7 @@ require "./lib/index"
 require "./lib/form"
 require "./lib/history"
 require "./lib/scheduler"
+require "fileutils"
 
 set :environment, :production
 #set :environment, :development
@@ -111,6 +112,9 @@ def create_conf
   else
     conf["history_db"] = File.join(conf["data_dir"], conf["scheduler"] + ".db")
   end
+
+  # Create data directory
+  FileUtils.mkdir_p(conf["data_dir"])
 
   return conf
 end
