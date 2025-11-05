@@ -20,6 +20,7 @@
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Registration for Open OnDemand</a></li>
 	<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. By administrator</a></li>
         <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. By general user</a></li>
+	<li class="nav-item"><a href="#jobscheduler" class="nav-link">4. Adding job scheduler</a></li>
       </ul>
     </nav>
 
@@ -165,9 +166,25 @@ url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
 	Click "Launch Open Composer".
       </p>
       <img src="img/bundle.png" width="800" alt="Bundle Install">
+
+      <h2 id="jobscheduler">4. Adding a Job Scheduler</h2>
+      <p>
+	If you want to add a job scheduler, create a Ruby script for the job scheduler under <code>lib/schedulers/</code> using the superclass Scheduler defined in <code>lib/scheduler.rb</code> as a reference. Inherit the Scheduler class as shown in the PBS Pro example below (<code>lib/schedulers/pbspro.rb</code>).
+	You must define the <code>submit()</code> method for submitting a job, the <code>cancel()</code> method for canceling a job, and the <code>query()</code> method for querying job information.
+      </p>
+      <pre>class Pbspro &lt; Scheduler</pre>
+      <p>
+	Also, in some clusters, job scheduler commands (e.g., <code>qstat</code>) are wrapper scripts, making it impossible for users to execute the original commands. In such cases, you may be able to address this issue by making minor changes to the existing scheduler script. For example, in <code>lib/schedulers/miyabi.rb</code>, a new class, Miyabi, is defined by inheriting the PBS Pro scheduler, as shown below. The Miyabi class defines only the <code>query()</code> method, while the other methods use those defined in <code>lib/schedulers/pbspro.rb</code>.
+      </p>
+      <pre>class Miyabi &lt; Pbspro</pre>
+      <p>
+	After creating the job scheduler script, specify the scheduler in <code>./conf.yml.erb</code> as shown below.
+      </p> 
+      <pre>scheduler: miyabi</pre>
+      
     </main>
   </div>
-
+  
   <footer class="d-flex justify-content-center">
     <p class="mb-0 text-white">&copy; RIKEN Center for Computational Science</p>
   </footer>

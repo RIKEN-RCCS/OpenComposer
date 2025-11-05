@@ -20,6 +20,7 @@
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Open OnDemandへの登録</a></li>
 	<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. 管理者による登録</a></li>
         <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. 一般ユーザによる登録</a></li>
+	<li class="nav-item"><a href="#jobscheduler" class="nav-link">4. ジョブスケジューラの追加</a></li>
       </ul>
     </nav>
 
@@ -157,6 +158,20 @@ url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
 	「Launch Open Composer」をクリックします。
       </p>
       <img src="img/bundle.png" width="800" alt="Bundle Install">
+
+      <h2 id="jobscheduler">4. ジョブスケジューラの追加</h2>
+      <p>
+	ジョブスケジューラを追加したい場合、スーパークラスSchedulerが定義された<code>lib/scheduler.rb</code>を参考にして、<code>lib/schedulers/</code>以下にジョブスケジューラのためのRubyスクリプトを作成してください。下記のPBS Proの例（<code>lib/schedulers/pbspro.rb</code>）ようにSchedulerクラスを継承してください。ジョブを投入する<code>submit()</code>メソッド、ジョブをキャンセルする<code>cancel()</code>メソッド、ジョブの情報を問い合わせる<code>query()</code>メソッドを定義する必要があります。
+      </p>
+      <pre>class Pbspro &lt; Scheduler</pre>
+      <p>
+	また、いくつかのクラスタでは、ジョブスケジューラのコマンド（例：<code>qstat</code>）がラッパースクリプトになっていて、オリジナルのコマンドをユーザが実行できない場合があります。そのような場合、既存のスケジューラのスクリプトを少し変更することで対応できることがあります。例えば、<code>lib/schedulers/miyabi.rb</code>では、下記のようにPBS Proのスケジューラを継承して新しいクラスMiyabiを定義しています。Miyabiクラスでは<code>query()</code>メソッドだけが定義されており、他のメソッドは<code>lib/schedulers/pbspro.rb</code>で定義されたものを利用しています。	
+      </p>
+      <pre>class Miyabi &lt; Pbspro</pre>
+      <p>
+	ジョブスケジューラのスクリプトの作成後、<code>./conf.yml.erb</code>で下記のようにスケジューラを指定します。
+      </p>
+      <pre>scheduler: miyabi</pre>
     </main>
   </div>
 
