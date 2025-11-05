@@ -16,6 +16,11 @@
 <% elsif !@script_path.nil? %>
   <div class="alert alert-info alert-dismissible mx-1 mb-0">
     Saved to the following path: <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files/fs<%= File.dirname(@script_path) %>"><%= @script_path %></a>
+    <% unless @login_node.nil? %>
+    <a style="color: black; text-decoration: none; vertical-align: middle;" target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>/<%= File.dirname(@script_path) %>">
+      <i class="bi bi-terminal-fill fs-5"></i>
+    </a>
+    <% end %>
     <button class="btn-close" data-bs-dismiss="alert"></button>
   </div>
 <% end %>

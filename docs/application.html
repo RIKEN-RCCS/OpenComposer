@@ -76,13 +76,14 @@ related_app:
       
       <h3 id="form">1.2. form.yml</h3>
       <p>
-	The <code>form.yml</code> is composed of five main sections: <code>form</code>, <code>header</code>, <code>script</code>, <code>check</code> and <code>submit</code>.
+	The <code>form.yml</code> is composed of five main sections: <code>form</code>, <code>script</code>, <code>header</code>, <code>check</code> and <code>submit</code>.
 	The <code>form</code> and <code>script</code> sections are required fields, but <code>header</code>, <code>check</code> and <code>submit</code> sections can be omitted.
       </p>
       <p>
-	The following figure shows the scope of <code>form</code>, <code>header</code> and <code>script</code> sections.
-	A job script is generated from <code>form</code>, <code>header</code>, and <code>script</code> sections.
-	However, the <code>header</code> section is optional, and if omitted, <code>./lib/header.yml.erb</code> is used instead (in most cases, there is no need to define <code>header</code>).
+	The following figure shows the scope of <code>form</code>, <code>script</code>, and <code>header</code> sections.
+	A job script is generated from <code>form</code>, <code>script</code>, and <code>header</code> sections.
+	However, the <code>header</code> section is optional, and if omitted, <code>./lib/header.yml.erb</code> is used instead.
+	Thus, in most cases, there is no need to define <code>header</code>.
 	Note that the application name in the upper left is the scope of <code>manifest.yml</code>.
 	The <code>check</code> section performs validation of the inputs before job submission.
 	The <code>submit</code> section defines the pre-processing when submitting a job.
@@ -426,7 +427,7 @@ script: |
       <p>
 	You can enter any string like in a <code>text</code> widget. Also, by clicking the "Select Path" button, you can select a file or directory using the modal shown below.
       </p>
-      <img width="600" src="img/path2.png" alt="path">
+      <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
       <p>
 	The functions <code>dirname(FILE_PATH)</code> and <code>basename(FILE_PATH)</code> can be used in the <code>script</code> section to extract the directory or file name from a path.
       </p>
@@ -680,6 +681,7 @@ script:
       <img src="img/save.png" width="400" alt="Save">
       <p>
 	Clicking the button will save the file, and the save destination will be displayed at the top of the screen. Clicking the link will launch the Open OnDemand Home Directory.
+	If there is a terminal icon, clicking that icon will launch the Open OnDemand Terminal application.
       </p>
       <img src="img/save2.png" width="400" alt="Save">
       <h3 id="hide-script">5.3. Hide script</h3>
@@ -709,7 +711,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
 
       <h3 id="variables">5.4. Special variables</h3>
       <p>
-        <code>script</code>セクションでは、下記の特殊な変数も利用できます。
+	The following special variables are also available in the <code>script</code> section:
       </p>
       <ul>
         <li>#{OC_APP_NAME}: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
@@ -811,12 +813,11 @@ submit:
       <h2 id="header">8. Header section</h2>
       <p>
 	You can define the <code>header</code> section.
-	However, widgets with the same names as those defined in <code>lib/headers.yml.erb</code> must be defined.
-	If an error occurs in the script, the <code>set -e</code> command is required to interrupt preprocessing.
+	However, widgets with the same names as those defined in <code>lib/header.yml.erb</code> must be defined.
       </p>
       <p>
-	The following example adds a new widget <code>script_content</code>, which hides the job script, to the defined widgets (<code>_script_location</code> and <code>_script</code>).
-	If <code>cluster</code> is defined in <code>./conf.yml.erb</code>, <code>_cluster_name</code> must also be defined.
+	The example below defines a new widget, <code>script_content</code>, that hides the job script.
+	The <code>_script_location</code> and <code>_script</code> are widgets defined in <code>lib/header.yml.erb</code> (if a <code>cluster</code> is defined in <code>./conf.yml.erb</code>, you must also define <code>_cluster_name</code>).
       </p>
 
       <pre>header:

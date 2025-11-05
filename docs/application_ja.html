@@ -76,10 +76,10 @@ related_app:
       
       <h3 id="form">1.2. form.yml</h3>
       <p>
-	<code>form.yml</code>は、<code>form</code>、<code>header</code>、<code>script</code>、<code>check</code>、<code>submit</code>というセクションで構成されています。<code>form</code>と<code>script</code>は必須項目ですが、<code>header</code>、<code>check</code>、<code>submit</code>は省略できます。
+	<code>form.yml</code>は、<code>form</code>、<code>script</code>、<code>header</code>、<code>check</code>、<code>submit</code>というセクションで構成されています。<code>form</code>と<code>script</code>は必須項目ですが、<code>header</code>、<code>check</code>、<code>submit</code>は省略できます。
       </p>
       <p>
-	次の図は<code>form</code>、<code>header</code>、<code>script</code>の担当範囲を示しています。<code>form</code>と<code>header</code>と<code>script</code>からジョブスクリプトが生成されます。<code>header</code>を省略した場合は<code>./lib/header.yml.erb</code>が代わりに利用されます（ほとんどの場合、<code>header</code>を<code>form.yml</code>で定義する必要はないでしょう）。なお、左上のアプリケーションの説明などは<code>manifest.yml</code>の担当範囲です。<code>check</code>はウィジットに設定された値のチェックをジョブの投入前に行います。<code>submit</code>はジョブを投入する際の前処理を定義します。
+	次の図は<code>form</code>、<code>script</code>、<code>header</code>の担当範囲を示しています。<code>form</code>と<code>script</code>と<code>header</code>からジョブスクリプトが生成されます。<code>header</code>を省略した場合は<code>./lib/header.yml.erb</code>が代わりに利用されます。そのため、ほとんどの場合、<code>header</code>を定義する必要はないでしょう。なお、左上のアプリケーションの説明などは<code>manifest.yml</code>の担当範囲です。<code>check</code>はウィジットに設定された値のチェックをジョブの投入前に行います。<code>submit</code>はジョブを投入する際の前処理を定義します。
       </p>
       <img src="img/sections.png" width="800" alt="Sections">
 
@@ -287,9 +287,6 @@ script: |
       
 script: |
   module load #{load_modules}</pre>
-      <p>
-	選択された項目が、<code>separator</code>で設定した区切り文字を用いて1行で表示されます。
-      </p>
       <img width="800" src="img/multi_select2.png" alt="multi select">
       <p>
 	<code>value</code>に複数の初期値を設定する場合は、配列形式で記述します。
@@ -399,7 +396,7 @@ script: |
       <p>
 	<code>text</code>ウィジットのように任意の文字列を入力することができます。また、「Select Path」ボタンをクリックすると、下記のようなモーダルを利用してファイルやディレクトリを選択できます。
       </p>
-      <img width="600" src="img/path2.png" alt="path">
+      <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
       <p>
 	<code>script</code>セクション中で利用できる関数として<code>dirname(FILE_PATH)</code>と<code>basename(FILE_PATH)</code>を提供しています。
 ディレクトリ名とファイル名を含むパス名から、<code>dirname()</code>はディレクトリ部分を、<code>basename()</code>はファイル部分だけを返します。
@@ -637,7 +634,7 @@ script:
       </p>
       <img src="img/save.png" width="400" alt="Save">
       <p>
-	ボタンをクリックすると保存が実行され、画面上部にその保存先が表示されます。そのリンクをクリックすると、Open OnDemandのHome Directoryが起動します。
+	ボタンをクリックすると保存が実行され、画面上部にその保存先が表示されます。その文字のリンクをクリックすると、Open OnDemandのHome Directoryが起動します。また、ターミナルのアイコンがある場合、そのアイコンをクリックするとOpen OnDemandのTerminalアプリケーションが起動します。
       </p>
       <img src="img/save2.png" width="400" alt="Save">
 
@@ -757,10 +754,10 @@ submit:
       
       <h2 id="header">8. headerセクション</h2>
       <p>
-	<code>header</code>セクションを定義できます。ただし、<code>lib/headers.yml.erb</code>で定義されているウィジットは必ず定義してください。
+	<code>header</code>セクションを定義できます。ただし、<code>lib/header.yml.erb</code>で定義されているウィジットは必ず定義してください。
       </p>
       <p>
-	下記の例は、定義されているウィジット（<code>_script_location</code>と<code>_script</code>）に、ジョブスクリプトを隠す新しいウィジット<code>script_content</code>を追加しています。<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合は、<code>_cluster_name</code>の定義も必要です。
+	下記の例は、ジョブスクリプトを隠す新しいウィジット<code>script_content</code>を定義しています。<code>_script_location</code>と<code>_script</code>は<code>lib/header.yml.erb</code>で定義されているウィジットです（<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合は、<code>_cluster_name</code>の定義も必要です）。
       </p>
 
       <pre>header:
