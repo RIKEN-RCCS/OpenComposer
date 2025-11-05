@@ -125,16 +125,18 @@ helpers do
   end
 
   # Output a JavaScript code based on a given yml, line in script, and matches data.
-  def output_script_js(form, line)
+  def output_script_js(form, line, app_name)
     # Substitute constant valiables
-    line.gsub!(/\#\{_SCRIPT_LOCATION\}/,  "\#\{#{HEADER_SCRIPT_LOCATION}\}")
-    line.gsub!(/\#\{:_SCRIPT_LOCATION\}/, "\#\{:#{HEADER_SCRIPT_LOCATION}\}")
-    line.gsub!(/\#\{_SCRIPT_NAME\}/,      "\#\{#{HEADER_SCRIPT_NAME}\}")
-    line.gsub!(/\#\{:_SCRIPT_NAME\}/,     "\#\{:#{HEADER_SCRIPT_NAME}\}")
-    line.gsub!(/\#\{_JOB_NAME\}/,         "\#\{#{HEADER_JOB_NAME}\}")
-    line.gsub!(/\#\{:_JOB_NAME\}/,        "\#\{:#{HEADER_JOB_NAME}\}")
-    line.gsub!(/\#\{_CLUSTER_NAME\}/,     "\#\{#{HEADER_CLUSTER_NAME}\}")
-    line.gsub!(/\#\{:_CLUSTER_NAME\}/,    "\#\{:#{HEADER_CLUSTER_NAME}\}")
+    line.gsub!(/\#\{OC_APP_NAME\}/,         app_name)
+    line.gsub!(/\#\{:OC_APP_NAME\}/,        app_name)
+    line.gsub!(/\#\{OC_SCRIPT_LOCATION\}/,  "\#\{#{HEADER_SCRIPT_LOCATION}\}")
+    line.gsub!(/\#\{:OC_SCRIPT_LOCATION\}/, "\#\{:#{HEADER_SCRIPT_LOCATION}\}")
+    line.gsub!(/\#\{OC_CLUSTER_NAME\}/,     "\#\{#{HEADER_CLUSTER_NAME}\}")
+    line.gsub!(/\#\{:OC_CLUSTER_NAME\}/,    "\#\{:#{HEADER_CLUSTER_NAME}\}")
+    line.gsub!(/\#\{OC_SCRIPT_NAME\}/,      "\#\{#{HEADER_SCRIPT_NAME}\}")
+    line.gsub!(/\#\{:OC_SCRIPT_NAME\}/,     "\#\{:#{HEADER_SCRIPT_NAME}\}")
+    line.gsub!(/\#\{OC_JOB_NAME\}/,         "\#\{#{HEADER_JOB_NAME}\}")
+    line.gsub!(/\#\{:OC_JOB_NAME\}/,        "\#\{:#{HEADER_JOB_NAME}\}")
     
     # Escape backslashes (`\`) by replacing each `\` with `\\`.
     # This ensures the backslashes are properly interpreted in JavaScript strings.
@@ -804,11 +806,10 @@ helpers do
   end
 
   # Output a body of webform.
-  def output_body(body, header)
+  def output_body(body, header, app_name)
     return "" unless body&.key?("form")
 
-    @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "" }
-    
+    @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "" }
     form = body["form"].merge({SCRIPT_CONTENT => {"widget" => "textarea"}})
     obj = form.merge(header)
     html = ""
@@ -843,9 +844,17 @@ helpers do
       html += "</div>\n"
     end
 
-    if !body["script"].nil?
-      body["script"].split("\n").each do |line|
-        @js["script"] += output_script_js(obj, line)
+    script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
+    if !script_content.nil?
+      script_content.split("\n").each do |line|
+        @js["script"] += output_script_js(obj, line, app_name)
+      end
+    end
+
+    submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
+    if !submit_content.nil?
+      submit_content.split("\n").each do |line|
+        @js["submit"] += output_script_js(obj, line, app_name)
       end
     end
 
@@ -856,7 +865,7 @@ helpers do
   def output_header(body, header)
     return "" if header.nil? || header.empty?
 
-    @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => ""}
+    @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => ""}
     
     html = ""
     header = header.merge({SCRIPT_CONTENT => {"widget" => "textarea"}})

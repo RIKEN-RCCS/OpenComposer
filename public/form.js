@@ -1,7 +1,7 @@
 // Adjust a textarea height based on the content.
-ocForm.updateHeight = function() {
-  ocForm.textArea.style.height = 'auto';
-  ocForm.textArea.rows = ocForm.textArea.value.split('\n').length;
+ocForm.updateHeight = function(area) {
+  area.style.height = 'auto';
+  area.rows = area.value.split('\n').length;
 };
 
 // Return a valid suggestion items.
@@ -1023,13 +1023,20 @@ ocForm.validateCheckboxForSubmit = function(key) {
 
 // Show "Submitting..." on the button and disable it to prevent double submission.
 // The form is submitted normally and the button resets after page reload. 
-ocForm.submitEffect = function() {
+ocForm.submitEffect = function(action) {
   const btn = document.getElementById('_submitButton');
   btn.disabled = true;
-  btn.value = 'Submitting...';
+  if (action === "submit") {
+    btn.value = 'Submitting...';
+  }
+  else if (action === "save") {
+    btn.value = 'Saving...';
+  }
+  // Note that confirm is not needed.
+    
   btn.classList.remove('btn-primary');
   btn.classList.add('btn-warning');
-  
+
   return true;
 };
 

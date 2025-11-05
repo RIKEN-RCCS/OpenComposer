@@ -30,12 +30,13 @@
 	<li class="nav-item ms-3"><a href="#disable" class="nav-link">3.2. ウィジットの無効化</a></li>
 	<li class="nav-item ms-3"><a href="#hide" class="nav-link">3.3. ウィジットの非表示化</a></li>
 	<li class="nav-item"><a href="#combination" class="nav-link">4. 利用可能な組合せ</a></li>
-	<li class="nav-item"><a href="#check" class="nav-link">5. checkセクション</a></li>
-	<li class="nav-item"><a href="#submit" class="nav-link">6. submitセクション</a></li>
-	<li class="nav-item"><a href="#script" class="nav-link">7. scriptセクション</a></li>
-	<li class="nav-item ms-3"><a href="#label" class="nav-link">7.1. ラベルの変更</a></li>
-	<li class="nav-item ms-3"><a href="#parameter" class="nav-link">7.2. パラメータファイルの生成</a></li>
-	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">7.3. 非表示化</a></li>
+	<li class="nav-item"><a href="#script" class="nav-link">5. scriptセクション</a></li>
+	<li class="nav-item ms-3"><a href="#label" class="nav-link">5.1. ラベルの変更</a></li>
+	<li class="nav-item ms-3"><a href="#parameter" class="nav-link">5.2. パラメータファイルの生成</a></li>
+	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. 非表示化</a></li>
+        <li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. 特殊な変数</a></li>
+	<li class="nav-item"><a href="#check" class="nav-link">6. checkセクション</a></li>
+	<li class="nav-item"><a href="#submit" class="nav-link">7. submitセクション</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">8. headerセクション</a></li>
 	<li class="nav-item"><a href="#sample" class="nav-link">9. サンプル</a></li>
 	<li class="nav-item"><a href="#supplement" class="nav-link">10. 補足</a></li>
@@ -84,7 +85,7 @@ related_app:
 
       <h2 id="widget">2. ウィジットの説明</h2>
       <p>
-	<code>form.yml</code>の<code>form</code>と<code>header</code>では下記のウィジットを利用して、ジョブスクリプトを生成します。
+	<code>form.yml</code>の<code>form</code>セクションと<code>header</code>セクションでは下記のウィジットを利用して、ジョブスクリプトを生成します。
       </p>
       <ul>
 	<li>numberウィジット：数値の入力欄を表示します。</li>
@@ -600,7 +601,82 @@ script: |
 	</tbody>
       </table>
 
-      <h2 id="check">5. checkセクション</h2>
+      <h2 id="script">5. scriptセクション</h2>
+      <h3 id="label">5.1. ラベルの変更</h3>
+      <p>
+        ジョブスクリプトのラベル（デフォルトは「Script Content」）を変更したい場合は<code>script</code>セクションで<code>label</code>を設定します。その場合、ジョブスクリプトは<code>content</code>に記述します。
+      </p>
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+script:
+  label: Script Details
+  content: |
+    #SBATCH --nodes=#{nodes}</pre>
+      <img src="img/label.png" width="200" alt="label">
+      
+      <h3 id="parameter">5.2. パラメータファイルの生成</h3>
+      <p>
+	Open Composerはジョブスクリプトの生成だけでなく、アプリケーションで利用するパラメータファイルや設定ファイルの生成も行うことができます。そのような場合、ジョブスクリプトを投入せずに、ジョブスクリプトの保存のみを行う方が適しています。ジョブスクリプトの保存のみを行いたい場合、<code>script</code>セクションで<code>action: save</code>を設定します。
+      </p>
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+script:
+  label: Parameter file
+  action: save
+  content: |
+    num_of_nodes: #{nodes}</pre>
+
+      <p>
+	この設定を行うと、ボタンのラベルが「Submit」から「Save」に変化します。
+      </p>
+      <img src="img/save.png" width="400" alt="Save">
+      <p>
+	ボタンをクリックすると保存が実行され、画面上部にその保存先が表示されます。そのリンクをクリックすると、Open OnDemandのHome Directoryが起動します。
+      </p>
+      <img src="img/save2.png" width="400" alt="Save">
+
+      <h3 id="hide-script">5.3. 非表示化</h3>
+      <p>
+	<code>script</code>セクションを非表示化することができます。特殊な変数<code>SCRIPT_CONTENT</code>とDynamic Form Widgetの<code>hide-</code>とを下記のように組み合せて利用します（ERBを用いるため、ファイル名は<code>form.yml.erb</code>であることに注意ください）。
+      </p>
+      <pre>form:
+  script_content:
+    widget: checkbox
+    value: "Hide script content"
+    options:
+      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
+
+      <img src="img/hide-script.png" width="600" alt="Hide script">
+
+      <p>
+	チェックボックスを表示させずに、ジョブスクリプトを隠したい場合は、そのチェックボックスに対して<code>hide-</code>を設定します。
+      </p>
+      <pre>form:
+  script_content:
+    widget: checkbox
+    value: "Hide script content"
+    options:
+      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
+      
+      <h3 id="variables">5.4. 特殊な変数</h3>
+      <p>
+        <code>script</code>セクションでは、下記の特殊な変数も利用できます。
+      </p>
+      <ul>
+        <li>#{OC_APP_NAME}: <code>manifest.yml</code>の<code>name</code>で定義しているアプリケーション名</li>
+        <li>#{OC_SCRIPT_LOCATION}: ヘッダで定義されている<code>Script location</code></li>
+      	<li>#{OC_CLUSTER_NAME}: ヘッダで定義されている<code>Cluster name</code>（<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合に有効）</li>
+      	<li>#{OC_SCRIPT_NAME}: ヘッダで定義されている<code>Script Name</code></li>
+        <li>#{OC_JOB_NAME}: ヘッダで定義されている<code>Job Name</code></li>
+      </ul>
+      
+      <h2 id="check">6. checkセクション</h2>
       <p>
 	<code>check</code>セクションでは、ウィジットに設定された値のチェックをRuby言語を用いて定義します。このチェックはジョブの投入前に行われます。<code>check</code>セクションでは、関数<code>oc_assert(condition, message)</code>を利用できます。この関数は<code>condition</code>が<code>false</code>の場合、<code>message</code>を出力して処理を終了します。
       </p>
@@ -624,23 +700,22 @@ check: |
   message = "Exceeded Time"
   oc_assert(@time_1 != 24 || @time_2 == 0, message)</pre>
       <p>
-        <code>check</code>セクションでは、下記の特殊な変数も利用できます。
+        <code>check</code>セクションでは、<code>script</code>セクションと同様に下記の特殊な変数も利用できます（内容は同じであるため省略）。
       </p>
       <ul>
-        <li>@OC_APP_NAME: <code>manifest.yml</code>の<code>name</code>で定義しているアプリケーション名</li>
-        <li>@OC_APP_PATH: <code>form.yml</code>が保存されているアプリケーションのパス（例：<code>/Slurm</code>）</li>
-        <li>@OC_SCRIPT_LOCATION: ヘッダで定義されている<code>Script location</code></li>
-      	<li>@OC_CLUSTER_NAME: ヘッダで定義されている<code>Cluster name</code>（<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合に有効）</li>
-      	<li>@OC_SCRIPT_NAME: ヘッダで定義されている<code>Script Name</code></li>
-        <li>@OC_JOB_NAME: ヘッダで定義されている<code>Job Name</code></li>
+        <li>@OC_APP_NAME</li>
+        <li>@OC_SCRIPT_LOCATION</li>
+      	<li>@OC_CLUSTER_NAME</li>
+      	<li>@OC_SCRIPT_NAME</li>
+        <li>@OC_JOB_NAME</li>
       </ul>
 
-      <h2 id="submit">6. submitセクション</h2>
+      <h2 id="submit">7. submitセクション</h2>
       <p>
 	<code>section</code>セクションでは、ジョブ投入前（<code>check</code>セクションによるチェックの後）に実行する処理をbash言語を用いて定義します。
       </p>
       <p>
-        <code>submit</code>セクションのサンプルは下記の通りです。<code>form</code>セクションの変数を参照する場合は、<code>#{...}</code>を利用してください。<code>check</code>セクションで利用できる特殊な変数も、例えば<code>#{OC_APP_NAME}</code>のように利用できます。また、<code>submit</code>セクションだけで利用できる特殊な変数<code>OC_SUBMIT_OPTIONS</code>では、ジョブスクリプト投入コマンドに追加のオプションを設定できます。この処理の実行後に、ジョブスクリプトを投入するためのコマンド（例えば、<code>sbatch #{OC_SUBMIT_OPTIONS} -J #{OC_JOB_NAME} #{OC_SCRIPT_NAME}</code>）が実行されます。
+        <code>submit</code>セクションのサンプルは下記の通りです。<code>script</code>セクションと同様の記法が可能です。さらに、<code>submit</code>セクションだけで利用できる特殊な変数<code>OC_SUBMIT_OPTIONS</code>があり、ジョブスクリプト投入コマンドに追加のオプションを設定できます。この処理の実行後に、ジョブスクリプトを投入するためのコマンド（例えば、<code>sbatch #{OC_SUBMIT_OPTIONS} -J #{OC_JOB_NAME} #{OC_SCRIPT_NAME}</code>）が実行されます。
       </p>
       <pre>form:
   nodes:
@@ -649,75 +724,37 @@ check: |
 	
 submit: |
   #!/bin/bash
-
+  set -e
   cd #{OC_SCRIPT_LOCATION}
   mv #{OC_SCRIPT_NAME} param_#{nodes}.conf
   genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
-  OC_SUBMIT_OPTIONS="-n 1"</pre>
-      
-      <h2 id="script">7. scriptセクション</h2>
-      <h3 id="label">7.1. ラベルの変更</h3>
+  OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
       <p>
-        ジョブスクリプトのラベル（デフォルトは「Script Content」）を変更したい場合は<code>script</code>セクションで<code>label</code>を設定します。その場合、ジョブスクリプトは<code>content</code>に記述します。
+	前処理のコマンドをジョブ投入前に閲覧したい場合、<code>action: confirm</code>を記述します。その場合、前処理の内容は<code>content</code>に記述します。
       </p>
       <pre>form:
   nodes:
     widget: number
     label: Number of nodes
 
-script:
-  label: Script Details
+submit:
+  action: confirm
   content: |
-    #SBATCH --nodes=#{nodes}</pre>
-      <img src="img/label.png" width="200" alt="label">
+    #!/bin/bash
+    set -e
+    cd #{OC_SCRIPT_LOCATION}
+    mv #{OC_SCRIPT_NAME} param_#{nodes}.conf
+    genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
+    OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
+      <p>
+	この設定を行うと、ボタンのラベルが「Submit」から「Confirm」に変化します。「Confirm」ボタンをクリックすると、変数に値が代入された前処理のコマンドが表示されます。前処理のコマンドは編集することも可能です。「Submit」ボタンをクリックすると、前処理の実行とジョブ投入が行われます。注意点として、スクリプト中でエラーが発生したときに、前処理を中断するには<code>set -e</code>コマンドが必要です。
+      </p>
+      <img src="img/submit.png" width="600" alt="Submit">
+      <p>
+	なお、<code>script</code>セクションで<code>action: save</code>も設定した場合、前処理を行った後、<code>script</code>セクションの内容を保存するという動作になります。「Confirm」の画面下のボタンは下記のように「Submit」から「Run &amp; Save」という表示になります。
+      </p>
+      <img src="img/submit2.png" width="600" alt="Submit">
       
-      <h3 id="parameter">7.2. パラメータファイルの生成</h3>
-      <p>
-	Open Composerはジョブスクリプトの生成だけでなく、アプリケーションで利用するパラメータファイルや設定ファイルの生成も行うことができます。そのような場合、ジョブスクリプトを投入せずに、ジョブスクリプトの保存のみを行う方が適しています。ジョブスクリプトの保存のみを行いたい場合、<code>script</code>セクションで<code>action: save</code>を設定します。なお、デフォルトは<code>action: submit</code>で、ジョブスクリプトの投入も行います。
-      </p>
-      <pre>form:
-  nodes:
-    widget: number
-    label: Number of nodes
-
-script:
-  label: Parameter file
-  action: save
-  content: |
-    num_of_nodes: #{nodes}</pre>
-
-      <p>
-	この設定を行うと、ボタンのラベルが「Submit」から「Save」に変化します。
-      </p>
-      <img src="img/save.png" width="400" alt="Save">
-      <p>
-	ボタンをクリックすると保存が実行され、画面上部にその保存先が表示されます。そのリンクをクリックすると、Open OnDemandのHome Directoryが起動します。
-      </p>
-      <img src="img/save2.png" width="400" alt="Save">
-
-      <h3 id="hide-script">7.3. 非表示化</h3>
-      <p>
-	<code>script</code>セクションを非表示化することができます。特殊な変数<code>SCRIPT_CONTENT</code>とDynamic Form Widgetの<code>hide-</code>とを下記のように組み合せて利用します（ERBを用いるため、ファイル名は<code>form.yml.erb</code>であることに注意ください）。
-      </p>
-      <pre>form:
-  script_content:
-    widget: checkbox
-    value: "Hide script content"
-    options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
-
-      <img src="img/hide-script.png" width="600" alt="Hide script">
-
-      <p>
-	チェックボックスを表示させずに、ジョブスクリプトを隠したい場合は、そのチェックボックスに対して<code>hide-</code>を設定します。
-      </p>
-      <pre>form:
-  script_content:
-    widget: checkbox
-    value: "Hide script content"
-    options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
-
       <h2 id="header">8. headerセクション</h2>
       <p>
 	<code>header</code>セクションを定義できます。ただし、<code>lib/headers.yml.erb</code>で定義されているウィジットは必ず定義してください。
@@ -760,7 +797,7 @@ script:
       <h2 id="supplement">10. 補足</h2>
       <ul>
 	<li>本ページのサンプルはすべてbash言語で記述されていますが、他のシェルも利用することができます。ただし、<code>submit</code>セクションだけはbash言語しか記述できません。</li>
-	<li>ウィジット名に利用できるのは英数字とアンダースコアのみです。数字とアンダースコアを先頭に用いることもできません。末尾がアンダースコア+数字のウィジット名（例：<code>nodes_1</code>）も利用しないで下さい。アプリケーションを保存するディレクトリ名も同様です。ただし、<code>header</code>を<code>form.yml</code>で定義する場合、<code>lib/header.yml.erb</code>で用いられているアンダースコアで始まるウィジット名（<code>_script_location</code>など）は利用可能です。</li>
+	<li>ウィジット名に利用できるのは英数字とアンダースコアのみです。数字とアンダースコアを先頭に用いることもできません。末尾がアンダースコア+数字のウィジット名（例：<code>nodes_1</code>）も利用しないで下さい。アプリケーションを保存するディレクトリ名も同様です。ただし、<code>header</code>セクションを<code>form.yml</code>で定義する場合、<code>lib/header.yml.erb</code>で用いられているアンダースコアで始まるウィジット名（例：<code>_script_location</code>）は利用可能です。</li>
 	<li><code>options</code>で2つ目の要素がない場合、1つ目の要素が代わりに用いられます。</li>
 	<li><code>script</code>セクションにおいて、ある行で利用されている変数が値を持たない場合、その行は表示されません。ただし、その変数の先頭にコロンを付加する（例：<code>#{:nodes}</code>や<code>#{basename(:input_file)}</code>）と、その変数が値を持たなくても行は出力されます。</li>
 	<li>Open Composerがジョブスクリプトを投入するまでに行われる処理の順番は下記の通りです。

@@ -30,12 +30,13 @@
 	<li class="nav-item ms-3"><a href="#disable" class="nav-link">3.2. Widget disabling</a></li>
 	<li class="nav-item ms-3"><a href="#hide" class="nav-link">3.3. Widget hiding</a></li>
 	<li class="nav-item"><a href="#combination" class="nav-link">4. Available combinations</a></li>
-	<li class="nav-item"><a href="#check" class="nav-link">5. Check section</a></li>
-	<li class="nav-item"><a href="#submit" class="nav-link">6. Submit section</a></li>
-	<li class="nav-item"><a href="#script" class="nav-link">7. Script section</a></li>
-	<li class="nav-item ms-3"><a href="#label" class="nav-link">7.1. Change label</a></li>
-	<li class="nav-item ms-3"><a href="#parameter" class="nav-link">7.2. Generate parameter file</a></li>
-	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">7.3. Hide script</a></li>
+	<li class="nav-item"><a href="#script" class="nav-link">5. Script section</a></li>
+	<li class="nav-item ms-3"><a href="#label" class="nav-link">5.1. Change label</a></li>
+	<li class="nav-item ms-3"><a href="#parameter" class="nav-link">5.2. Generate parameter file</a></li>
+	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. Hide script</a></li>
+	<li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. Special variables</a></li>
+	<li class="nav-item"><a href="#check" class="nav-link">6. Check section</a></li>
+	<li class="nav-item"><a href="#submit" class="nav-link">7. Submit section</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">8. Header section</a></li>
 	<li class="nav-item"><a href="#sample" class="nav-link">9. Sample</a></li>
 	<li class="nav-item"><a href="#supplement" class="nav-link">10. Supplement</a></li>
@@ -638,8 +639,87 @@ script: |
 	  </tr>
 	</tbody>
       </table>
+      
+      <h2 id="script">5. Script section</h2>
+      <h3 id="label">5.1. Change label</h3>
+      <p>
+        If you want to change the label of the job script (default is "Script Content"), set <code>label</code> in the <code>script</code> section.
+        In that case, write the job script in <code>content</code>.
+      </p>
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
 
-      <h2 id="check">5. Check section</h2>
+script:
+  label: Script Details
+  content: |
+    #SBATCH --nodes=#{nodes}</pre>
+      <img src="img/label.png" width="200" alt="label">
+
+      <h3 id="parameter">5.2. Generate parameter file</h3>
+      <p>
+	Open Composer is capable of generating not only job scripts but also parameter and configuration files used by applications.
+	In such cases, it is often preferable to save the job script without submitting it.
+	To do so, specify <code>action: save</code> in the script section.
+      </p>
+      <pre>form:
+  nodes:
+    widget: number
+    label: Number of nodes
+
+script:
+  label: Parameter file
+  action: save
+  content: |
+    num_of_nodes: #{nodes}</pre>
+
+      <p>
+	When you make this setting, the button label will change from "Submit" to "Save."
+      </p>
+      <img src="img/save.png" width="400" alt="Save">
+      <p>
+	Clicking the button will save the file, and the save destination will be displayed at the top of the screen. Clicking the link will launch the Open OnDemand Home Directory.
+      </p>
+      <img src="img/save2.png" width="400" alt="Save">
+      <h3 id="hide-script">5.3. Hide script</h3>
+      <p>
+	You can hide your job script in the text area on the right side.
+Use the special variable <code>SCRIPT_CONTENT</code> and the <code>hide-</code> of the Dynamic Form Widget in the following way.
+Note that the filename is <code>form.yml.erb</code> since it uses ERB.
+      </p>
+      <pre>form:
+  script_content:
+    widget: checkbox
+    value: "Hide script content"
+    options:
+      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
+
+      <img src="img/hide-script.png" width="600" alt="Hide script">
+
+      <p>
+	If you want to hide the job script without displaying the checkbox, set <code>hide-</code> to the checkbox itself.
+      </p>
+      <pre>form:
+  script_content:
+    widget: checkbox
+    value: "Hide script content"
+    options:
+      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
+
+      <h3 id="variables">5.4. Special variables</h3>
+      <p>
+        <code>script</code>セクションでは、下記の特殊な変数も利用できます。
+      </p>
+      <ul>
+        <li>#{OC_APP_NAME}: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
+        <li>#{OC_SCRIPT_LOCATION}: <code>Script Location</code> defined in the <code>header</code> section</li>
+        <li>#{OC_CLUSTER_NAME}: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
+        <li>#{OC_SCRIPT_NAME}: <code>Script Name</code> defined in the <code>header</code> section</li>
+        <li>#{OC_JOB_NAME}: <code>Job Name</code> defined in the <code>header</code> section</li>
+      </ul>
+      
+      <h2 id="check">6. Check section</h2>
       <p>
 	Variables defined in the <code>form</code> section can be validated in the <code>check</code> section using the Ruby language and the function <code>oc_assert(condition, message)</code>.
 	This function displays the specified <code>message</code> and terminates execution if the <code>condition</code> evaluates to <code>false</code>.
@@ -665,24 +745,22 @@ check: |
   message = "Exceeded Time"
   oc_assert(@time_1 != 24 || @time_2 == 0, message)</pre>
       <p>
-        The <code>check</code> section also supports the following special variables:
+	In the <code>check</code> section, just like in the <code>script</code> section, the following special variables can be used (the contents are the same, so they are omitted):
       </p>
       <ul>
-        <li>@OC_APP_NAME: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
-        <li>@OC_APP_PATH: The path to the application where <code>form.yml</code> is stored (e.g. <code>/Slurm</code>)</li>
-        <li>@OC_SCRIPT_LOCATION: <code>Script Location</code> defined in the <code>header</code> section</li>
-        <li>@OC_CLUSTER_NAME: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
-        <li>@OC_SCRIPT_NAME: <code>Script Name</code> defined in the <code>header</code> section</li>
-        <li>@OC_JOB_NAME: <code>Job Name</code> defined in the <code>header</code> section</li>
+        <li>@OC_APP_NAME</li>
+        <li>@OC_SCRIPT_LOCATION</li>
+        <li>@OC_CLUSTER_NAME</li>
+        <li>@OC_SCRIPT_NAME</li>
+        <li>@OC_JOB_NAME</li>
       </ul>
       
-      <h2 id="submit">6. Submit section</h2>
+      <h2 id="submit">7. Submit section</h2>
       <p>
 	In the <code>submit</code> section, you define the processing to be executed before job submission (after the validation performed in the <code>check</code> section) using the Bash language.
       </p>
       <p>An example of the <code>submit</code> section is shown below.
-	To reference variables defined in the <code>form</code> section, use the <code>#{...}</code> syntax.
-	Special variables available in the <code>check</code> section can also be used in the same way (for example, <code>#{OC_APP_NAME}</code>).
+	You can use the same notation as in the <code>script</code> section.
 	Additionally, a special variable available only in the <code>submit</code> section, <code>OC_SUBMIT_OPTIONS</code>, allows you to specify additional options for the job submission command.
 	After this process is executed, the command to submit the job script (for example, <code>sbatch #{OC_SUBMIT_OPTIONS} -J #{OC_JOB_NAME} #{OC_SCRIPT_NAME}</code>) will be run.
       </p>
@@ -694,84 +772,47 @@ check: |
 
 submit: |
   #!/bin/bash
-
+  set -e
   cd #{OC_SCRIPT_LOCATION}
   mv #{OC_SCRIPT_NAME} param_#{nodes}.conf
   genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
-  OC_SUBMIT_OPTIONS="-n 1"</pre>
-		  
-      <h2 id="script">7. Script section</h2>
-      <h3 id="label">7.1. Change label</h3>
+  OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
       <p>
-        If you want to change the label of the job script (default is "Script Content"), set <code>label</code> in the <code>script</code> section.
-        In that case, write the job script in <code>content</code>.
+	If you want to view the commands of the pre-processing before submitting the job, write <code>action: confirm</code>.
+	In that case, write the details of the pre-processing in <code>content</code>.
       </p>
       <pre>form:
   nodes:
     widget: number
     label: Number of nodes
 
-script:
-  label: Script Details
+submit:
+  action: confirm
   content: |
-    #SBATCH --nodes=#{nodes}</pre>
-      <img src="img/label.png" width="200" alt="label">
-
-      <h3 id="config">7.2. Generate parameter file</h3>
+    #!/bin/bash
+    set -e
+    cd #{OC_SCRIPT_LOCATION}
+    mv #{OC_SCRIPT_NAME} param_#{nodes}.conf
+    genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
+    OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
       <p>
-	Open Composer is capable of generating not only job scripts but also parameter and configuration files used by applications.
-	In such cases, it is often preferable to save the job script without submitting it.
-	To do so, specify <code>action: save</code> in the script section.
-	By default, <code>action: submit</code> is used, which saves and submits the job script.
+	Once you make this setting, the button label will change from "Submit" to "Confirm."
+	Clicking the "Confirm" button will display the commands of the pre-processing with values assigned to the variables.
+	You can also edit the contents of the pre-processing.
+	Clicking the "Submit" button will execute the pre-processing and submit the job.
+	Note that if an error occurs in the script, you will need to use the <code>set -e</code> command to interrupt the pre-processing.
       </p>
-      <pre>form:
-  nodes:
-    widget: number
-    label: Number of nodes
-
-script:
-  label: Parameter file
-  action: save
-  content: |
-    num_of_nodes: #{nodes}</pre>
-
+      <img src="img/submit.png" width="600" alt="Submit">
       <p>
-	When you make this setting, the button label will change from "Submit" to "Save."
+	If you also set <code>action: save</code> in the <code>script</code> section, the contents of the <code>script</code> section will be saved after preprocessing. The button at the bottom of the "Confirm" screen will change from "Submit" to "Run & Save," as shown below.
       </p>
-      <img src="img/save.png" width="400" alt="Save">
-      <p>
-	Clicking the button will save the file, and the save destination will be displayed at the top of the screen. Clicking the link will launch the Open OnDemand Home Directory.
-      </p>
-      <img src="img/save2.png" width="400" alt="Save">
-      <h3 id="hide-script">7.3. Hide script</h3>
-      <p>
-	You can hide your job script in the text area on the right side.
-Use the special variable <code>SCRIPT_CONTENT</code> and the <code>hide-</code> of the Dynamic Form Widget in the following way.
-Note that the filename is <code>form.yml.erb</code> since it uses ERB.
-      </p>
-      <pre>form:
-  script_content:
-    widget: checkbox
-    value: "Hide script content"
-    options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
-
-      <img src="img/hide-script.png" width="600" alt="Hide script">
-
-      <p>
-	If you want to hide the job script without displaying the checkbox, set <code>hide-</code> to the checkbox itself.
-      </p>
-      <pre>form:
-  script_content:
-    widget: checkbox
-    value: "Hide script content"
-    options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
-
+      <img src="img/submit2.png" width="600" alt="Submit">
+      
       <h2 id="header">8. Header section</h2>
       <p>
 	You can define the <code>header</code> section.
 	However, widgets with the same names as those defined in <code>lib/headers.yml.erb</code> must be defined.
+	If an error occurs in the script, the <code>set -e</code> command is required to interrupt preprocessing.
       </p>
       <p>
 	The following example adds a new widget <code>script_content</code>, which hides the job script, to the defined widgets (<code>_script_location</code> and <code>_script</code>).

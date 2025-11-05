@@ -18,7 +18,7 @@ def get_icon_path(dirname, icon)
               elsif valid_url?(icon)
                 icon
               else
-                tmp_icon_path = "/#{@apps_dir}/#{dirname}/#{icon}"
+                tmp_icon_path = File.join("/", @apps_dir, dirname, icon)
                 icon_local_path = File.join(Dir.pwd, tmp_icon_path)
 
                 if File.exist?(icon_local_path)

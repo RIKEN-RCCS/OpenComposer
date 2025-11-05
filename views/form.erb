@@ -20,7 +20,7 @@
   </div>
 <% end %>
 
-<form action="<%= @current_path %>" method="post" onsubmit="return ocForm.submitEffect();">
+<form id="<%= SUBMIT_FORM %>" action="<%= @current_path %>" method="post" onsubmit="return ocForm.submitEffect('<%= @form_action %>');">
   <div class="row px-3 text-white">
     <!-- Application Info Section -->
     <div class="col pt-2 bg-gradient" style="background:<%= @conf['description_color'] %>; color: white;">
@@ -43,23 +43,55 @@
   <div id="<%= FORM_LAYOUT %>" class="row row-cols-1 row-cols-lg-2 mx-1 bg-gradient" style="background: <%= @conf['form_color'] %>;">
     <!-- Form Body -->
     <div class="col py-3">
-      <%= output_body(@body, @header) %>
+      <%= output_body(@body, @header, @manifest['name']) %>
     </div>
 
     <!-- Script Content Section -->
     <div class="col py-3 d-flex flex-column">
       <label id="label_<%= SCRIPT_CONTENT %>" class="fw-semibold" for="<%= SCRIPT_CONTENT %>"><%= @script_label %></label>
-      <textarea id="<%= SCRIPT_CONTENT %>" name="<%= SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" oninput="ocForm.updateHeight()" required>
+      <textarea id="<%= SCRIPT_CONTENT %>" name="<%= SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" oninput="ocForm.updateHeight(ocForm.scriptArea)" required>
         (Something wrong)
       </textarea>
       <!-- Submit Button -->
-      <input type="submit" class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" value="<%= @script_action.capitalize %>" tabindex="<%= @table_index + 1 %>">
+      <% if @form_action == "confirm" || @form_action == "confirm-save" %>
+      <button class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" type="button" data-bs-toggle="modal" data-bs-target="#modal-<%= SUBMIT_CONFIRM %>" tabindex="<%= @table_index + 1 %>">
+        Confirm
+      </button>
+      <% else %>
+      <input type="submit" class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" value="<%= @form_action.capitalize %>" tabindex="<%= @table_index + 1 %>">
+      <% end %>
+      <div class="modal fade" id="modal-<%= SUBMIT_CONFIRM %>" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg" style="overflow-y: initial !important;">
+          <div class="modal-content">
+            <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+              <div class="container-fluid">
+                <div class="row">
+                  <div class="col">
+		    <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control flex-grow-1 w-100" rows="6" oninput="ocForm.updateHeight(ocForm.submitArea)">
+		      (Something Wrong)
+		    </textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+		<button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Close</button>
+		  <% if @form_action == "confirm" %>
+		  <button class="btn btn-primary" form="<%= SUBMIT_FORM %>" type="submit" form="main-form">Submit</button>
+		  <% elsif @form_action == "confirm-save" %>
+                  <button class="btn btn-primary" form="<%= SUBMIT_FORM %>" type="submit" form="main-form">Run &amp; Save</button>
+		  <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </form>
 <script>
 var ocForm = ocForm || {};
-ocForm.textArea = document.getElementById('<%= SCRIPT_CONTENT %>');
+ocForm.scriptArea = document.getElementById('<%= SCRIPT_CONTENT %>');
+ocForm.submitArea = document.getElementById('<%= SUBMIT_CONTENT %>');
 </script>
 <script src="form.js"></script>
 <script>
@@ -78,27 +110,44 @@ ocForm.execDynamicWidget = function(fromId) {
 <%= @js["exec_dw"].chomp %>
 };
 
-// Update the commands.
-ocForm.updateContents = function(selectedValues) {
+// Update the script section.
+ocForm.updateScriptContents = function(selectedValues) {
 <%= @js["script"].chomp %>
 };
 
+// Update the submit section.
+ocForm.updateSubmitContents = function(selectedValues) {
+<%= @js["submit"].chomp %>
+};
+
 // Check if a cache file exists.
-ocForm.isCacheFile = function() {
+ocForm.isScriptCache = function() {
   return <%= @script_content != nil %>;
+};
+
+ocForm.isSubmitCache = function() {
+  return <%= @submit_content != nil %>;
 };
 
 // Load cache file contents.
 // Since @script_content uses escape_html() in ruby, it is converted using textarea to decode.
-ocForm.loadCacheFile = function() {
+ocForm.loadScriptCache = function() {
   const textarea = document.createElement('textarea');
   textarea.innerHTML = <%= @script_content.to_json %>;
   return textarea.value;
 };
 
+// Load cache file contents.
+// Since @submit_content uses escape_html() in ruby, it is converted using textarea to decode.
+ocForm.loadSubmitCache = function() {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = <%= @submit_content.to_json %>;
+  return textarea.value;
+};
+
 // Prevent default behavior for Enter key unless specific elements are focused.
 document.addEventListener('keydown', function(event) {
-  if (event.key === 'Enter' && (event.target.id !== '<%= SCRIPT_CONTENT %>' && event.target.id !== '_submitButton')) {
+  if (event.key === 'Enter' && (event.target.id !== '<%= SCRIPT_CONTENT %>' && event.target.id !== '<%= SUBMIT_BUTTON %>' && event.target.id !== '<%= SUBMIT_CONTENT %>')) {
     event.preventDefault();
   }
 });
@@ -106,26 +155,36 @@ document.addEventListener('keydown', function(event) {
 ocForm.isFirst = true;
 ocForm.multiSelectDisabledIndexes = {};
 ocForm.updateValues = function(fromId) {
-  let selectedValues = [];
+  let scriptValues = [];
+  let submitValues = [];
   ocForm.initDynamicWidget(fromId);
   ocForm.execDynamicWidget(fromId);
 
   if (ocForm.isFirst) {
     ocForm.isFirst = false;
     ocForm.onceExec();
-    ocForm.updateContents(selectedValues);
-    ocForm.textArea.value = ocForm.isCacheFile() ? ocForm.loadCacheFile() : Object.values(selectedValues).join('\n');
+    ocForm.updateScriptContents(scriptValues);
+    ocForm.updateSubmitContents(submitValues);
+    ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
+    ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : Object.values(submitValues).join('\n');
   }
   else {
-    ocForm.updateContents(selectedValues);
-    ocForm.textArea.value = Object.values(selectedValues).join('\n');
+    ocForm.updateScriptContents(scriptValues);
+    ocForm.updateSubmitContents(submitValues);
+    ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
+    ocForm.submitArea.value = Object.values(submitValues).join('\n')
   }
 
   // Add a newline if it is not the last one
-  if (!ocForm.textArea.value.endsWith('\n')){
-    ocForm.textArea.value += '\n';
-  }
-  ocForm.updateHeight();
+  //if (!ocForm.scriptArea.value.endsWith('\n')){
+  //  ocForm.scriptArea.value += '\n';
+  //}
+  //if (!ocForm.submitArea.value.endsWith('\n')){
+  //  ocForm.submitArea.value += '\n';
+  //}
+  ocForm.updateHeight(ocForm.scriptArea);
+  ocForm.updateHeight(ocForm.submitArea);
 };
+
 window.onload = ocForm.updateValues();
 </script>

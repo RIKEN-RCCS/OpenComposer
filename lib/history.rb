@@ -1,6 +1,6 @@
 helpers do
   # Generate HTML for icons linking to related applications.
-  def output_related_app_icon(job_apps_path, apps)
+  def output_related_app_icon(job_app_path, apps)
     return [] if apps.nil?
     
     apps.map do |app|
@@ -8,7 +8,7 @@ helpers do
         # Extract key and value from the hash
         key, value = app.first
         href = "#{@my_ood_url}/pun/sys/dashboard/apps/show/#{key}"
-        is_bi_or_fa_icon, icon_path = get_icon_path(job_apps_path, value)
+        is_bi_or_fa_icon, icon_path = get_icon_path(job_app_path, value)
         
         # Generate icon HTML based on whether it's a Bootstrap/Font Awesome icon or an image
         icon_html = if is_bi_or_fa_icon
@@ -105,7 +105,7 @@ helpers do
   # Output a modal displaying a job script and a link to load parameters for a specific job.
   def output_job_script_modal(job, filter)
     modal_id = "_historyJobScript#{job[JOB_ID]}"
-    job_link = "#{@script_name}#{job[JOB_APP_PATH]}?jobId=#{URI.encode_www_form_component(job[JOB_ID])}"
+    job_link = "#{File.join(@script_name, job[JOB_APP_PATH])}?jobId=#{URI.encode_www_form_component(job[JOB_ID])}"
     job_link += "&cluster=#{@cluster_name}" if @cluster_name
 
     <<~HTML

@@ -2,11 +2,11 @@ require "sinatra"
 require "yaml"
 require "erb"
 require "pstore"
+require "fileutils"
 require "./lib/index"
 require "./lib/form"
 require "./lib/history"
 require "./lib/scheduler"
-require "fileutils"
 
 set :environment, :production
 #set :environment, :development
@@ -28,6 +28,9 @@ HEADER_CLUSTER_NAME    = "_cluster_name"
 SCRIPT_CONTENT         = "_script_content"
 FORM_LAYOUT            = "_form_layout"
 SUBMIT_BUTTON          = "_submitButton"
+SUBMIT_CONFIRM         = "_submitConfirm"
+SUBMIT_CONTENT         = "_submit_content"
+SUBMIT_FORM            = "_submit_form"
 JOB_NAME               = "Job Name"
 JOB_SUBMISSION_TIME    = "Submission Time"
 JOB_PARTITION          = "Partition"
@@ -115,7 +118,7 @@ def create_conf
 
   # Create data directory
   FileUtils.mkdir_p(conf["data_dir"])
-
+  
   return conf
 end
 
@@ -198,17 +201,43 @@ def create_scheduler(conf)
   schedulers
 end
 
-# Get the action key defined in the script section.
-def get_script_action(script)
-  action = if script.is_a?(Hash)
-             script["action"] || "submit"
-           else
-             return "submit"
-           end
-  
-  action = "submit" if action != "submit" && action != "save"
+# Determine the action key based on script and submit sections.
+# Rules:
+# - Neither set:             -> "submit"
+# - Both set:                -> "confirm-save"
+# - Only script section set: -> "save"
+# - Only submit section set: -> "confirm"
+def get_form_action(body)
+  script = body["script"]
+  submit = body["submit"]
 
-  return action
+  # Determine script action
+  script_action = if script.is_a?(Hash)
+                    action = script["action"] || "submit"
+                    ["submit", "save"].include?(action) ? action : "submit"
+                  else
+                    "submit"
+                  end
+
+  # Determine submit action
+  submit_action = if submit.is_a?(Hash)
+                    action = submit["action"] || "submit"
+                    ["submit", "confirm"].include?(action) ? action : "submit"
+                  else
+                    "submit"
+                  end
+
+  # Combine rules
+  case [script_action, submit_action]
+  when ["submit", "submit"]
+    "submit"
+  when ["save", "confirm"]
+    "confirm-save"
+  when ["save", "submit"]
+    "save"
+  else # ["submit", "confirm"]
+    "confirm"
+  end
 end
 
 # Create a website of Home, Application, and History.
@@ -271,7 +300,7 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
         return erb :error
       end
       @name = @manifest["name"]
-      @script_action = get_script_action(@body["script"])
+      @form_action = get_form_action(@body)
 
       # Since the widget name is used as a variable in Ruby, it should consist of only
       # alphanumeric characters and underscores, and numbers should not be used at the
@@ -287,6 +316,7 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
 
       # Load cache
       @script_content = nil
+      @submit_content = nil
       if params["jobId"] || job_id
         history_db = if @conf.key?("cluster")
                        cluster_name = params[params["jobId"] ? "cluster" : HEADER_CLUSTER_NAME] || @conf["cluster"].first["name"]
@@ -320,10 +350,12 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
         replace_with_cache(@header, cache)
         replace_with_cache(@body["form"], cache)
         @script_content = escape_html(cache[SCRIPT_CONTENT])
+        @submit_content = escape_html(cache[SUBMIT_CONTENT])
       elsif !error_msg.nil? || !script_path.nil? # When job submission failed or script_path != nil (because after script file has been saved)
         replace_with_cache(@header, error_params)
         replace_with_cache(@body["form"], error_params)
         @script_content = escape_html(error_params[SCRIPT_CONTENT])
+        @submit_content = escape_html(error_params[SUBMIT_CONTENT])
       end
 
       # Set script content
@@ -332,15 +364,6 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
                       else
                         "Script Content"
                       end
-
-      if @body["script"].is_a?(Hash)
-        if !@body["script"].key?("content")
-          @error_msg = "The content key in form.yml is not found. (#{@body["script"]})"
-          return erb :error
-        else
-          @body["script"] = @body["script"]["content"]
-        end
-      end
 
       @job_id    = job_id.is_a?(Array) ? job_id.join(", ") : job_id
       @error_msg = error_msg&.force_encoding('UTF-8')
@@ -477,7 +500,7 @@ post "/*" do
   else # application form
     app_path = File.join(conf["apps_dir"], request.path_info)
     manifest = create_manifest(app_path)
-    
+
     script_location = params[HEADER_SCRIPT_LOCATION]
     script_name     = params[HEADER_SCRIPT_NAME]
     job_name        = params[HEADER_JOB_NAME]
@@ -492,7 +515,7 @@ post "/*" do
         nil
       end
     return show_website(nil, error_msg, params) if error_msg
-    
+
     begin
       form = read_yaml(File.join(app_path, "form.yml"))
     rescue Exception => e
@@ -501,16 +524,14 @@ post "/*" do
     end
 
     script_path    = File.join(script_location, script_name)
-    script_content = params[SCRIPT_CONTENT].gsub("\r\n", "\n")
-    script_action  = get_script_action(form["script"])
+    script_content = params[SCRIPT_CONTENT].gsub("\r\n", "\n") # Since HTML textarea for SCRIPT_CONTENT is required, params[SCRIPT_CONTENT] must not be nil.
+    form_action    = get_form_action(form)
     job_id         = nil
     submit_options = nil
-    
+
     # Run commands in the check section
-    # Define the variables in params with instance_variable_set()
-    check = form["check"]
-    submit = form["submit"]
-    if !check.nil? || !submit.nil?
+    check_content = form["check"]
+    if !check_content.nil?
       params.each do |key, value|
         next if SKIP_KEYS.include?(key)
         if DEFINED_KEYS.key?(key)
@@ -552,56 +573,25 @@ post "/*" do
           end
         end
       end
-    end
 
-    if !check.nil?
       begin
-        eval(check) 
+        output_log("Run commands in the check section", scheduler, command: check_content)
+        eval(check_content)
       rescue Exception => e
         return show_website(nil, e.message, params)
       end
     end
-
+    
     # Save a job script
     FileUtils.mkdir_p(script_location)
     File.open(script_path, "w") { |file| file.write(script_content) }
-    
+
     # Run commands in the submit section
-    if !submit.nil?
-      params.each do |key, value|
-        next if SKIP_KEYS.include?(key)
-        if DEFINED_KEYS.key?(key)
-          submit.gsub!(/\#\{#{DEFINED_KEYS[key]}\}/, value)
-          next
-        end
+    submit_content = params[SUBMIT_CONTENT].nil? ? nil : params[SUBMIT_CONTENT].gsub("\r\n", "\n")
 
-        base_key = num = nil
-        if key =~ /^(.*)_(\d+)$/
-          base_key, num = $1, $2
-        end
-        widget = form["form"][key]&.dig("widget") || (base_key && form["form"][base_key]&.dig("widget"))
-        next unless widget
-        
-        if ["number", "text", "email", "path"].include?(widget)
-          submit.gsub!(/\#\{#{key}\}/, instance_variable_get(:"@#{key}").to_s)
-        elsif ["select", "radio"].include?(widget)
-          option = form["form"][key]["options"].find { |x| x[0].to_s == value }
-          submit.gsub!(/\#\{#{key}\}/, instance_variable_get(:"@#{key}").to_s)
-          if option.size != 1 && option[1].is_a?(Array)
-            option[1].each_with_index { |_v, i| submit.gsub!(/\#\{#{key}_#{i+1}\}/, instance_variable_get(:"@#{key}_#{i+1}").to_s) }
-          end
-        elsif ["multi_select", "checkbox"].include?(widget)
-          option = form["form"][base_key]["options"].find { |x| x[0].to_s == value }
-          submit.gsub!(/\#\{#{base_key}\}/, instance_variable_get(:"@#{base_key}").to_s)
-          if option.size != 1 && option[1].is_a?(Array)
-            option[1].each_with_index { |_v, i| submit.gsub!(/\#\{#{base_key}_#{i+1}\}/, instance_variable_get(:"@#{base_key}_#{i+1}").to_s) }
-          end
-        end
-      end
-
+    if !submit_content.nil?
       submit_with_echo = <<~BASH
-        set -e # Enable error exit
-        #{submit}
+        #{submit_content}
         if [ -n "$OC_SUBMIT_OPTIONS" ]; then
           echo "$OC_SUBMIT_OPTIONS"
         else
@@ -609,6 +599,7 @@ post "/*" do
         fi
         BASH
 
+      output_log("Run commands in the submit section", scheduler, command: submit_with_echo)
       stdout, stderr, status = Open3.capture3("bash", "-c", submit_with_echo)
       unless status.success?
         return show_website(nil, stderr, params)
@@ -619,7 +610,7 @@ post "/*" do
     end
 
     # Submit a job script
-    if script_action == "save"
+    if form_action == "save" || form_action == "confirm-save"
       output_log("Save job file", scheduler, cluster: cluster_name, app_dir: manifest["dirname"], app_name: manifest["name"], category: manifest["category"], script_path: script_path)
       return show_website(nil, nil, params, script_path)
     end
