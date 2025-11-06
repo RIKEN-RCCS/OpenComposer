@@ -1,5 +1,6 @@
 .sidebar {
-  width: 290px;
+  width: 275px;
+  height: 100vh;
   min-height: 100%;
   position: fixed;
   top: 0;
@@ -13,7 +14,7 @@
   padding-bottom: 0.25rem;
 }
 .main-content {
-  margin-left: 275px;
+  margin-left: 265px;
   padding-left: 1rem;
   padding-right: 1rem;
 }

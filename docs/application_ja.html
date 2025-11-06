@@ -32,7 +32,7 @@
 	<li class="nav-item"><a href="#combination" class="nav-link">4. 利用可能な組合せ</a></li>
 	<li class="nav-item"><a href="#script" class="nav-link">5. scriptセクション</a></li>
 	<li class="nav-item ms-3"><a href="#label" class="nav-link">5.1. ラベルの変更</a></li>
-	<li class="nav-item ms-3"><a href="#parameter" class="nav-link">5.2. パラメータファイルの生成</a></li>
+	<li class="nav-item ms-3"><a href="#save" class="nav-link">5.2. ファイルの保存</a></li>
 	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. 非表示化</a></li>
         <li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. 特殊な変数</a></li>
 	<li class="nav-item"><a href="#check" class="nav-link">6. checkセクション</a></li>
@@ -614,7 +614,7 @@ script:
     #SBATCH --nodes=#{nodes}</pre>
       <img src="img/label.png" width="200" alt="label">
       
-      <h3 id="parameter">5.2. パラメータファイルの生成</h3>
+      <h3 id="save">5.2. ファイルの保存</h3>
       <p>
 	Open Composerはジョブスクリプトの生成だけでなく、アプリケーションで利用するパラメータファイルや設定ファイルの生成も行うことができます。そのような場合、ジョブスクリプトを投入せずに、ジョブスクリプトの保存のみを行う方が適しています。ジョブスクリプトの保存のみを行いたい場合、<code>script</code>セクションで<code>action: save</code>を設定します。
       </p>
