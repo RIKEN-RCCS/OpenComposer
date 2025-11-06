@@ -524,6 +524,7 @@ post "/*" do
     end
 
     script_path    = File.join(script_location, script_name)
+    script_dir     = File.dirname(script_path)
     script_content = params[SCRIPT_CONTENT].gsub("\r\n", "\n") # Since HTML textarea for SCRIPT_CONTENT is required, params[SCRIPT_CONTENT] must not be nil.
     form_action    = get_form_action(form)
     job_id         = nil
@@ -576,7 +577,9 @@ post "/*" do
 
       begin
         output_log("Run commands in the check section", scheduler, command: check_content)
-        eval(check_content)
+        Dir.chdir(script_dir) do
+          eval(check_content)
+        end
       rescue Exception => e
         return show_website(nil, e.message, params)
       end
@@ -600,7 +603,10 @@ post "/*" do
         BASH
 
       output_log("Run commands in the submit section", scheduler, command: submit_with_echo)
-      stdout, stderr, status = Open3.capture3("bash", "-c", submit_with_echo)
+      stdout, stderr, status = nil
+      Dir.chdir(script_dir) do
+        stdout, stderr, status = Open3.capture3("bash", "-c", submit_with_echo)
+      end
       unless status.success?
         return show_website(nil, stderr, params)
       end
@@ -615,7 +621,7 @@ post "/*" do
       return show_website(nil, nil, params, script_path)
     end
     
-    Dir.chdir(File.dirname(script_path)) do
+    Dir.chdir(script_dir) do
       job_id, error_msg = scheduler.submit(script_path, escape_html(job_name.strip), submit_options, bin, bin_overrides, ssh_wrapper)
       params[JOB_SUBMISSION_TIME] = Time.now.strftime("%Y-%m-%d %H:%M:%S")
     end
