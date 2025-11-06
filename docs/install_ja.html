@@ -161,7 +161,7 @@ url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
 
       <h2 id="jobscheduler">4. ジョブスケジューラの追加</h2>
       <p>
-	ジョブスケジューラを追加したい場合、スーパークラスSchedulerが定義された<code>lib/scheduler.rb</code>を参考にして、<code>lib/schedulers/</code>以下にジョブスケジューラのためのRubyスクリプトを作成してください。下記のPBS Proの例（<code>lib/schedulers/pbspro.rb</code>）ようにSchedulerクラスを継承してください。ジョブを投入する<code>submit()</code>メソッド、ジョブをキャンセルする<code>cancel()</code>メソッド、ジョブの情報を問い合わせる<code>query()</code>メソッドを定義する必要があります。
+	ジョブスケジューラを追加したい場合、スーパークラスSchedulerが定義された<code>lib/scheduler.rb</code>を参考にして、<code>lib/schedulers/</code>以下にジョブスケジューラのためのRubyスクリプトを作成してください。下記のPBS Pro（<code>lib/schedulers/pbspro.rb</code>）のようにSchedulerクラスを継承してください。ジョブを投入する<code>submit()</code>メソッド、ジョブをキャンセルする<code>cancel()</code>メソッド、ジョブの情報を問い合わせる<code>query()</code>メソッドを定義する必要があります。
       </p>
       <pre>class Pbspro &lt; Scheduler</pre>
       <p>

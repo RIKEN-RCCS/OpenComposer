@@ -780,8 +780,8 @@ submit: |
   genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
   OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
       <p>
-	If you want to view the commands of the pre-processing before submitting the job, write <code>action: confirm</code>.
-	In that case, write the details of the pre-processing in <code>content</code>.
+	If you want to view the commands in the <code>submit</code> section before submitting the job, write <code>action: confirm</code>.
+	In that case, write the details of the commands in <code>content</code>.
       </p>
       <pre>form:
   nodes:
@@ -799,14 +799,15 @@ submit:
     OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
       <p>
 	Once you make this setting, the button label will change from "Submit" to "Confirm."
-	Clicking the "Confirm" button will display the commands of the pre-processing with values assigned to the variables.
-	You can also edit the contents of the pre-processing.
-	Clicking the "Submit" button will execute the pre-processing and submit the job.
-	Note that if an error occurs in the script, you will need to use the <code>set -e</code> command to interrupt the pre-processing.
+	Clicking the "Confirm" button will display the commands in the <code>submit</code> section with values assigned to the variables.
+	You can also edit the contents.
+	Clicking the "Submit" button will execute the commands in the <code>submit</code> section and submit the job.
+	Note that if an error occurs in the script, you will need to use the <code>set -e</code> command to interrupt the commands.
       </p>
       <img src="img/submit.png" width="600" alt="Submit">
       <p>
-	If you also set <code>action: save</code> in the <code>script</code> section, the contents of the <code>script</code> section will be saved after preprocessing. The button at the bottom of the "Confirm" screen will change from "Submit" to "Run & Save," as shown below.
+	If you also set <code>action: save</code> in the <code>script</code> section, its contents will be saved before executing the commands in the <code>submit</code> section.
+	The button at the bottom of the "Confirm" screen will change from "Submit" to "Save &amp; Run," as shown below.
       </p>
       <img src="img/submit2.png" width="600" alt="Submit">
       

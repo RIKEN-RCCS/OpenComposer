@@ -727,7 +727,7 @@ submit: |
   genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
   OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
       <p>
-	前処理のコマンドをジョブ投入前に閲覧したい場合、<code>action: confirm</code>を記述します。その場合、前処理の内容は<code>content</code>に記述します。
+	<code>submit</code>セクションの内容をジョブ投入前に閲覧したい場合、<code>action: confirm</code>を記述します。その場合、処理の内容は<code>content</code>に記述します。
       </p>
       <pre>form:
   nodes:
@@ -744,11 +744,11 @@ submit:
     genjs_ct param_#{nodes}.conf > #{OC_SCRIPT_NAME}
     OC_SUBMIT_OPTIONS="-n 1 --export=NONE"</pre>
       <p>
-	この設定を行うと、ボタンのラベルが「Submit」から「Confirm」に変化します。「Confirm」ボタンをクリックすると、変数に値が代入された前処理のコマンドが表示されます。前処理のコマンドは編集することも可能です。「Submit」ボタンをクリックすると、前処理の実行とジョブ投入が行われます。注意点として、スクリプト中でエラーが発生したときに、前処理を中断するには<code>set -e</code>コマンドが必要です。
+	この設定を行うと、ボタンのラベルが「Submit」から「Confirm」に変化します。「Confirm」ボタンをクリックすると、変数に値が代入された<code>submit</code>セクションの内容が表示されます。その内容は編集することも可能です。「Submit」ボタンをクリックすると、<code>submit</code>セクションの内容の実行後にジョブが投入されます。注意点として、スクリプト中でエラーが発生したときに、処理を中断するには<code>set -e</code>コマンドが必要です。
       </p>
       <img src="img/submit.png" width="600" alt="Submit">
       <p>
-	なお、<code>script</code>セクションで<code>action: save</code>も設定した場合、前処理を行った後、<code>script</code>セクションの内容を保存するという動作になります。「Confirm」の画面下のボタンは下記のように「Submit」から「Run &amp; Save」という表示になります。
+	なお、<code>script</code>セクションで<code>action: save</code>も設定した場合、<code>script</code>セクションの内容を保存した後、<code>submit</code>セクションの内容を実行するという動作になります。「Confirm」の画面下のボタンは下記のように「Submit」から「Save &amp; Run」という表示になります。
       </p>
       <img src="img/submit2.png" width="600" alt="Submit">
       
