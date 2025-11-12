@@ -40,7 +40,7 @@ helpers do
 
     <<~HTML
     <div class="modal" id="#{id}" aria-hidden="true" tabindex="-1">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-body" id="#{id}Body">
             (Something wrong)
@@ -110,7 +110,7 @@ helpers do
 
     <<~HTML
     <div class="modal" aria-hidden="true" id="#{modal_id}" tabindex="-1">
-      <div class="modal-dialog">
+      <div class="modal-dialog modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">
             <h5>Job Script</h5>
