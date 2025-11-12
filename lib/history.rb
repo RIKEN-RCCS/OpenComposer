@@ -78,8 +78,8 @@ helpers do
     modal_id = "_historyJobId#{job[JOB_ID]}"
     html = <<~HTML
     <div class="modal" aria-hidden="true" id="#{modal_id}" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
+      <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content" style="resize: horizontal; padding-right: 16px;">
           <div class="modal-header">
             <h5>Job Details</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
