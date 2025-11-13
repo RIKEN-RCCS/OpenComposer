@@ -46,7 +46,14 @@ class Sge < Scheduler
   # Return Job Name, Job Partition, Job Status ID.
   def get_job_info(columns)
     job_name = columns[2]
-    job_status_id = JOB_STATUS[columns[4] == "r" || columns[4] == "t" ? "running" : "queued"]
+    job_status_key = if columns[4] == "E"
+                       "failed"
+                     elsif columns[4] == "r" || columns[4] == "t"
+                       "running"
+                     else
+                       "queued"
+                     end
+    job_status_id = JOB_STATUS[job_status_key]
     job_partition = job_status_id == JOB_STATUS["running"] ? columns[7] : "" # At the time of queued, the partition is undecided.
     [job_name, job_partition, job_status_id]
   end
