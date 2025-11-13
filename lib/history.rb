@@ -211,7 +211,7 @@ helpers do
     db = PStore.new(get_history_db(conf, cluster_name))
     db.transaction(true) do
       db.roots.each do |id|
-        queried_ids << id if db[id][JOB_STATUS_ID] != JOB_STATUS["completed"]
+        queried_ids << id if db[id][JOB_STATUS_ID] != JOB_STATUS["completed"] && db[id][JOB_STATUS_ID] != JOB_STATUS["failed"]
       end
     end
     return nil if queried_ids.empty?
@@ -281,8 +281,10 @@ helpers do
                                  ["bg-primary", "Running"]
                                when JOB_STATUS["completed"]
                                  ["bg-secondary", "Completed"]
+                               when JOB_STATUS["failed"]
+                                 ["bg-danger", "Failed"]
                                else
-                                 ["bg-danger", "Unknown"]
+                                 ["bg-info", "Unknown"]
                                end
     
     "<span class=\"badge fs-6 #{badge_class}\">#{status_text}</span>\n"

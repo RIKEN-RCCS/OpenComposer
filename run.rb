@@ -16,7 +16,7 @@ set :erb, trim: "-"
 VERSION                = "1.6.0"
 SCHEDULERS_DIR_PATH    = "./lib/schedulers"
 HISTORY_ROWS           = 10
-JOB_STATUS             = { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED" }
+JOB_STATUS             = { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED", "failed" => "FAILED" }
 JOB_ID                 = "id"
 JOB_APP_NAME           = "appName"
 JOB_APP_PATH           = "appPath"

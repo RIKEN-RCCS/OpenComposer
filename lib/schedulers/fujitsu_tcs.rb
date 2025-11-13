@@ -179,12 +179,13 @@ class Fujitsu_tcs < Scheduler
         JOB_NAME      => line[fields.keys.index(:jnam)+1],
         JOB_PARTITION => line[fields.keys.index(:rscg)+1],
         JOB_STATUS_ID => case line[fields.keys.index(:st)+1]
-                         when "RJT", "EXT", "CCL", "ERR"
+                         when "EXT", "CCL"
                            JOB_STATUS["completed"]
                          when "ACC", "QUE", "RNA", "SPP", "SPD", "RSM", "HLD"
                            JOB_STATUS["queued"]
                          when "RNP", "RUN", "RNE", "RNO"
                            JOB_STATUS["running"]
+                         when "RJT", "ERR"
                          else
                            nil
                          end

@@ -35,9 +35,13 @@
             <input class="form-check-input" type="radio" name="_historyStatus" id="_historyStatusQueued" value="queued" <%= 'checked' if @status == 'queued' %>>
             <label class="form-check-label" for="_historyStatusQueued">Queued</label>
           </div>
-          <div class="form-check form-check-inline me-1">
+          <div class="form-check form-check-inline">
             <input class="form-check-input" type="radio" name="_historyStatus" id="_historyStatusCompleted" value="completed" <%= 'checked' if @status == 'completed' %>>
             <label class="form-check-label" for="_historyStatusCompleted">Completed</label>
+          </div>
+          <div class="form-check form-check-inline me-1">
+            <input class="form-check-input" type="radio" name="_historyStatus" id="_historyStatusFailed" value="failed" <%= 'checked' if @status == 'failed' %>>
+            <label class="form-check-label" for="_historyStatusFailed">Failed</label>
           </div>
         </div>
 	<% if @conf.key?("cluster") && @conf["cluster"].size > 1 %>

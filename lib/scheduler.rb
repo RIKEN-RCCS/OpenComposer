@@ -30,7 +30,7 @@ class Scheduler
   # @param ssh_wrapper [String] Same as submit().
   # @return [Array<Hash>] a hash array containing job status and error message.
   #         Example: {JOB_NAME => "foo", JOB_SUBMISSION_TIME => "2024-09-21 15:59:14", JOB_PARTITION => "GH100", JOB_STATUS_ID => JOB_STATUS["completed"]}
-  #         Status can be one of: JOB_STATUS["completed"], JOB_STATUS["queued"], JOB_STATUS["running"].
+  #         Status can be one of: JOB_STATUS["completed"], JOB_STATUS["queued"], JOB_STATUS["running"], JOB_STATUS["failed"].
   #         Additional key-value pairs will be displayed in a modal on the History page when clicking on the job ID.
   def query(job_ids, bin = nil, bin_overrides = nil, ssh_wrapper = nil)
     raise NotImplementedError, "This method should be overridden by a subclass"

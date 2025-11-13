@@ -106,12 +106,14 @@ class Slurm < Scheduler
             JOB_STATUS["completed"]
           else
             case job_state
-            when "BOOT_FAIL", "CANCELLED", "COMPLETED", "DEADLINE", "FAILED", "NODE_FAIL", "OUT_OF_MEMORY", "REVOKED", "SPECIAL_EXIT", "TIMEOUT"
+            when "CANCELLED", "COMPLETED"
               JOB_STATUS["completed"]
             when "CONFIGURING", "REQUEUED", "RESIZING", "PENDING", "PREEMPTED", "SUSPENDED"
               JOB_STATUS["queued"]
             when "COMPLETING", "RUNNING", "STOPPED"
               JOB_STATUS["running"]
+            when "BOOT_FAIL", "DEADLINE", "FAILED", "NODE_FAIL", "OUT_OF_MEMORY", "REVOKED", "SPECIAL_EXIT", "TIMEOUT"
+              JOB_STATUS["failed"]
             else
               nil
             end
