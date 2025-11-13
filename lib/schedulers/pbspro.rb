@@ -64,10 +64,10 @@ class Pbspro < Scheduler
           info[cur_id][JOB_PARTITION] = value
         when "job_state"
           info[cur_id][JOB_STATUS_ID] = case value
-                                        when "E", "X"                          then JOB_STATUS["completed"]
+                                        when "E", "X", "F"                     then JOB_STATUS["completed"]
                                         when "H", "M", "Q", "S", "T", "U", "W" then JOB_STATUS["queued"]
                                         when "B", "R"                          then JOB_STATUS["running"]
-                                        when "F"                               then JOB_STATUS["failed"]
+                                        # then JOB_STATUS["failed"] # Job status does not indicate whether it has failed or not
                                         else nil
                                         end
         else
