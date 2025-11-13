@@ -13,7 +13,7 @@ set :environment, :production
 set :erb, trim: "-"
 
 # Internal Constants
-VERSION                = "1.6.0"
+VERSION                = "1.7.0"
 SCHEDULERS_DIR_PATH    = "./lib/schedulers"
 HISTORY_ROWS           = 10
 JOB_STATUS             = { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED", "failed" => "FAILED" }

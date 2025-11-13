@@ -186,6 +186,7 @@ class Fujitsu_tcs < Scheduler
                          when "RNP", "RUN", "RNE", "RNO"
                            JOB_STATUS["running"]
                          when "RJT", "ERR"
+                           JOB_STATUS["failed"]
                          else
                            nil
                          end
