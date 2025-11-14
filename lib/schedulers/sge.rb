@@ -197,8 +197,20 @@ class Sge < Scheduler
           end
         end
       end
-    end
 
+      remaining_jobs.each do |job_id|
+        exit_status = info[job_id]["exit_status"]
+        status = info[job_id][JOB_STATUS_ID]
+        
+        # Post-processing phase:
+        # If a job has a non-zero exit_status and is marked as "completed",
+        # we treat it as a failed job and update its status accordingly.
+        if exit_status && exit_status != "0" && status == JOB_STATUS["completed"]
+          info[job_id][JOB_STATUS_ID] = JOB_STATUS["failed"]
+        end
+      end
+      
+    end
     return info, nil
   rescue Exception => e
     return nil, e.message
