@@ -195,6 +195,9 @@ class Fujitsu_tcs < Scheduler
       # Add other fields
       fields.each_with_index do |(key, value), idx|
         info[job_id][value] = line[idx+1]
+        if key == :ec && line[idx+1] != "0" && info[job_id][JOB_STATUS_ID] == JOB_STATUS["completed"]
+          info[job_id][JOB_STATUS_ID] = JOB_STATUS["failed"]
+        end
       end
     end
 
