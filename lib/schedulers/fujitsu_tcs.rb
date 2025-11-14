@@ -200,7 +200,10 @@ class Fujitsu_tcs < Scheduler
         # If a job has a non-zero End code and is marked as "completed",
         # we treat it as a failed job and update its status accordingly.
         if key == :ec && line[idx+1] != "0" && info[job_id][JOB_STATUS_ID] == JOB_STATUS["completed"]
-          info[job_id][JOB_STATUS_ID] = JOB_STATUS["failed"]
+          # In the case of a bulk job, the END CODE of the parent job ID will be "-".
+          if line[idx+1] != "-"
+            info[job_id][JOB_STATUS_ID] = JOB_STATUS["failed"]
+          end
         end
       end
     end
