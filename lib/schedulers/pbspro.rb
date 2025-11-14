@@ -75,6 +75,20 @@ class Pbspro < Scheduler
         end
       end
     end
+
+    # Post-processing phase:
+    # If a job has a non-zero Exit_status and is marked as "completed",
+    # we treat it as a failed job and update its status accordingly.
+    # This is necessary because PBS's "F" (finished) state does not
+    # distinguish success from failure.
+    info.each do |job_id, data|
+      exit_status = data["Exit_status"]
+      status      = data[JOB_STATUS_ID]
+
+      if exit_status && exit_status != "0" && status == JOB_STATUS["completed"]
+        data[JOB_STATUS_ID] = JOB_STATUS["failed"]
+      end
+    end
   end
   
   # Query the status of one or more jobs in PBS using 'qstat'.
