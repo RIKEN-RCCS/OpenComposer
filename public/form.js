@@ -657,8 +657,16 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
     }
   }
   // After variable substitution, replace the $[[ ]] section with the calculated result.
-  line = line.replace(/\$\[\[(.*?)\]\]/g, (_, expr) => eval(expr))
-  
+  line = line.replace(/\$\[\[(.*?)\]\]/g, (_, expr) => {
+    try {
+          // Return calculation result
+          return eval(expr);
+        } catch (e) {
+          // Nothing to do
+          return `$[[${expr}]]`;
+        }
+    });
+
   if (line) {
     selectedValues.push(line);
   }
