@@ -22,8 +22,26 @@ header:
     direction: horizontal
     value: <%= @conf["cluster"].first["name"] %>
     options:
-    <% @conf["cluster"].each do |c| %>
-      - [ <%= c["name"] %> ]
+    <% if @path_info == '/Fujitsu_TCS' %>
+      <% @conf["cluster"].each do |c| %>
+        - [ <%= c["name"] %> ]
+      <% end %>
+    <% elsif @path_info == '/Grid_Engine' %>
+      <% @conf["cluster"].each do |c| %>
+        - [ <%= c["name"] %> ]
+      <% end %>
+    <% elsif @path_info == '/PBS' %>
+      <% @conf["cluster"].each do |c| %>
+        - [ <%= c["name"] %> ]
+      <% end %>
+    <% elsif @path_info == '/Slurm' %>
+      <% @conf["cluster"].each do |c| %>
+        - [ <%= c["name"] %> ]
+      <% end %>
+    <% else %>
+      <% @conf["cluster"].each do |c| %>
+        - [ <%= c["name"] %> ]
+      <% end %>
     <% end %>
   <% end %>
   
