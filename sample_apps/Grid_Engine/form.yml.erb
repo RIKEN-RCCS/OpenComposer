@@ -1,6 +1,6 @@
 <%
-EXCLUDED_GROUPS   = ['tgz-edu', 'tgz-noedu']
-MATCHING_PREFIXES = ["tga-", "tgb-", "tgc-", "tgd-", "tge-", "tgh-", "tgi-", "tgj-", "tgz-", "hp", "jh"]
+EXCLUDED_GROUPS   ||= ['tgz-edu', 'tgz-noedu']
+MATCHING_PREFIXES ||= ["tga-", "tgb-", "tgc-", "tgd-", "tge-", "tgh-", "tgi-", "tgj-", "tgz-", "hp", "jh"]
 
 group_options = []
 try_queue = false
@@ -290,4 +290,3 @@ check: |
   elsif @time_1 == 24 && @time_2 > 0
     halt 500, "Exceeded Time (#{@time_1}:#{@time_2}:00)."
   end
-  
