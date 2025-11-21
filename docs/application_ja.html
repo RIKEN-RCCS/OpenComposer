@@ -640,14 +640,14 @@ script:
 
       <h3 id="hide-script">5.3. 非表示化</h3>
       <p>
-	<code>script</code>セクションを非表示化することができます。特殊な変数<code>SCRIPT_CONTENT</code>とDynamic Form Widgetの<code>hide-</code>とを下記のように組み合せて利用します（ERBを用いるため、ファイル名は<code>form.yml.erb</code>であることに注意ください）。
+	<code>script</code>セクションを非表示化することができます。特殊な変数<code>OC_SCRIPT_CONTENT</code>とDynamic Form Widgetの<code>hide-</code>とを下記のように組み合せて利用します（ERBを用いるため、ファイル名は<code>form.yml.erb</code>であることに注意ください）。
       </p>
       <pre>form:
   script_content:
     widget: checkbox
     value: "Hide script content"
     options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
+      - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt; ]</pre>
 
       <img src="img/hide-script.png" width="600" alt="Hide script">
 
@@ -659,7 +659,7 @@ script:
     widget: checkbox
     value: "Hide script content"
     options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
+      - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
       
       <h3 id="variables">5.4. 特殊な変数</h3>
       <p>
@@ -779,7 +779,7 @@ submit:
     widget: checkbox
     value: "Hide script content"
     options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
+      - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt; ]</pre>
 
       <img src="img/hide-script-header.png" width="600" alt="Hide script in header">
 

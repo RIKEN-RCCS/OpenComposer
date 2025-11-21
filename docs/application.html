@@ -687,7 +687,7 @@ script:
       <h3 id="hide-script">5.3. Hide script</h3>
       <p>
 	You can hide your job script in the text area on the right side.
-Use the special variable <code>SCRIPT_CONTENT</code> and the <code>hide-</code> of the Dynamic Form Widget in the following way.
+Use the special variable <code>OC_SCRIPT_CONTENT</code> and the <code>hide-</code> of the Dynamic Form Widget in the following way.
 Note that the filename is <code>form.yml.erb</code> since it uses ERB.
       </p>
       <pre>form:
@@ -695,7 +695,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
     widget: checkbox
     value: "Hide script content"
     options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
+      - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt; ]</pre>
 
       <img src="img/hide-script.png" width="600" alt="Hide script">
 
@@ -707,7 +707,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
     widget: checkbox
     value: "Hide script content"
     options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
+      - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt;, hide-script_content ]</pre>
 
       <h3 id="variables">5.4. Special variables</h3>
       <p>
@@ -840,7 +840,7 @@ submit:
     widget: checkbox
     value: "Hide script content"
     options:
-      - [ "Hide script content", "", hide-&lt;%= SCRIPT_CONTENT %&gt; ]</pre>
+      - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt; ]</pre>
 
       <img src="img/hide-script-header.png" width="600" alt="Hide script in header">
 

@@ -53,8 +53,8 @@
 
     <!-- Script Content Section -->
     <div class="col py-3 d-flex flex-column">
-      <label id="label_<%= SCRIPT_CONTENT %>" class="fw-semibold" for="<%= SCRIPT_CONTENT %>"><%= @script_label %></label>
-      <textarea id="<%= SCRIPT_CONTENT %>" name="<%= SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" oninput="ocForm.updateHeight(ocForm.scriptArea)" required>
+      <label id="label_<%= OC_SCRIPT_CONTENT %>" class="fw-semibold" for="<%= OC_SCRIPT_CONTENT %>"><%= @script_label %></label>
+      <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" oninput="ocForm.updateHeight(ocForm.scriptArea)" required>
         (Something wrong)
       </textarea>
       <!-- Submit Button -->
@@ -95,7 +95,7 @@
 </form>
 <script>
 var ocForm = ocForm || {};
-ocForm.scriptArea = document.getElementById('<%= SCRIPT_CONTENT %>');
+ocForm.scriptArea = document.getElementById('<%= OC_SCRIPT_CONTENT %>');
 ocForm.submitArea = document.getElementById('<%= SUBMIT_CONTENT %>');
 </script>
 <script src="form.js"></script>
@@ -152,7 +152,7 @@ ocForm.loadSubmitCache = function() {
 
 // Prevent default behavior for Enter key unless specific elements are focused.
 document.addEventListener('keydown', function(event) {
-  if (event.key === 'Enter' && (event.target.id !== '<%= SCRIPT_CONTENT %>' && event.target.id !== '<%= SUBMIT_BUTTON %>' && event.target.id !== '<%= SUBMIT_CONTENT %>')) {
+  if (event.key === 'Enter' && (event.target.id !== '<%= OC_SCRIPT_CONTENT %>' && event.target.id !== '<%= SUBMIT_BUTTON %>' && event.target.id !== '<%= SUBMIT_CONTENT %>')) {
     event.preventDefault();
   }
 });

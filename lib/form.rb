@@ -810,11 +810,11 @@ helpers do
     return "" unless body&.key?("form")
 
     @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "" }
-    form = body["form"].merge({SCRIPT_CONTENT => {"widget" => "textarea"}})
+    form = body["form"].merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
     obj = form.merge(header)
     html = ""
     form.each_with_index do |(key, value), index|
-      next if key == SCRIPT_CONTENT
+      next if key == OC_SCRIPT_CONTENT
       indent = add_indent_style(value)
       html  += "<div class=\"mb-3 position-relative\" style=\"#{indent}\">\n"
       
@@ -868,10 +868,10 @@ helpers do
     @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => ""}
     
     html = ""
-    header = header.merge({SCRIPT_CONTENT => {"widget" => "textarea"}})
+    header = header.merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
     obj    = header.merge(body["form"])
     header.each_with_index do |(key, value), index|
-      next if key == SCRIPT_CONTENT
+      next if key == OC_SCRIPT_CONTENT
       indent = add_indent_style(value)
       html  += "<div class=\"mb-3 position-relative\" style=\"#{indent}\">\n"
 

@@ -25,7 +25,8 @@ HEADER_SCRIPT_LOCATION = "_script_location"
 HEADER_SCRIPT_NAME     = "_script_1"
 HEADER_JOB_NAME        = "_script_2"
 HEADER_CLUSTER_NAME    = "_cluster_name"
-SCRIPT_CONTENT         = "_script_content"
+OC_SCRIPT_CONTENT      = "_script_content"
+SCRIPT_CONTENT         = OC_SCRIPT_CONTENT  # Compatibility with previous versions
 FORM_LAYOUT            = "_form_layout"
 SUBMIT_BUTTON          = "_submitButton"
 SUBMIT_CONFIRM         = "_submitConfirm"
@@ -35,7 +36,7 @@ JOB_NAME               = "Job Name"
 JOB_SUBMISSION_TIME    = "Submission Time"
 JOB_PARTITION          = "Partition"
 JOB_KEYS               = "job_keys"
-SKIP_KEYS = ['splat', SCRIPT_CONTENT]
+SKIP_KEYS = ['splat', OC_SCRIPT_CONTENT]
 DEFINED_KEYS = {
   JOB_APP_NAME           => 'OC_APP_NAME',
   JOB_APP_PATH           => 'OC_APP_PATH',
@@ -349,12 +350,12 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
 
         replace_with_cache(@header, cache)
         replace_with_cache(@body["form"], cache)
-        @script_content = escape_html(cache[SCRIPT_CONTENT])
+        @script_content = escape_html(cache[OC_SCRIPT_CONTENT])
         @submit_content = escape_html(cache[SUBMIT_CONTENT])
       elsif !error_msg.nil? || !script_path.nil? # When job submission failed or script_path != nil (because after script file has been saved)
         replace_with_cache(@header, error_params)
         replace_with_cache(@body["form"], error_params)
-        @script_content = escape_html(error_params[SCRIPT_CONTENT])
+        @script_content = escape_html(error_params[OC_SCRIPT_CONTENT])
         @submit_content = escape_html(error_params[SUBMIT_CONTENT])
       end
 
@@ -525,7 +526,7 @@ post "/*" do
 
     script_path    = File.join(script_location, script_name)
     script_dir     = File.dirname(script_path)
-    script_content = params[SCRIPT_CONTENT].gsub("\r\n", "\n") # Since HTML textarea for SCRIPT_CONTENT is required, params[SCRIPT_CONTENT] must not be nil.
+    script_content = params[OC_SCRIPT_CONTENT].gsub("\r\n", "\n") # Since HTML textarea for OC_SCRIPT_CONTENT is required, params[OC_SCRIPT_CONTENT] must not be nil.
     form_action    = get_form_action(form)
     job_id         = nil
     submit_options = nil

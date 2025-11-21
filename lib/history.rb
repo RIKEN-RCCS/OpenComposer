@@ -117,7 +117,7 @@ helpers do
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            #{output_text(job[SCRIPT_CONTENT], filter)}
+            #{output_text(job[OC_SCRIPT_CONTENT], filter)}
           </div>
           <div class="modal-footer">
             <a href="#{job_link}" class="btn btn-primary text-white text-decoration-none">Load parameters</a>
@@ -254,7 +254,7 @@ helpers do
             info[JOB_APP_NAME],
             info[HEADER_SCRIPT_LOCATION],
             info[HEADER_SCRIPT_NAME],
-            info[SCRIPT_CONTENT],
+            info[OC_SCRIPT_CONTENT],
             info[JOB_NAME],
             info[JOB_PARTITION],
             info[JOB_SUBMISSION_TIME]
