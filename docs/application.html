@@ -715,6 +715,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
       </p>
       <ul>
         <li>#{OC_APP_NAME}: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
+        <li>#{OC_DIR_NAME}: The name of the directory where <code>manifest.yml</code> and related files are stored (the last path element of each application’s URL).</li>
         <li>#{OC_SCRIPT_LOCATION}: <code>Script Location</code> defined in the <code>header</code> section</li>
         <li>#{OC_CLUSTER_NAME}: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
         <li>#{OC_SCRIPT_NAME}: <code>Script Name</code> defined in the <code>header</code> section</li>
@@ -747,14 +748,15 @@ check: |
   message = "Exceeded Time"
   oc_assert(@time_1 != 24 || @time_2 == 0, message)</pre>
       <p>
-	In the <code>check</code> section, just like in the <code>script</code> section, the following special variables can be used (the contents are the same, so they are omitted):
+	In the <code>check</code> section, just like in the <code>script</code> section, the following special variables can be used:
       </p>
       <ul>
-        <li>@OC_APP_NAME</li>
-        <li>@OC_SCRIPT_LOCATION</li>
-        <li>@OC_CLUSTER_NAME</li>
-        <li>@OC_SCRIPT_NAME</li>
-        <li>@OC_JOB_NAME</li>
+	<li>@OC_APP_NAME: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
+        <li>@OC_DIR_NAME: The name of the directory where <code>manifest.yml</code> and related files are stored (the last path element of each application’s URL).</li>
+        <li>@OC_SCRIPT_LOCATION: <code>Script Location</code> defined in the <code>header</code> section</li>
+        <li>@OC_CLUSTER_NAME: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
+        <li>@OC_SCRIPT_NAME: <code>Script Name</code> defined in the <code>header</code> section</li>
+	<li>@OC_JOB_NAME: <code>Job Name</code> defined in the <code>header</code> section</li>
       </ul>
       
       <h2 id="submit">7. Submit section</h2>
@@ -843,6 +845,25 @@ submit:
       - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt; ]</pre>
 
       <img src="img/hide-script-header.png" width="600" alt="Hide script in header">
+      <p>
+	Note that the example above shows how to set headers for each individual application.
+	If you want to configure the headers for all applications, edit <code>lib/header.yml.erb</code> directly.
+	In that case, you can use the special variables shown below, just like in the <code>script</code> section (These variables can also be used in the <code>header</code> and <code>form</code> sections, but in that case, the file name must be <code>form.yml.erb</code>.)</p>
+      <ul>
+	<li>@OC_APP_NAME: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
+	<li>@OC_DIR_NAME: The name of the directory where <code>manifest.yml</code> and related files are stored (the last path element of each application’s URL).</li>
+      </ul>
+      <p>
+	Below is an example showing how to change the processing for only a specific application.
+      </p>
+      <pre><% if @OC_DIR_NAME == "Slurm" %>
+queue:
+  widget: select
+  label: Queue
+  options:
+    - [small]
+    - [large]
+<% end %></pre>
 
       <h2 id="sample">9. Sample</h2>
       <p>The sample applications are as follows:</p>

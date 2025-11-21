@@ -105,7 +105,7 @@ helpers do
   # Output a modal displaying a job script and a link to load parameters for a specific job.
   def output_job_script_modal(job, filter)
     modal_id = "_historyJobScript#{job[JOB_ID]}"
-    job_link = "#{File.join(@script_name, job[JOB_APP_PATH])}?jobId=#{URI.encode_www_form_component(job[JOB_ID])}"
+    job_link = "#{File.join(@script_name, job[JOB_DIR_NAME])}?jobId=#{URI.encode_www_form_component(job[JOB_ID])}"
     job_link += "&cluster=#{@cluster_name}" if @cluster_name
 
     <<~HTML

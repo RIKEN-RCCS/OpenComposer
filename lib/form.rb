@@ -125,10 +125,12 @@ helpers do
   end
 
   # Output a JavaScript code based on a given yml, line in script, and matches data.
-  def output_script_js(form, line, app_name)
+  def output_script_js(form, line, app_name, dir_name)
     # Substitute constant valiables
     line.gsub!(/\#\{OC_APP_NAME\}/,         app_name)
     line.gsub!(/\#\{:OC_APP_NAME\}/,        app_name)
+    line.gsub!(/\#\{OC_DIR_NAME\}/,         dir_name)
+    line.gsub!(/\#\{:OC_DIR_NAME\}/,        dir_name)
     line.gsub!(/\#\{OC_SCRIPT_LOCATION\}/,  "\#\{#{HEADER_SCRIPT_LOCATION}\}")
     line.gsub!(/\#\{:OC_SCRIPT_LOCATION\}/, "\#\{:#{HEADER_SCRIPT_LOCATION}\}")
     line.gsub!(/\#\{OC_CLUSTER_NAME\}/,     "\#\{#{HEADER_CLUSTER_NAME}\}")
@@ -806,7 +808,7 @@ helpers do
   end
 
   # Output a body of webform.
-  def output_body(body, header, app_name)
+  def output_body(body, header, app_name, dir_name)
     return "" unless body&.key?("form")
 
     @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "" }
@@ -847,14 +849,14 @@ helpers do
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     if !script_content.nil?
       script_content.split("\n").each do |line|
-        @js["script"] += output_script_js(obj, line, app_name)
+        @js["script"] += output_script_js(obj, line, app_name, dir_name)
       end
     end
 
     submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
     if !submit_content.nil?
       submit_content.split("\n").each do |line|
-        @js["submit"] += output_script_js(obj, line, app_name)
+        @js["submit"] += output_script_js(obj, line, app_name, dir_name)
       end
     end
 

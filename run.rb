@@ -18,8 +18,8 @@ SCHEDULERS_DIR_PATH    = "./lib/schedulers"
 HISTORY_ROWS           = 10
 JOB_STATUS             = { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED", "failed" => "FAILED" }
 JOB_ID                 = "id"
-JOB_APP_NAME           = "appName"
-JOB_APP_PATH           = "appPath"
+JOB_APP_NAME           = "appAppName"
+JOB_DIR_NAME           = "appDirName"
 JOB_STATUS_ID          = "status"
 HEADER_SCRIPT_LOCATION = "_script_location"
 HEADER_SCRIPT_NAME     = "_script_1"
@@ -39,7 +39,7 @@ JOB_KEYS               = "job_keys"
 SKIP_KEYS = ['splat', OC_SCRIPT_CONTENT]
 DEFINED_KEYS = {
   JOB_APP_NAME           => 'OC_APP_NAME',
-  JOB_APP_PATH           => 'OC_APP_PATH',
+  JOB_DIR_NAME           => 'OC_DIR_NAME',
   HEADER_SCRIPT_LOCATION => 'OC_SCRIPT_LOCATION',
   HEADER_SCRIPT_NAME     => 'OC_SCRIPT_NAME',
   HEADER_JOB_NAME        => 'OC_JOB_NAME',
@@ -249,22 +249,22 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
   @version       = VERSION
   @my_ood_url    = request.base_url
   @script_name   = request.script_name
-  @path_info     = request.path_info
+  @dir_name      = request.path_info.sub(/^\//, '')
   @cluster_name  = if @conf.key?("cluster")
-                     escape_html(params[@path_info == "/history" ? "cluster" : HEADER_CLUSTER_NAME] || @conf["cluster"].first["name"])
+                     escape_html(params[@dir_name == "history" ? "cluster" : HEADER_CLUSTER_NAME] || @conf["cluster"].first["name"])
                    else
                      nil
                    end
   @ood_logo_path = URI.join(@my_ood_url, @script_name + "/", "ood.png")
-  @current_path  = File.join(@script_name, @path_info)
+  @current_path  = File.join(@script_name, @dir_name)
   @manifests     = create_all_manifests(@apps_dir).sort_by { |m| [(m.category || "").downcase, m.name.downcase] }
   @manifests_w_category, @manifests_wo_category = @manifests.partition(&:category)
 
-  case @path_info
-  when "/"
+  case @dir_name
+  when ""
     @name = "Home"
     return erb :index
-  when "/history"
+  when "history"
     @name          = "History"
     @scheduler     = create_scheduler(@conf)
     @bin           = @conf["bin"]
@@ -287,10 +287,13 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
     return erb :history
   else # application form
     @table_index = 1
-    @manifest = @manifests.find { |m| "/#{m.dirname}" == @path_info }
+    @manifest = @manifests.find { |m| "#{m.dirname}" == @dir_name }
     unless @manifest.nil?
       begin
-        @body = read_yaml(File.join(@apps_dir, @path_info, "form.yml"))
+        @name = @manifest["name"]
+        @OC_APP_NAME = @name
+        @OC_DIR_NAME = @manifest["dirname"]
+        @body = read_yaml(File.join(@apps_dir, @dir_name, "form.yml"))
         @header = if @body.key?("header")
                     @body["header"]
                   else
@@ -300,7 +303,6 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
         @error_msg = e.message
         return erb :error
       end
-      @name = @manifest["name"]
       @form_action = get_form_action(@body)
 
       # Since the widget name is used as a variable in Ruby, it should consist of only

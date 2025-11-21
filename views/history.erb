@@ -97,10 +97,10 @@
               <a href="#" data-bs-toggle="modal" data-bs-target="#_historyJobId<%= job[JOB_ID] %>"><%= output_text(job[JOB_ID], @filter) %></a>
             </td>
             <td class="text-wrap text-break">
-	      <a href="<%= File.join(@script_name, job[JOB_APP_PATH]) %>"><%= output_text(job[JOB_APP_NAME], @filter) %></a>
-	      <% directory_path = File.join(@apps_dir, job[JOB_APP_PATH]) %>
+	      <a href="<%= File.join(@script_name, job[JOB_DIR_NAME]) %>"><%= output_text(job[JOB_APP_NAME], @filter) %></a>
+	      <% directory_path = File.join(@apps_dir, job[JOB_DIR_NAME]) %>
 	      <% unless cached_related_app.key?(directory_path) %>
-	      <%   cached_related_app[directory_path] = output_related_app_icon(job[JOB_APP_PATH], create_manifest(directory_path)["related_app"]) %>
+	      <%   cached_related_app[directory_path] = output_related_app_icon(job[JOB_DIR_NAME], create_manifest(directory_path)["related_app"]) %>
 	      <% end %>
               <% cached_related_app[directory_path].each do |r| %>
 	        <%= r %>

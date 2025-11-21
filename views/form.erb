@@ -35,7 +35,7 @@
         </a>
       </h3>
       <input type="hidden" name="<%= JOB_APP_NAME %>" value="<%= @manifest['name'] %>">
-      <input type="hidden" name="<%= JOB_APP_PATH %>" value="<%= @path_info %>">
+      <input type="hidden" name="<%= JOB_DIR_NAME %>" value="<%= @dir_name %>">
       <p><%= @manifest['description'] %></p>
     </div>
 
@@ -48,7 +48,7 @@
   <div id="<%= FORM_LAYOUT %>" class="row row-cols-1 row-cols-lg-2 mx-1 bg-gradient" style="background: <%= @conf['form_color'] %>;">
     <!-- Form Body -->
     <div class="col py-3">
-      <%= output_body(@body, @header, @manifest['name']) %>
+      <%= output_body(@body, @header, @manifest['name'], @manifest['dirname']) %>
     </div>
 
     <!-- Script Content Section -->

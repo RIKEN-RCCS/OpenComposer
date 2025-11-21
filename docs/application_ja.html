@@ -667,6 +667,7 @@ script:
       </p>
       <ul>
         <li>#{OC_APP_NAME}: <code>manifest.yml</code>の<code>name</code>で定義しているアプリケーション名</li>
+        <li>#{OC_DIR_NAME}: <code>manifest.yml</code>などのファイルが保存されているディレクトリ名（各アプリケーションのURLの最後のパス要素）</li>
         <li>#{OC_SCRIPT_LOCATION}: ヘッダで定義されている<code>Script location</code></li>
       	<li>#{OC_CLUSTER_NAME}: ヘッダで定義されている<code>Cluster name</code>（<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合に有効）</li>
       	<li>#{OC_SCRIPT_NAME}: ヘッダで定義されている<code>Script Name</code></li>
@@ -697,14 +698,15 @@ check: |
   message = "Exceeded Time"
   oc_assert(@time_1 != 24 || @time_2 == 0, message)</pre>
       <p>
-        <code>check</code>セクションでは、<code>script</code>セクションと同様に下記の特殊な変数も利用できます（内容は同じであるため省略）。
+        <code>check</code>セクションでは、<code>script</code>セクションと同様に下記の特殊な変数も利用できます。
       </p>
       <ul>
-        <li>@OC_APP_NAME</li>
-        <li>@OC_SCRIPT_LOCATION</li>
-      	<li>@OC_CLUSTER_NAME</li>
-      	<li>@OC_SCRIPT_NAME</li>
-        <li>@OC_JOB_NAME</li>
+        <li>@OC_APP_NAME: <code>manifest.yml</code>の<code>name</code>で定義しているアプリケーション名</li>
+        <li>@OC_DIR_NAME: <code>manifest.yml</code>などのファイルが保存されているディレクトリ名（各アプリケーションのURLの最後のパス要素）</li>
+        <li>@OC_SCRIPT_LOCATION: ヘッダで定義されている<code>Script location</code></li>
+	<li>@OC_CLUSTER_NAME: ヘッダで定義されている<code>Cluster name</code>（<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合に有効）</li>
+	<li>@OC_SCRIPT_NAME: ヘッダで定義されている<code>Script Name</code></li>
+        <li>@OC_JOB_NAME: ヘッダで定義されている<code>Job Name</code></li>
       </ul>
 
       <h2 id="submit">7. submitセクション</h2>
@@ -782,6 +784,24 @@ submit:
       - [ "Hide script content", "", hide-&lt;%= OC_SCRIPT_CONTENT %&gt; ]</pre>
 
       <img src="img/hide-script-header.png" width="600" alt="Hide script in header">
+      <p>
+      なお、上の例はアプリケーション毎にヘッダを設定する場合ですが、すべてのアプリケーションのヘッダを設定したい場合は<code>lib/header.yml.erb</code>を直接編集します。その場合、<code>script</code>セクションと同様に下記の特殊な変数も利用できます（<code>header</code>や<code>form</code>セクションでも利用可能ですが、ファイル名は<code>form.yml.erb</code>である必要があります）。
+      </p>
+      <ul>
+        <li>@OC_APP_NAME: <code>manifest.yml</code>の<code>name</code>で定義しているアプリケーション名</li>
+        <li>@OC_DIR_NAME: <code>manifest.yml</code>などのファイルが保存されているディレクトリ名（各アプリケーションのURLの最後のパス要素）</li>
+      </ul>
+      <p>
+      下記に特定のアプリケーションだけ処理を変更する例を示します。
+      </p>
+      <pre><% if @OC_DIR_NAME == "Slurm" %>
+queue:
+  widget: select
+  label: Queue
+  options:
+    - [small]
+    - [large]
+<% end %></pre>
 
       <h2 id="sample">9. サンプル</h2>
       <p>アプリケーションのサンプルは下記の通りです。</p>
