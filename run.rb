@@ -18,8 +18,8 @@ SCHEDULERS_DIR_PATH    = "./lib/schedulers"
 HISTORY_ROWS           = 10
 JOB_STATUS             = { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED", "failed" => "FAILED" }
 JOB_ID                 = "id"
-JOB_APP_NAME           = "appAppName"
-JOB_DIR_NAME           = "appDirName"
+JOB_APP_NAME           = "appName"
+JOB_DIR_NAME           = "appPath"
 JOB_STATUS_ID          = "status"
 HEADER_SCRIPT_LOCATION = "_script_location"
 HEADER_SCRIPT_NAME     = "_script_1"
