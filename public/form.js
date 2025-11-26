@@ -656,16 +656,23 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
       }
     }
   }
-  // After variable substitution, replace the $[[ ]] section with the calculated result.
-  line = line.replace(/\$\[\[(.*?)\]\]/g, (_, expr) => {
+
+  // After variable substitution, replace the #{calc(..)} section with the calculated result.
+  line = line.replace(/#\{calc\(([^}]*)\)\}/g, (_, expr) => {
     try {
-          // Return calculation result
-          return eval(expr);
-        } catch (e) {
-          // Nothing to do
-          return `$[[${expr}]]`;
-        }
-    });
+      const parts = expr.split(',').map(s => s.trim()); // parts = ["1 + (2 * 3)", "3"]
+      if (parts.length === 2 && /^\d+$/.test(parts[1])) {
+        const value = eval(parts[0]);           // 7
+        const decimals = Number(parts[1]);      // 3
+        return Number(value).toFixed(decimals); // 7.000
+      }
+      else {
+        return Math.round(eval(expr));
+      }
+    } catch (e) {
+      return "";
+    }
+  });
 
   if (line) {
     selectedValues.push(line);
