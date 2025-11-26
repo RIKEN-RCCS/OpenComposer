@@ -25,6 +25,7 @@
 	<li class="nav-item ms-3"><a href="#radio" class="nav-link">2.6. radio widget</a></li>
 	<li class="nav-item ms-3"><a href="#checkbox" class="nav-link">2.7. checkbox widget</a></li>
 	<li class="nav-item ms-3"><a href="#path" class="nav-link">2.8. path widget</a></li>
+	<li class="nav-item ms-3"><a href="#functions" class="nav-link">2.9. Functions</a></li>
 	<li class="nav-item"><a href="#dynamic" class="nav-link">3. Dynamic Form Widget</a></li>
 	<li class="nav-item ms-3"><a href="#set" class="nav-link">3.1. Widget setting</a></li>
 	<li class="nav-item ms-3"><a href="#disable" class="nav-link">3.2. Widget disabling</a></li>
@@ -175,24 +176,7 @@ script: |
     max:    [ 24, 59 ]
     step:   [  1,  1 ]</pre>
       <img src="img/label3.png" alt="label">
-      <p>
-        To pad a number in a job script with zeros, use the function <code>zeropadding(key, digit)</code>.
-        If the number of digits is less than the number specified in the second argument, the missing digits will be filled with "0".
-      </p>
-      <pre>form:
-  time:
-    widget: number
-    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
-    size:   2
-    value:  [  1,  0 ]
-    min:    [  0,  0 ]
-    max:    [ 24, 59 ]
-    step:   [  1,  1 ]
-
-script: |
-  #SBATCH --time=#{time_1}:#{zeropadding(time_2, 2)}:00</pre>
-      <img src="img/zeropadding.png" alt="Zero Padding">
-      
+            
       <h3 id="text">2.2. text widget</h3>
       <p>
 	Displays a text input field.
@@ -423,13 +407,57 @@ script: |
 
 script: |
   cd #{working_dir}</pre>
-      <img width="800" src="img/path1.png" alt="path">
-      <p>
-	You can enter any string like in a <code>text</code> widget. Also, by clicking the "Select Path" button, you can select a file or directory using the modal shown below.
-      </p>
-      <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
-      <p>
-	The functions <code>dirname(FILE_PATH)</code> and <code>basename(FILE_PATH)</code> can be used in the <code>script</code> section to extract the directory or file name from a path.
+    <img width="800" src="img/path1.png" alt="path">
+    <p>
+      You can enter any string like in a <code>text</code> widget. Also, by clicking the "Select Path" button, you can select a file or directory using the modal shown below.
+    </p>
+    <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
+      
+    <h3 id="functions">2.9. Functions</h3>
+    <p>
+      This section introduces functions used in the <code>script</code> and <code>header</code> sections.
+    </p>
+    <p>
+      The <code>zeropadding(key, digit)</code> function pads a number with leading zeros. 
+      If the number of digits is less than the value specified in the second argument, <code>digit</code>, the missing digits are filled with '0'.
+    </p>
+    <pre>form:
+  time:
+    widget: number
+    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
+    size:   2
+    value:  [  1,  0 ]
+    min:    [  0,  0 ]
+    max:    [ 24, 59 ]
+    step:   [  1,  1 ]
+
+script: |
+  #SBATCH --time=#{time_1}:#{zeropadding(time_2, 2)}:00</pre>
+  <img src="img/zeropadding.png" alt="Zero Padding">
+
+  <p>
+    The <code>calc(expr[, decimalPlaces])</code> function performs basic arithmetic evaluation.
+    The second argument, <code>decimalPlaces</code>, specifies the number of digits after the decimal point.
+    If the second argument is omitted, the result is rounded to the nearest integer.
+  </p>
+  <pre>form:
+  time:
+    widget: number
+    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
+    size:   2
+    value:  [  1,  0 ]
+    min:    [  0,  0 ]
+    max:    [ 24, 59 ]
+    step:   [  1,  1 ]
+
+script: |
+  #{calc(time_1 + time_2 * 60)}
+  #{calc(time_1 + time_2 / 60)}
+  #{calc(time_1 + time_2 / 60, 2)}</pre>
+    <img src="img/calc.png" width="800" alt="Calculation">
+    
+    <p>
+    The <code>dirname(FILE_PATH)</code> and <code>basename(FILE_PATH)</code> functions extract the directory name and file name from a given path.
       </p>
       <pre>form:
   input_file:
@@ -856,14 +884,14 @@ submit:
       <p>
 	Below is an example showing how to change the processing for only a specific application.
       </p>
-      <pre><% if @OC_DIR_NAME == "Slurm" %>
+      <pre>&lt;% if @OC_DIR_NAME == "Slurm" %&gt;
 queue:
   widget: select
   label: Queue
   options:
     - [small]
     - [large]
-<% end %></pre>
+&lt;% end %&gt;</pre>
 
       <h2 id="sample">9. Sample</h2>
       <p>The sample applications are as follows:</p>

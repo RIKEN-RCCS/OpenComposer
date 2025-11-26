@@ -25,6 +25,7 @@
 	<li class="nav-item ms-3"><a href="#radio" class="nav-link">2.6. radioウィジット</a></li>
 	<li class="nav-item ms-3"><a href="#checkbox" class="nav-link">2.7. checkboxウィジット</a></li>
 	<li class="nav-item ms-3"><a href="#path" class="nav-link">2.8. pathウィジット</a></li>
+	<li class="nav-item ms-3"><a href="#functions" class="nav-link">2.9. 関数</a></li>
 	<li class="nav-item"><a href="#dynamic" class="nav-link">3. Dynamic Form Widget</a></li>
 	<li class="nav-item ms-3"><a href="#set" class="nav-link">3.1. ウィジットの設定</a></li>
 	<li class="nav-item ms-3"><a href="#disable" class="nav-link">3.2. ウィジットの無効化</a></li>
@@ -158,23 +159,6 @@ script: |
     max:    [ 24, 59 ]
     step:   [  1,  1 ]</pre>
       <img src="img/label3.png" alt="label">
-
-      <p>
-        ジョブスクリプト中の数値に対してゼロパディングを行いたい場合は関数<code>zeropadding(key, digit)</code>を用います。第2引数に指定した桁数に満たない場合、不足分を「0」で埋めます。
-      </p>
-      <pre>form:
-  time:
-    widget: number
-    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
-    size:   2
-    value:  [  1,  0 ]
-    min:    [  0,  0 ]
-    max:    [ 24, 59 ]
-    step:   [  1,  1 ]
-
-script: |
-  #SBATCH --time=#{time_1}:#{zeropadding(time_2, 2)}:00</pre>
-      <img src="img/zeropadding.png" alt="Zero Padding">
       
       <h3 id="text">2.2. textウィジット</h3>
       <p>
@@ -397,9 +381,48 @@ script: |
 	<code>text</code>ウィジットのように任意の文字列を入力することができます。また、「Select Path」ボタンをクリックすると、下記のようなモーダルを利用してファイルやディレクトリを選択できます。
       </p>
       <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
-      <p>
-	<code>script</code>セクション中で利用できる関数として<code>dirname(FILE_PATH)</code>と<code>basename(FILE_PATH)</code>を提供しています。
-ディレクトリ名とファイル名を含むパス名から、<code>dirname()</code>はディレクトリ部分を、<code>basename()</code>はファイル部分だけを返します。
+          
+    <h3 id="functions">2.9. 関数</h3>
+     <p>
+	  <code>script</code>セクションと<code>header</code>セクションで利用できる関数を紹介します。
+	</p>
+    <p>
+      関数<code>zeropadding(key, digit)</code>は数値に対してゼロパディングを行います。第2引数<code>digit</code>に指定した桁数に満たない場合、不足分を「0」で埋めます。
+    </p>
+    <pre>form:
+  time:
+    widget: number
+    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
+    size:   2
+    value:  [  1,  0 ]
+    min:    [  0,  0 ]
+    max:    [ 24, 59 ]
+    step:   [  1,  1 ]
+
+script: |
+  #SBATCH --time=#{time_1}:#{zeropadding(time_2, 2)}:00</pre>
+    <img src="img/zeropadding.png" alt="Zero Padding">
+    
+    <p>
+      関数<code>calc(expr[, decimalPlaces])</code>は簡単な計算を行います。第2引数<code>decimalPlaces</code>は小数点以下の桁数です。第2引数を省略すると、小数点以下を四捨五入します。
+    </p>
+  <pre>form:
+  time:
+    widget: number
+    label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
+    size:   2
+    value:  [  1,  0 ]
+    min:    [  0,  0 ]
+    max:    [ 24, 59 ]
+    step:   [  1,  1 ]
+
+script: |
+  #{calc(time_1 + time_2 * 60)}
+  #{calc(time_1 + time_2 / 60)}
+  #{calc(time_1 + time_2 / 60, 2)}</pre>
+    <img src="img/calc.png" width="800" alt="Calculation">
+    
+	<p>関数<code>dirname(FILE_PATH)</code>と関数<code>basename(FILE_PATH)</code>はディレクトリ名とファイル名を含むパス名から、<code>dirname()</code>はディレクトリ部分を、<code>basename()</code>はファイル部分だけを返します。
       </p>
       <pre>form:
   input_file:
@@ -794,14 +817,14 @@ submit:
       <p>
       下記に特定のアプリケーションだけ処理を変更する例を示します。
       </p>
-      <pre><% if @OC_DIR_NAME == "Slurm" %>
+      <pre>&lt;% if @OC_DIR_NAME == "Slurm" %&gt;
 queue:
   widget: select
   label: Queue
   options:
     - [small]
     - [large]
-<% end %></pre>
+&lt;% end %&gt;</pre>
 
       <h2 id="sample">9. サンプル</h2>
       <p>アプリケーションのサンプルは下記の通りです。</p>

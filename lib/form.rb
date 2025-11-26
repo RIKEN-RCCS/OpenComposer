@@ -126,6 +126,9 @@ helpers do
 
   # Output a JavaScript code based on a given yml, line in script, and matches data.
   def output_script_js(form, line, app_name, dir_name)
+    # Remove leading and trailing whitespace(e.g. #{ time_1  } -> #{time_1})
+    line.gsub!(/#\{\s*(.*?)\s*\}/, '#{\1}')
+    
     # Substitute constant valiables
     line.gsub!(/\#\{OC_APP_NAME\}/,         app_name)
     line.gsub!(/\#\{:OC_APP_NAME\}/,        app_name)
@@ -149,9 +152,37 @@ helpers do
     line.gsub!("'", "\\\\'")
 
     matches = line.scan(/\#\{.+?\}/)
+
     return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
 
-    keys = matches.map { |str| str[2..-2] } # "\#{example1}" -> "example1"
+    keys = matches.flat_map do |str|
+      inner = str[2..-2] # "#{example1}" -> "example1"
+      
+      if inner.start_with?("calc(")
+        args = inner[/calc\((.*)\)/, 1] || "" # time_1 + time_2 - :time_3 * 2
+        args.scan(/:[A-Za-z_]\w*|[A-Za-z_]\w*/) # ["time_1", "time_2", ":time_3"]
+      else
+        inner
+      end
+    end
+
+    # For the function calc()
+    line = line.gsub(/\#\{calc\((.*?)\)\}/) do
+      expr = Regexp.last_match(1) || ""  # "time_1 + time_2 - :time_3 * 2"
+      
+      replaced = expr.gsub(/(:)?([A-Za-z_]\w*)/) do
+        colon = Regexp.last_match(1) # ":" or nil
+        name  = Regexp.last_match(2) # "time_1", "time_2", "time_3"
+        
+        if colon
+          "\#{" + ":" + name + "}"   # :time_3 -> :#{:time_3}
+        else
+          "\#{" + name + "}"         # time_1 -> #{time_1}
+        end
+      end
+
+      "\#{calc(#{replaced})}"
+    end
 
     exist_keys    = []
     widgets       = []
