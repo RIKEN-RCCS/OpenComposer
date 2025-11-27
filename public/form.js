@@ -559,14 +559,41 @@ ocForm.getValue = function(key, widget) {
 
 // Return a directory name.
 ocForm.dirname = function(path) {
-  let parts = path.split('/');
-  parts.pop();
-  return parts.join('/') || '/';
+  if (path == null) return "";
+
+  path = String(path);
+  if (path === "") return ".";　// If path is empty, return "."
+
+  // Remove trailing slashes (except when the entire path is just "/")
+  path = path.replace(/\/+$/, "");
+  
+  // Find the last "/"
+  const index = path.lastIndexOf("/");
+
+  // If no "/" exists, return "."
+  if (index === -1) return ".";
+
+  // If the result is empty (e.g. "/foo" → ""), return "/"
+  const dir = path.slice(0, index);
+  return dir === "" ? "/" : dir;
 }
 
 // Return a base name.
 ocForm.basename = function(path) {
-  return path.split('/').pop();
+  if (path == null) return "";
+
+  path = String(path);
+
+  // Remove trailing slashes (e.g. "/foo/bar///" → "/foo/bar")
+  path = path.replace(/\/+$/, "");
+
+  // Find the last "/" and return the substring after it
+  const index = path.lastIndexOf("/");
+
+  // If no "/" exists, return the whole string
+  if (index === -1) return path;
+
+  return path.slice(index + 1);
 }
 
 // Return value with zero padding
@@ -574,8 +601,23 @@ ocForm.zeroPadding = function(num, length) {
   return num === "" ? "" : String(num).padStart(length, '0');
 }
 
+// Evaluate calc(...) expression
+function evalCalc(expr) {
+  try {
+    const parts = expr.split(',').map(s => s.trim()); // e.g. ["1 + (2 * 3)", "3"]
+    if (parts.length === 2 && /^\d+$/.test(parts[1])) {
+      const value = eval(parts[0]);          // 7
+      const decimals = Number(parts[1]);     // 3
+      return Number(value).toFixed(decimals); // "7.000"
+    } else {
+      return Math.round(eval(expr));         // no decimals, just round
+    }
+  } catch (e) {
+    return "";
+  }
+}
 // Output lines in the script contents.
-ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separators, functions, zeroPaddingLength) {
+ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separators) {
   // Check if line should be made visible
   for (const k in keys) {
     const value = ocForm.getValue(keys[k], widgets[k]);
@@ -597,21 +639,12 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
       value = value.replace(/\\[ntr\\'"]/g, match => escapeSequences[match]);
     }
 
-    if (functions[k] === "dirname") {
-      value = ocForm.dirname(value);
-    }
-    else if (functions[k] === "basename") {
-      value = ocForm.basename(value);
-    }
-    else if (functions[k] === "zeroPadding") {
-      value = ocForm.zeroPadding(value, zeroPaddingLength[k]);
-    }
-    else if (value === null && canHide[k] === true) {
+    if (value === null && canHide[k] === true) {
       value = ""
     }
     
     if (value !== null) {
-      if (canHide[k] === true && functions[k] === false) {
+      if (canHide[k] === true) {
         keys[k] = ":" + keys[k];
       }
 
@@ -641,39 +674,42 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
       case "select":
       case "radio":
       case "path":
-	if (functions[k] === "dirname" || functions[k] === "basename"){
-	  const _key = (canHide[k] === true) ? ":" + keys[k] : keys[k];
-	  line = line.replace(new RegExp(`#{${functions[k]}\\(${_key}\\)}`, "g"), value);
-	}
-	else if (functions[k] === "zeroPadding"){
-	  const _key = (canHide[k] === true) ? ":" + keys[k] : keys[k];
-	  line = line.replace(new RegExp(`#\\{zeropadding\\(${_key},(\\d+)\\)\\}`, "g"), value);
-	}
-	else {
-	  line = line.replace(new RegExp(`#{${keys[k]}}`, "g"), value);
-	}
+        line = line.replace(new RegExp(`#{${keys[k]}}`, "g"), value);
         break;
       }
     }
   }
 
-  // After variable substitution, replace the #{calc(..)} section with the calculated result.
-  line = line.replace(/#\{calc\(([^}]*)\)\}/g, (_, expr) => {
-    try {
-      const parts = expr.split(',').map(s => s.trim()); // parts = ["1 + (2 * 3)", "3"]
-      if (parts.length === 2 && /^\d+$/.test(parts[1])) {
-        const value = eval(parts[0]);           // 7
-        const decimals = Number(parts[1]);      // 3
-        return Number(value).toFixed(decimals); // 7.000
-      }
-      else {
-        return Math.round(eval(expr));
-      }
-    } catch (e) {
-      return "";
+  // After variable substitution, replace the #{zeropadding(..)} section with the calculated result.
+  line = line.replace(/#\{zeropadding\(([^}]*)\)\}/g, (_, expr) => {
+    const idx   = expr.lastIndexOf(",");      // "10, 3", "calc(2 * 3), 3" or "calc(2 * 3, 4), 3"
+    let value   = expr.slice(0, idx).trim();  // "10", "calc(2 * 3)", "calc(2 * 3, 4)"
+    const width = expr.slice(idx + 1).trim(); // "3"
+
+    // If the first argument is calc(...), evaluate it using the same logic as #{calc(...)}
+    const m = value.match(/^calc\((.*)\)$/);
+    if (m) { // m[1] is the inner expression, e.g. "2 * 3"
+      value = evalCalc(m[1]);
     }
+
+    return ocForm.zeroPadding(value, width);
   });
 
+  // After variable substitution, replace the #{calc(..)} section with the calculated result.
+  line = line.replace(/#\{calc\(([^}]*)\)\}/g, (_, expr) => {
+    return evalCalc(expr);
+  });
+
+  // After variable substitution, replace the #{dirname(..)} section with the calculated result.
+  line = line.replace(/#\{dirname\((.*?)\)\}/g, (match, inner) => {
+    return ocForm.dirname(inner);
+  });
+
+  // After variable substitution, replace the #{basename(..)} section with the calculated result.
+  line = line.replace(/#\{basename\((.*?)\)\}/g, (match, inner) => {
+    return ocForm.basename(inner);
+  });
+    
   if (line) {
     selectedValues.push(line);
   }

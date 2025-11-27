@@ -156,53 +156,61 @@ helpers do
     return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
 
     keys = matches.flat_map do |str|
-      inner = str[2..-2] # "#{example1}" -> "example1"
-      
-      if inner.start_with?("calc(")
-        args = inner[/calc\((.*)\)/, 1] || "" # time_1 + time_2 - :time_3 * 2
+      inner = str[2..-2] # "#{time_1}" -> "time_1"
+
+      if inner =~ /\A(?:zeropadding|calc|dirname|basename)\(/
+        args = inner[/\((.*)\)/, 1] || "" # time_1 + time_2 - :time_3 * 2
+ 
+        if inner.start_with?("zeropadding(") && args.lstrip.start_with?("calc(")
+          calc_args = args.lstrip[/calc\((.*)\)/, 1] || ""
+          next calc_args.scan(/:[A-Za-z_]\w*|[A-Za-z_]\w*/)
+        end
+        
         args.scan(/:[A-Za-z_]\w*|[A-Za-z_]\w*/) # ["time_1", "time_2", ":time_3"]
       else
         inner
       end
     end
 
-    # For the function calc()
-    line = line.gsub(/\#\{calc\((.*?)\)\}/) do
-      expr = Regexp.last_match(1) || ""  # "time_1 + time_2 - :time_3 * 2"
-      
-      replaced = expr.gsub(/(:)?([A-Za-z_]\w*)/) do
-        colon = Regexp.last_match(1) # ":" or nil
-        name  = Regexp.last_match(2) # "time_1", "time_2", "time_3"
-        
-        if colon
-          "\#{" + ":" + name + "}"   # :time_3 -> :#{:time_3}
-        else
-          "\#{" + name + "}"         # time_1 -> #{time_1}
-        end
-      end
+    line = line.gsub(/\#\{(zeropadding|calc|dirname|basename)\((.*?)\)\}/) do
+      func = Regexp.last_match(1)       # "zeropadding", "calc", "dirname", "basename"
+      expr = Regexp.last_match(2) || "" # e.g. "calc(time_1 * time_2), 2"
 
-      "\#{calc(#{replaced})}"
+      # --- special case: zeropadding(calc(...), N) ---
+      if func == "zeropadding" && expr =~ /\A\s*calc\((.*)\)\s*,\s*(.*)\z/
+        calc_inner = Regexp.last_match(1)  # "time_1 * time_2"
+        second_arg = Regexp.last_match(2).strip  # "2"
+        
+        # Expand only inside calc(...)
+        replaced_inner = calc_inner.gsub(/(:)?([A-Za-z_]\w*)/) do
+          colon = Regexp.last_match(1)
+          name  = Regexp.last_match(2)
+          "\#\{#{colon ? ':' : ''}#{name}\}"
+        end
+        
+        next "\#{zeropadding(calc(#{replaced_inner}), #{second_arg})}"
+      end
+      
+      # --- normal case: calc(...), dirname(...), basename(...), zeropadding(...) ---
+      replaced = expr.gsub(/(:)?([A-Za-z_]\w*)/) do
+        colon = Regexp.last_match(1)
+        name  = Regexp.last_match(2)
+        "\#\{#{colon ? ':' : ''}#{name}\}"
+      end
+      
+      "\#\{#{func}(#{replaced})\}"
     end
 
     exist_keys    = []
     widgets       = []
-    can_hide      = [] # If the key is preceded by a colon (e.g. #{basename(:input_file)})
+    can_hide      = []
     separators    = []
-    functions     = []
-    zero_paddings = []
     keys.each do |key|
       if key.start_with?(':')
         can_hide << "true"
         key = key.delete_prefix(':')
       else
-        fn = %w[dirname basename zeropadding].find { |f| key.match?(/^#{f}\(\s*:?/) }
-        if fn
-          can_hide << (key.match?(/^#{fn}\(\s*:/) ? "true" : "false")
-          key  = key.gsub(/\s+/, '').sub(/^#{fn}\(:/, "#{fn}(")
-          line = line.gsub(/#\{#{fn}\((.*?)\)\}/) { "#\{#{fn}(#{$1.gsub(/\s+/, '')})}" }
-        else
-          can_hide << "false"
-        end
+        can_hide << "false"
       end
       
       base_key, _, suffix = key.rpartition("_")
@@ -210,51 +218,10 @@ helpers do
         exist_keys << key
         widgets << form[key]["widget"]
         separators << form[key]["separator"]
-        functions << false
-        zero_paddings << "null"
-      elsif key =~ /^dirname\((.+?)\)$/ || key =~ /^basename\((.+?)\)$/
-        base_key = $1
-        with_suffix = false
-        if match = key.match(/^dirname\((.+)_(\d+)\)$/) || match = key.match(/^basename\((.+)_(\d+)\)$/)
-          base_key = match[1]
-          suffix   = match[2]
-          with_suffix = true
-        end
-        unless form.key?(base_key)
-          can_hide.pop()
-          next
-        end
-        
-        exist_keys << (with_suffix ? "#{base_key}_#{suffix}" : base_key)
-        widgets << form[base_key]["widget"]
-        separators << form[base_key]["separator"]
-        functions << ((key =~ /^dirname\((.+)\)$/) ? "\"dirname\"" : "\"basename\"")
-        zero_paddings << "null"
-      elsif key =~ /^zeropadding\((.+),(\d+)\)$/
-        base_key = $1
-        length = $2
-        with_suffix = false
-        if match = base_key.match(/(.+)_(\d+)/)
-          base_key = match[1]
-          suffix = match[2]
-          with_suffix = true
-        end
-        unless form.key?(base_key)
-          can_hide.pop()
-          next
-        end
-
-        exist_keys << (with_suffix ? "#{base_key}_#{suffix}" : base_key)
-        widgets << form[base_key]["widget"]
-        separators << form[base_key]["separator"]
-        functions << "\"zeroPadding\""
-        zero_paddings << length
       elsif form.key?(base_key) && suffix =~ /^\d+$/
         exist_keys << key
         widgets << form[base_key]["widget"]
         separators << form[base_key]["separator"]
-        functions << false
-        zero_paddings << "null"
       else
         can_hide.pop()
       end
@@ -266,10 +233,8 @@ helpers do
       widgets_array       = "['" + widgets.join("', '") + "']"
       can_hide_array      = "["  + can_hide.map { |r| r }.join(", ") + "]"
       separators_array    = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
-      functions_array     = "["  + functions.join(", ") + "]"
-      zero_paddings_array = "["  + zero_paddings.join(", ") + "]"
 
-      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array}, #{functions_array}, #{zero_paddings_array});\n"
+      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
     else
       return "  selectedValues.push('#{line}');\n"
     end
