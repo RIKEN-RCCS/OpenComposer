@@ -602,20 +602,28 @@ ocForm.zeroPadding = function(num, length) {
 }
 
 // Evaluate calc(...) expression
+function safeEval(expr) {
+  if (!/^[0-9+\-*/().\s]+$/.test(expr)) {
+    throw new Error("Invalid character is included.");
+  }
+  return Function(`return (${expr})`)();
+}
+
 function evalCalc(expr) {
   try {
     const parts = expr.split(',').map(s => s.trim()); // e.g. ["1 + (2 * 3)", "3"]
     if (parts.length === 2 && /^\d+$/.test(parts[1])) {
-      const value = eval(parts[0]);          // 7
-      const decimals = Number(parts[1]);     // 3
+      const value = safeEval(parts[0]);       // 7
+      const decimals = Number(parts[1]);      // 3
       return Number(value).toFixed(decimals); // "7.000"
-    } else {
-      return Math.round(eval(expr));         // no decimals, just round
     }
+    return Math.round(safeEval(expr));      // no decimals, just round
   } catch (e) {
+    console.error(e.message);
     return "";
   }
 }
+
 // Output lines in the script contents.
 ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separators) {
   // Check if line should be made visible
