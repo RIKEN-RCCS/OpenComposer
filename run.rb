@@ -110,7 +110,7 @@ def create_conf
 
   # Set the values for "cluster:" and "history_db"
   if conf.key?("cluster")
-    keys = %w[scheduler ssh_wrapper bin bin_overrides sge_root]
+    keys = %w[scheduler login_node ssh_wrapper bin bin_overrides sge_root]
 
     defaults = {}
     keys.each do |key|
@@ -257,7 +257,6 @@ end
 def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path = nil)
   @conf          = create_conf
   @apps_dir      = @conf["apps_dir"]
-  @login_node    = @conf["login_node"]
   @version       = VERSION
   @my_ood_url    = request.base_url
   @script_name   = request.script_name
@@ -266,6 +265,11 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
                      escape_html(params[@dir_name == "history" ? "cluster" : HEADER_CLUSTER_NAME] || @conf["cluster"].first["name"])
                    else
                      nil
+                   end
+  @login_node    = if @conf.key?("cluster")
+                     @conf["login_node"][@cluster_name]
+                   else
+                     @conf["login_node"]
                    end
   @ood_logo_path = URI.join(@my_ood_url, @script_name + "/", "ood.png")
   @current_path  = File.join(@script_name, @dir_name)
