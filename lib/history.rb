@@ -217,6 +217,7 @@ helpers do
     return nil if queried_ids.empty?
 
     scheduler     = cluster_name ? scheduler[cluster_name]     : scheduler
+    ssh_wrapper   = cluster_name ? ssh_wrapper[cluster_name]   : ssh_wrapper
     bin           = cluster_name ? bin[cluster_name]           : bin
     bin_overrides = cluster_name ? bin_overrides[cluster_name] : bin_overrides
     ENV['SGE_ROOT'] ||= cluster_name ? conf["sge_root"][cluster_name] : conf["sge_root"]

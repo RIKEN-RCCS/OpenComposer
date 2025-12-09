@@ -19,7 +19,6 @@ header:
     widget: select
     label: Cluster name
     required: true
-    direction: horizontal
     value: <%= @conf["cluster"].first["name"] %>
     options:
     <% @conf["cluster"].each do |c| %>

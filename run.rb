@@ -73,17 +73,27 @@ def create_conf
   end
 
   # Check required values
+  ## app_dir
   halt 500, "In ./conf.yml.erb, \"apps_dir:\" must be defined." unless conf.key?("apps_dir")
-  halt 500, "In ./conf.yml.erb, either \"scheduler:\" or \"cluster:\" must be defined, but not both." unless conf.key?("scheduler") ^ conf.key?("cluster")
-  if conf.key?("cluster")
-    ["bin", "bin_overrides", "sge_root"].each do |key|
-      halt 500, "In ./conf.yml.erb, \"#{key}:\" can only be defined in \"cluster:\"." if conf.key?(key)
+
+  ## cluster name
+  if (clusters = conf["cluster"])
+    halt 500, 'In ./conf.yml.erb, "cluster:" must be an array.' unless clusters.is_a?(Array)
+
+    clusters.each do |c|
+      halt 500, 'In ./conf.yml.erb, "cluster:" must have "name:"' unless c["name"]
     end
-    halt 500, "In ./conf.yml.erb, \"cluster:\" must be an array." unless conf['cluster'].is_a?(Array)
-    conf["cluster"].each do |c|
-      ["name", "scheduler"].each do |key|
-        halt 500, "In ./conf.yml.erb, \"cluster:\" must have \"#{key}:\"." unless c.key?(key)
+  end
+
+  ## scheduler
+  unless conf["scheduler"]
+    if clusters
+      missing = clusters.select { |c| c["scheduler"].nil? }.map { |c| c["name"] }
+      unless missing.empty?
+        halt 500, 'In ./conf.yml.erb, "scheduler:" must be defined for all clusters. Missing in: ' + missing.join(", ")
       end
+    else
+      halt 500, 'In ./conf.yml.erb, "scheduler:" must be defined.'
     end
   end
 
@@ -100,21 +110,24 @@ def create_conf
 
   # Set the values for "cluster:" and "history_db"
   if conf.key?("cluster")
-    conf["scheduler"]     = {}
-    conf["bin"]           = {}
-    conf["bin_overrides"] = {}
-    conf["sge_root"]      = {}
-    conf["history_db"]    = {}
+    keys = %w[scheduler ssh_wrapper bin bin_overrides sge_root]
+
+    defaults = {}
+    keys.each do |key|
+      defaults[key] = conf[key]
+      conf[key] = {}
+    end
+    conf["history_db"] = {}
     
-    conf['cluster'].each do |c|
+    conf["cluster"].each do |c|
       cluster_name = c["name"]
-      ["scheduler", "bin", "bin_overrides", "sge_root"].each do |key|
-        conf[key][cluster_name] = c[key]
+      keys.each do |key|
+        conf[key][cluster_name] = c[key] || defaults[key]
       end
-      conf["history_db"][cluster_name] = File.join(conf["data_dir"], cluster_name + ".db")
+      conf["history_db"][cluster_name] = File.join(conf["data_dir"], "#{cluster_name}.db")
     end
   else
-    conf["history_db"] = File.join(conf["data_dir"], conf["scheduler"] + ".db")
+    conf["history_db"] = File.join(conf["data_dir"], "#{conf["scheduler"]}.db")
   end
 
   # Create data directory
@@ -184,7 +197,6 @@ def create_scheduler(conf)
 
   if conf.key?("cluster")
     schedulers = {}
-
     conf["scheduler"].each do |cluster_name, scheduler_name|
       halt 500, "No such scheduler_name (#{scheduler_name}) found." unless available.include?(scheduler_name)
 
@@ -471,11 +483,11 @@ post "/*" do
                   else
                     nil
                   end
+  scheduler     = conf.key?("cluster") ? create_scheduler(conf)[cluster_name] : create_scheduler(conf)
+  ssh_wrapper   = conf.key?("cluster") ? conf["ssh_wrapper"][cluster_name] : conf["ssh_wrapper"]
   bin           = conf.key?("cluster") ? conf["bin"][cluster_name] : conf["bin"]
   bin_overrides = conf.key?("cluster") ? conf["bin_overrides"][cluster_name] : conf["bin_overrides"]
   history_db    = conf.key?("cluster") ? conf["history_db"][cluster_name] : conf["history_db"]
-  scheduler     = conf.key?("cluster") ? create_scheduler(conf)[cluster_name] : create_scheduler(conf)
-  ssh_wrapper   = conf["ssh_wrapper"]
   data_dir      = conf["data_dir"]
   ENV['SGE_ROOT'] ||= conf.key?("cluster") ? conf["sge_root"][cluster_name] : conf["sge_root"]
 

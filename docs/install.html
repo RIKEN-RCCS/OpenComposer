@@ -63,12 +63,12 @@
 	<tr><td>form_color</td><td>Background color of the text area in the application page</td></tr>
       </table>
       <p>
-	The <code>apps_dir</code> is required and either <code>scheduler</code> or <code>cluster</code> is required.
+	The <code>apps_dir</code> and <code>scheduler</code> are required. However, the <code>scheduler</code> may be defined inside <code>cluster</code>.
       </p>
       
       <h3 id="bin_overrides">2.1. bin_overrides</h3>
       <p>
-	This setting is optional.
+	Set the path for each command. This setting is optional.
       </p>
       <p>
 	If the job scheduler is <code>slurm</code>, set <code>sbatch</code>, <code>scontrol</code>, <code>scancel</code>, and <code>sacct</code> as follows.
@@ -106,22 +106,32 @@
 
       <h3 id="cluster">2.2. cluster</h3>
       <p>
-	This setting is	optional.
+	Set this when using multiple job schedulers. This setting is optional if you use only a single job scheduler.
       </p>
       <p>
-	Set this when using multiple job schedulers.
-	The <code>name</code> and <code>scheduler</code> are required and set the cluster name and scheduler respectively.
-	Other scheduler related settings (<code>bin</code>, <code>bin_overrides</code>, <code>sge_root</code>) are also possible.
-	Note that when setting <code>cluster</code>, <code>scheduler</code>, <code>bin</code>, <code>bin_overrides</code>, <code>sge_root</code> cannot be set outside of <code>cluster</code>.
+	The <code>name</code> is required, which sets the name of the cluster.
+	Optionally, you can also set <code>scheduler</code>, <code>ssh_wrapper</code>, <code>bin</code>, <code>bin_overrides</code>, and <code>sge_root</code>.
       </p>
-
+      <p>
+	The following defines the use of the <code>fujitsu_tcs</code> and <code>slurm</code> job schedulers on the <code>fugaku</code> and <code>prepost</code> clusters, respectively.
+      </p>
       <pre>cluster:
   - name: "fugaku"
     scheduler: "fujitsu_tcs"
   - name: "prepost"
     scheduler: "slurm"
     bin_overrides:
-      sbatch:   "/usr/local/bin/sbatch"</pre>
+      sbatch: "/usr/local/bin/sbatch"</pre>
+
+      <p>
+	In the following, both the <code>fugaku</code> and <code>preposet</code> clusters use the <code>slurm</code> job scheduler, but it defines that <code>slurm</code> is executed from different machines.
+      </p>
+      <pre>scheduler: "slurm"
+cluster:
+  - name: "fugaku"
+    ssh_wrapper "ssh fugaku.example.net"
+  - name: "prepost"
+    ssh_wrapper "ssh prepost.example.net"</pre>
 
       <h2 id="registor">3. Registration for Open OnDemand</h2>
       <h3 id="admin">3.1. By administrator</h3>

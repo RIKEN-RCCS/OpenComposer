@@ -63,12 +63,12 @@
 	<tr><td>form_color</td><td>アプリケーションページのテキストエリアの背景色</td></tr>
       </table>
       <p>
-	<code>apps_dir</code>は必須です。<code>scheduler</code>もしくは<code>cluster</code>のどちらか1つも必須です。
+	<code>apps_dir</code>および<code>scheduler</code>は必須です（<code>scheduler</code>は<code>cluster</code>の中に定義しても構いません）。
       </p>
       
       <h3 id="bin_overrides">2.1. bin_overrides</h3>
       <p>
-	本設定は省略可能です。
+	各コマンドのパスを設定します。本設定は省略可能です。
       </p>
       <p>
 	ジョブスケジューラが<code>slurm</code>の場合は、<code>sbatch</code>、<code>scontrol</code>、<code>scancel</code>、<code>sacct</code>を設定できます。
@@ -106,19 +106,32 @@
 
       <h3 id="cluster">2.2. cluster</h3>
       <p>
-	本設定は省略可能です。
+	複数のジョブスケジューラを設定します。1つのジョブスケジューラのみを使う場合、本設定は省略可能です。
       </p>
       <p>
-	複数のジョブスケジューラを用いる場合に設定します。<code>name</code>と<code>scheduler</code>は必須で、それぞれクラスタの名前とスケジューラを設定します。また、他のスケジューラに関する設定（<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>）も可能です。注意点として、<code>cluster</code>を設定する場合は、<code>cluster</code>の外部で<code>scheduler</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>を設定することはできません。
+	必須項目は<code>name</code>で、クラスタの名前を設定します。また、オプションとして<code>scheduler</code>、<code>ssh_wrapper</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>も設定できます。
       </p>
 
+      <p>
+	下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、それぞれ<code>fujitsu_tcs</code>と<code>slurm</code>のジョブスケジューラを利用することを定義しています。
+      </p>
       <pre>cluster:
   - name: "fugaku"
     scheduler: "fujitsu_tcs"
   - name: "prepost"
     scheduler: "slurm"
     bin_overrides:
-      sbatch:   "/usr/local/bin/sbatch"</pre>
+      sbatch: "/usr/local/bin/sbatch"</pre>
+
+      <p>
+	下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、両方とも<code>slurm</code>のジョブスケジューラを利用していますが、異なるマシンから<code>slurm</code>を実行することを定義しています。
+      </p>
+      <pre>scheduler: "slurm"
+cluster:
+  - name: "fugaku"
+    ssh_wrapper "ssh fugaku.example.net"
+  - name: "prepost"
+    ssh_wrapper "ssh prepost.example.net"</pre>
 
       <h2 id="registor">3. Open OnDemandへの登録</h2>
       <h3 id="admin">3.1. 管理者による登録</h3>
