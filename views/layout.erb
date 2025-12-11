@@ -28,12 +28,12 @@
 
       /* The timing of Bootstrap's navigation animation (which changes color when the mouse cursor is over it) differs
          from the animation for the Open OnDemand image that you added, so turn off Bootstrap animations. */
-      .nav-link {
-	  transition: none !important;
-      }
-      .nav-link:hover {
-	  color: white !important;
-      }
+     .nav-link {
+       transition: none !important;
+     }
+     .nav-link:hover {
+       color: white !important;
+     }
     </style>
   </head>
   
@@ -76,28 +76,42 @@
               </li>
             </ul>
 
-	    <ul class="navbar-nav ms-auto">
-	      <li class="nav-item">
-		<a href="<%= @my_ood_url %>/pun/sys/dashboard/files" class="nav-link py-0">
+	          <ul class="navbar-nav ms-auto">
+	            <li class="nav-item">
+                <a href="<%= @my_ood_url %>/pun/sys/dashboard/files" class="nav-link py-0">
                   <i class="fas fa-home fa-fw" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
-		  <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Home Directory</span>
+                  <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Home Directory</span>
                 </a>
               </li>
-      	      <% unless @login_node.nil? %>
-              <li class="nav-item">
-                <a href="<%= @my_ood_url %>/pun/sys/shell" class="nav-link py-0">
-                  <i class="bi bi-terminal-fill" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
-		  <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
-                </a>
-              </li>
+              <% unless @login_node.nil? %>
+                <% if @conf["login_node"].is_a?(Hash) && @conf["login_node"].values.uniq.size > 1 %>
+                  <li class="nav-item dropdown">
+                    <a href="#" class="nav-link dropdown-toggle py-0" data-bs-toggle="dropdown">
+                      <i class="bi bi-terminal-fill" style="font-size: 20px; vertical-align: middle;"></i>
+                      <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark bg-gradient" style="background:<%= @conf['dropdown_color'] %>; --bs-dropdown-min-width: 100%;">
+                      <% @conf["login_node"].each do |key, value| %>
+                        <li><a href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= value %>" class="dropdown-item"><%= key %></a></li>
+                      <% end %>
+                    </ul>
+                  </li>
+                <% else %>
+                  <li class="nav-item">
+                    <a href="<%= @my_ood_url %>/pun/sys/shell" class="nav-link py-0">
+                      <i class="bi bi-terminal-fill" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
+                      <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
+                    </a>
+                  </li>
+                <% end %>
               <% end %>
-	      <li class="nav-item">
-		<a href="<%= @my_ood_url %>" class="nav-link py-0">
-		  <img src="<%= @ood_logo_path %>" class="ood-logo" alt="OOD logo" style="height: 20px; display: inline-block; vertical-align: middle;">
-		  <span class="d-none d-lg-inline ms-1" style="vertical-align: middle;">Open OnDemand</span>
-		</a>
-	      </li>
-	    </ul>
+              <li class="nav-item">
+                <a href="<%= @my_ood_url %>" class="nav-link py-0">
+                  <img src="<%= @ood_logo_path %>" class="ood-logo" alt="OOD logo" style="height: 20px; display: inline-block; vertical-align: middle;">
+                  <span class="d-none d-lg-inline ms-1" style="vertical-align: middle;">Open OnDemand</span>
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </nav>
