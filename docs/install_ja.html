@@ -15,8 +15,9 @@
       <ul class="nav flex-column px-3 py-2">
         <li class="nav-item"><a href="#install" class="nav-link">1. インストール</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. 設定</a></li>
-	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.1. bin_overrides</a></li>
-	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.2. cluster</a></li>
+	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.1. cluster</a></li>
+	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
+	<li class="nav-item ms-3"><a href="#history" class="nav-link">2.3. history</a></li>
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Open OnDemandへの登録</a></li>
 	<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. 管理者による登録</a></li>
         <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. 一般ユーザによる登録</a></li>
@@ -53,6 +54,7 @@
 	<tr><td>bin</td><td>ジョブスケジューラのコマンドのパス</td></tr>
 	<tr><td>bin_overrides</td><td>ジョブスケジューラの各コマンドのパス</td></tr>
 	<tr><td>sge_root</td><td>Grid Engineのルート用ディレクトリ（<code>SGE_ROOT</code>）</td></tr>
+	<tr><td>history</td><td>履歴ページの追加表示項目</td></tr>
 	<tr><td>footer</td><td>フッタに記載する文字</td></tr>
 	<tr><td>thumbnail_width</td><td>ホームページの各アプリケーションのサムネイルの横幅</td></tr>
 	<tr><td>navbar_color</td><td>ナビゲーションバーの色</td></tr>
@@ -65,8 +67,37 @@
       <p>
 	<code>apps_dir</code>および<code>scheduler</code>は必須です（<code>scheduler</code>は<code>cluster</code>の中に定義しても構いません）。
       </p>
+
+      <h3 id="cluster">2.1. cluster</h3>
+      <p>
+        複数のジョブスケジューラを設定します。1つのジョブスケジューラのみを使う場合、本設定は省略可能です。
+      </p>
+      <p>
+        必須項目は<code>name</code>で、クラスタの名前を設定します。また、オプションとして<code>scheduler</code>、<code>login_node</code>、<code>ssh_wrapper</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>も設定できます。
+      </p>
+
+      <p>
+        下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、それぞれ<code>fujitsu_tcs</code>と<code>slurm</code>のジョブスケジューラを利用することを定義しています。
+      </p>
+      <pre>cluster:
+  - name: "fugaku"
+    scheduler: "fujitsu_tcs"
+  - name: "prepost"
+    scheduler: "slurm"
+    bin_overrides:
+      sbatch: "/usr/local/bin/sbatch"</pre>
+
+      <p>
+        下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、両方とも<code>slurm</code>のジョブスケジューラを利用していますが、異なるマシンから<code>slurm</code>を実行することを定義しています。
+      </p>
+      <pre>scheduler: "slurm"
+cluster:
+  - name: "fugaku"
+    ssh_wrapper "ssh fugaku.example.net"
+  - name: "prepost"
+    ssh_wrapper "ssh prepost.example.net"</pre>
       
-      <h3 id="bin_overrides">2.1. bin_overrides</h3>
+      <h3 id="bin_overrides">2.2. bin_overrides</h3>
       <p>
 	各コマンドのパスを設定します。本設定は省略可能です。
       </p>
@@ -104,35 +135,34 @@
   pjstat: "/usr/local/bin/pjstat"
   pjdel:  "/usr/local/bin/pjdel"</pre>
 
-      <h3 id="cluster">2.2. cluster</h3>
+      <h3 id="history">2.3. history</h3>
       <p>
-	複数のジョブスケジューラを設定します。1つのジョブスケジューラのみを使う場合、本設定は省略可能です。
+	履歴ページの必須表示項目は「Job ID」、「Application」、「Script Name」、「Status」です。それに対して、追加表示項目を設定します。本設定は省略可能です。
       </p>
       <p>
-	必須項目は<code>name</code>で、クラスタの名前を設定します。また、オプションとして<code>scheduler</code>、<code>login_node</code>、<code>ssh_wrapper</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>も設定できます。
+	<code>history</code>に何も設定しない場合、「Job Name」、「Partiton」、「Submission Time」が自動的に設定されます。下記のコードと同じです。<code>OC_HISTORY_JOB_NAME</code>、<code>OC_HISTORY_PARTITION</code>、<code>OC_HISTORY_SUBMISSION_TIME</code>は特殊な変数であり、「Job Name」、「Partiton」、「Submission Time」をそれぞれ指します。
       </p>
-
+      <pre>history:
+  OC_HISTORY_JOB_NAME:
+  OC_HISTORY_PARTITION:
+  OC_HISTORY_SUBMISSION_TIME:</pre>
+      <img width="800" src="./img/history_table1.png">
       <p>
-	下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、それぞれ<code>fujitsu_tcs</code>と<code>slurm</code>のジョブスケジューラを利用することを定義しています。
+	追加表示項目をなくしたい場合は、空配列を定義します。
       </p>
-      <pre>cluster:
-  - name: "fugaku"
-    scheduler: "fujitsu_tcs"
-  - name: "prepost"
-    scheduler: "slurm"
-    bin_overrides:
-      sbatch: "/usr/local/bin/sbatch"</pre>
-
+      <pre>history: []</pre>
+      <img width="800" src="./img/history_table2.png">
       <p>
-	下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、両方とも<code>slurm</code>のジョブスケジューラを利用していますが、異なるマシンから<code>slurm</code>を実行することを定義しています。
+	ジョブスケジューラから得られるプロファイルの値を表示項目に設定することができます。「Job ID」をクリックすると表示される表の左の値を<code>history</code>に設定します。また、<code>label</code>を用いると、表示ラベルを設定できます。<code>label</code>を用いない場合は、そのままの値が用いられます。
       </p>
-      <pre>scheduler: "slurm"
-cluster:
-  - name: "fugaku"
-    ssh_wrapper "ssh fugaku.example.net"
-  - name: "prepost"
-    ssh_wrapper "ssh prepost.example.net"</pre>
-
+      <img width="400" src="./img/history_table3.png">
+      <pre>history:
+  OC_HISTORY_JOB_NAME:
+  Account:
+  AllocCPUS:
+    label: Allocated CPUs</pre>
+      <img width="800" src="./img/history_table4.png">
+      
       <h2 id="registor">3. Open OnDemandへの登録</h2>
       <h3 id="admin">3.1. 管理者による登録</h3>
       <p>

@@ -33,8 +33,8 @@ SUBMIT_CONFIRM         = "_submitConfirm"
 SUBMIT_CONTENT         = "_submit_content"
 SUBMIT_FORM            = "_submit_form"
 JOB_NAME               = "Job Name"
-JOB_SUBMISSION_TIME    = "Submission Time"
 JOB_PARTITION          = "Partition"
+JOB_SUBMISSION_TIME    = "Submission Time"
 JOB_KEYS               = "job_keys"
 SKIP_KEYS = ['splat', OC_SCRIPT_CONTENT]
 DEFINED_KEYS = {
@@ -44,7 +44,12 @@ DEFINED_KEYS = {
   HEADER_SCRIPT_NAME     => 'OC_SCRIPT_NAME',
   HEADER_JOB_NAME        => 'OC_JOB_NAME',
   HEADER_CLUSTER_NAME    => 'OC_CLUSTER_NAME'
-}
+}.freeze
+HISTORY_KEY_MAP = {
+  "OC_HISTORY_JOB_NAME"        => JOB_NAME,
+  "OC_HISTORY_PARTITION"       => JOB_PARTITION,
+  "OC_HISTORY_SUBMISSION_TIME" => JOB_SUBMISSION_TIME
+}.freeze
 
 # Structure of manifest
 Manifest = Struct.new(:dirname, :name, :category, :description, :icon, :related_app)
@@ -99,6 +104,7 @@ def create_conf
 
   # Set initial values if not defined
   conf["data_dir"]          ||= ENV["HOME"] + "/composer"
+  conf["history"]           ||= HISTORY_KEY_MAP.keys
   conf["footer"]            ||= "&nbsp;"
   conf["thumbnail_width"]   ||= "100"
   conf["navbar_color"]      ||= "#3D3B40"
@@ -107,7 +113,7 @@ def create_conf
   conf["category_color"]    ||= "#5522BB"
   conf["description_color"] ||= conf["category_color"]
   conf["form_color"]        ||= "#BFCFE7"
-
+  
   # Set the values for "cluster:" and "history_db"
   if conf.key?("cluster")
     keys = %w[scheduler login_node ssh_wrapper bin bin_overrides sge_root]
@@ -300,6 +306,13 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
     @end_index    = @jobs_size == 0 ? 0 : [@current_page * @rows, @jobs_size].min - 1
     @jobs         = @start_index >= @jobs_size ? [] : all_jobs[@start_index..@end_index]
     @error_msg    = error_msg
+
+    @history_hash = @conf["history"].each_with_object({}) do |(key, opt), h|
+      key = key.to_s
+      label = opt && opt["label"] || HISTORY_KEY_MAP.fetch(key, key)
+      h[key] = label
+    end
+
     return erb :history
   else # application form
     @table_index = 1

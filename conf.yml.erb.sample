@@ -30,6 +30,12 @@ scheduler: "slurm"
 #  qacct:    "/usr/local/bin/qacct"
 #sge_root: "/apps/t4/rhel9/uge/latest"
 
+## History
+#history:
+#  OC_HISTORY_JOB_NAME:
+#  OC_HISTORY_PARTITION:
+#  OC_HISTORY_SUBMISSION_TIME:
+
 ## Layout
 #footer:            "RIKEN Center for Computational Science"
 #thumbnail_width:   "100"

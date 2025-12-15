@@ -80,9 +80,9 @@
           <th class="text-wrap text-break">Application</th>
           <th class="text-wrap text-break">Script Location</th>
           <th class="text-wrap text-break">Script Name</th>
-          <th class="text-wrap text-break d-none d-lg-table-cell">Job Name</th>
-          <th class="text-wrap text-break d-none d-lg-table-cell">Partition</th>
-          <th class="text-wrap text-break d-none d-lg-table-cell">Submission at</th>
+          <% @history_hash.each_value do |value| %>
+          <th class="text-wrap text-break d-none d-lg-table-cell"><%= value %></th>
+          <% end %>
           <th class="text-wrap text-break">Status</th>
         </tr>
       </thead>
@@ -110,16 +110,19 @@
               <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files/fs<%= job[HEADER_SCRIPT_LOCATION] %>"><%= output_text(job[HEADER_SCRIPT_LOCATION], @filter) %></a>
 	      <% unless @login_node.nil? %>
 	      <a style="color: black; text-decoration: none; vertical-align: middle;" target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>/<%= job[HEADER_SCRIPT_LOCATION] %>">
-                <i class="bi bi-terminal-fill fs-5"></i>
-              </a>
+          <i class="bi bi-terminal-fill fs-5"></i>
+        </a>
 	      <% end %>
             </td>
             <td class="text-wrap text-break">
               <a href="#" data-bs-toggle="modal" data-bs-target="#_historyJobScript<%= job[JOB_ID] %>"><%= output_text(job[HEADER_SCRIPT_NAME], @filter) %></a>
             </td>
-            <td class="text-wrap text-break d-none d-lg-table-cell"><%= output_text(job[JOB_NAME], @filter) %></td>
-	    <td class="text-wrap text-break d-none d-lg-table-cell"><%= output_text(job[JOB_PARTITION], @filter) %></td>
-            <td class="text-wrap text-break d-none d-lg-table-cell"><%= output_text(job[JOB_SUBMISSION_TIME], @filter) %></td>
+            <% @history_hash.each_key do |k| %>
+              <td class="text-wrap text-break d-none d-lg-table-cell">
+                <% key = HISTORY_KEY_MAP.fetch(k, k) %>
+                <%= output_text(job[key], @filter) %>
+              </td>
+            <% end %>
             <td class="text-wrap text-break"><%= output_status(job[JOB_STATUS_ID]) %></td>
           </tr>
         <% end %>

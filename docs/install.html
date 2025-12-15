@@ -15,8 +15,9 @@
       <ul class="nav flex-column px-3 py-2">
         <li class="nav-item"><a href="#install" class="nav-link">1. Installation</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. Setting</a></li>
-	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.1. bin_overrides</a></li>
-	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.2. cluster</a></li>
+	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.1. cluster</a></li>
+	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
+	<li class="nav-item ms-3"><a href="#history" class="nav-link">2.3. history</a></li>
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Registration for Open OnDemand</a></li>
 	<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. By administrator</a></li>
         <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. By general user</a></li>
@@ -53,6 +54,7 @@
 	<tr><td>bin</td><td>PATH of commands of job scheduler</td></tr>
 	<tr><td>bin_overrides</td><td>PATH of each command of job scheduler</td></tr>
 	<tr><td>sge_root</td><td>Directory for the Grid Engine root (<code>SGE_ROOT</code>)</td></tr>
+	<tr><td>history</td><td>Additional display fields on the history page</td></tr>
 	<tr><td>footer</td><td>Text in the footer</td></tr>
 	<tr><td>thumbnail_width</td><td>Width of thumbnails for each application on the home page</td></tr>
 	<tr><td>navbar_color</td><td>Color of navigation bar</td></tr>
@@ -66,7 +68,36 @@
 	The <code>apps_dir</code> and <code>scheduler</code> are required. However, the <code>scheduler</code> may be defined inside <code>cluster</code>.
       </p>
       
-      <h3 id="bin_overrides">2.1. bin_overrides</h3>
+      <h3 id="cluster">2.1. cluster</h3>
+      <p>
+	Set this when using multiple job schedulers. This setting is optional if you use only a single job scheduler.
+      </p>
+      <p>
+	The <code>name</code> is required, which sets the name of the cluster.
+	Optionally, you can also set <code>scheduler</code>, <code>login_node</code>, <code>ssh_wrapper</code>, <code>bin</code>, <code>bin_overrides</code>, and <code>sge_root</code>.
+      </p>
+      <p>
+	The following defines the use of the <code>fujitsu_tcs</code> and <code>slurm</code> job schedulers on the <code>fugaku</code> and <code>prepost</code> clusters, respectively.
+      </p>
+      <pre>cluster:
+  - name: "fugaku"
+    scheduler: "fujitsu_tcs"
+  - name: "prepost"
+    scheduler: "slurm"
+    bin_overrides:
+      sbatch: "/usr/local/bin/sbatch"</pre>
+
+      <p>
+	In the following, both the <code>fugaku</code> and <code>preposet</code> clusters use the <code>slurm</code> job scheduler, but it defines that <code>slurm</code> is executed from different machines.
+      </p>
+      <pre>scheduler: "slurm"
+cluster:
+  - name: "fugaku"
+    ssh_wrapper "ssh fugaku.example.net"
+  - name: "prepost"
+    ssh_wrapper "ssh prepost.example.net"</pre>
+    
+      <h3 id="bin_overrides">2.2. bin_overrides</h3>
       <p>
 	Set the path for each command. This setting is optional.
       </p>
@@ -104,35 +135,41 @@
   pjstat: "/usr/local/bin/pjstat"
   pjdel:  "/usr/local/bin/pjdel"</pre>
 
-      <h3 id="cluster">2.2. cluster</h3>
+      <h3 id="history">2.3. history</h3>
       <p>
-	Set this when using multiple job schedulers. This setting is optional if you use only a single job scheduler.
+	The mandatory fields to be displayed on the history page are "Job ID", "Application", "Script Name", and "Status".
+	In addition to these, optional display fields can be configured.
+	This configuration is optional.
       </p>
       <p>
-	The <code>name</code> is required, which sets the name of the cluster.
-	Optionally, you can also set <code>scheduler</code>, <code>login_node</code>, <code>ssh_wrapper</code>, <code>bin</code>, <code>bin_overrides</code>, and <code>sge_root</code>.
+	If nothing is specified in <code>history</code>, "Job Name", "Partition", and "Submission Time" are automatically set. 
+	This is equivalent to the code shown below. 
+	<code>OC_HISTORY_JOB_NAME</code>, <code>OC_HISTORY_PARTITION</code>, and <code>OC_HISTORY_SUBMISSION_TIME</code> are special variables that correspond to "Job Name", "Partition", and "Submission Time", respectively.
       </p>
+      <pre>history:
+  OC_HISTORY_JOB_NAME:
+  OC_HISTORY_PARTITION:
+  OC_HISTORY_SUBMISSION_TIME:</pre>
+      <img width="800" src="./img/history_table1.png">
       <p>
-	The following defines the use of the <code>fujitsu_tcs</code> and <code>slurm</code> job schedulers on the <code>fugaku</code> and <code>prepost</code> clusters, respectively.
+	If you want to disable additional display fields, define an empty array.
       </p>
-      <pre>cluster:
-  - name: "fugaku"
-    scheduler: "fujitsu_tcs"
-  - name: "prepost"
-    scheduler: "slurm"
-    bin_overrides:
-      sbatch: "/usr/local/bin/sbatch"</pre>
-
+      <pre>history: []</pre>
+      <img width="800" src="./img/history_table2.png">
       <p>
-	In the following, both the <code>fugaku</code> and <code>preposet</code> clusters use the <code>slurm</code> job scheduler, but it defines that <code>slurm</code> is executed from different machines.
+	You can set profile values obtained from the job scheduler as display fields.
+	Specify in <code>history</code> the value shown in the left column of the table that appears when you click "Job ID".
+	By using <code>label</code>, you can define a display label.
+	If <code>label</code> is not specified, the profile value is used as is.
       </p>
-      <pre>scheduler: "slurm"
-cluster:
-  - name: "fugaku"
-    ssh_wrapper "ssh fugaku.example.net"
-  - name: "prepost"
-    ssh_wrapper "ssh prepost.example.net"</pre>
-
+      <img width="400" src="./img/history_table3.png">
+      <pre>history:
+  OC_HISTORY_JOB_NAME:
+  Account:
+  AllocCPUS:
+    label: Allocated CPUs</pre>
+      <img width="800" src="./img/history_table4.png">
+      
       <h2 id="registor">3. Registration for Open OnDemand</h2>
       <h3 id="admin">3.1. By administrator</h3>
       <p>
