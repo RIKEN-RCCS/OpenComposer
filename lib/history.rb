@@ -1,28 +1,20 @@
 helpers do
   # Generate HTML for icons linking to related applications.
-  def output_related_app_icon(job_app_path, apps)
+  def output_related_apps_icon(job_app_path, apps)
     return [] if apps.nil?
-    
-    apps.map do |app|
-      if app.is_a?(Hash)
-        # Extract key and value from the hash
-        key, value = app.first
-        href = "#{@my_ood_url}/pun/sys/dashboard/apps/show/#{key}"
-        is_bi_or_fa_icon, icon_path = get_icon_path(job_app_path, value)
-        
-        # Generate icon HTML based on whether it's a Bootstrap/Font Awesome icon or an image
-        icon_html = if is_bi_or_fa_icon
-                      "<i class=\"#{value} fs-5\"></i>"
-                    else
-                      "<img width=20 title=\"#{key}\" alt=\"#{key}\" src=\"#{icon_path}\">"
-                    end
-      else
-        # Handle cases where app is not a hash (direct app name)
-        key = app
-        href = "#{@my_ood_url}/pun/sys/dashboard/apps/show/#{key}"
-        icon_html = "<img width=20 title=\"#{key}\" alt=\"#{key}\" src=\"#{@my_ood_url}/pun/sys/dashboard/apps/icon/#{key}/sys/sys\">"
-      end
-      
+
+    apps.map do |name, conf|
+      icon = conf&.dig('icon')
+      href = "#{@my_ood_url}/pun/sys/dashboard/apps/show/#{name}"
+      is_bi_or_fa_icon, icon_path = get_icon_path(job_app_path, icon)
+
+      # Generate icon HTML based on whether it's a Bootstrap/Font Awesome icon or an image
+      icon_html = if is_bi_or_fa_icon
+                    "<i class=\"#{icon} fs-5\"></i>"
+                  else
+                    "<img width=20 title=\"#{name}\" alt=\"#{name}\" src=\"#{icon_path}\">"
+                  end
+
       # Return the full HTML string for the link
       "<a style=\"color: black; text-decoration: none;\" target=\"_blank\" href=\"#{href}\">\n  #{icon_html}\n</a>\n"
     end

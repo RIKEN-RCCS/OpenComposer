@@ -52,7 +52,7 @@ HISTORY_KEY_MAP = {
 }.freeze
 
 # Structure of manifest
-Manifest = Struct.new(:dirname, :name, :category, :description, :icon, :related_app)
+Manifest = Struct.new(:dirname, :name, :category, :description, :icon, :related_apps)
 
 # Create a YAML or ERB file object. Give priority to ERB.
 # If the file does not exist, return nil.
@@ -155,7 +155,7 @@ def create_manifest(app_path)
   return Manifest.new(dirname, dirname, nil, nil, nil, nil) if manifest.nil?
 
   manifest["name"] ||= dirname
-  return Manifest.new(dirname, manifest["name"], manifest["category"], manifest["description"], manifest["icon"], manifest["related_app"])
+  return Manifest.new(dirname, manifest["name"], manifest["category"], manifest["description"], manifest["icon"], manifest["related_apps"])
 end
 
 # Create an array of manifest objects for all applications.

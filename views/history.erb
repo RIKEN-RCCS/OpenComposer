@@ -87,7 +87,7 @@
         </tr>
       </thead>
       <tbody class="text-center" id="_historyTbody">
-        <% cached_related_app = {} %>
+        <% cached_related_apps = {} %>
         <% @jobs.each do |job| %>
           <tr data-status="<%= job[JOB_STATUS_ID] %>">
             <td class="table-primary">
@@ -99,11 +99,11 @@
             <td class="text-wrap text-break">
 	      <a href="<%= File.join(@script_name, job[JOB_DIR_NAME]) %>"><%= output_text(job[JOB_APP_NAME], @filter) %></a>
 	      <% directory_path = File.join(@apps_dir, job[JOB_DIR_NAME]) %>
-	      <% unless cached_related_app.key?(directory_path) %>
-	      <%   cached_related_app[directory_path] = output_related_app_icon(job[JOB_DIR_NAME], create_manifest(directory_path)["related_app"]) %>
+	      <% unless cached_related_apps.key?(directory_path) %>
+	      <%   cached_related_apps[directory_path] = output_related_apps_icon(job[JOB_DIR_NAME], create_manifest(directory_path)["related_apps"]) %>
 	      <% end %>
-              <% cached_related_app[directory_path].each do |r| %>
-	        <%= r %>
+              <% cached_related_apps[directory_path].each do |r| %>
+	              <%= r %>
               <% end %>
             </td>
             <td class="text-wrap text-break">
