@@ -84,7 +84,7 @@
                 </a>
               </li>
               <% unless @login_node.nil? %>
-                <% if @conf["login_node"].count { |_, v| !v.nil? } > 1 %>
+                <% if @conf["login_node"].is_a?(Hash) && @conf["login_node"].count { |_, v| !v.nil? } > 1 %>
                   <li class="nav-item dropdown">
                     <a href="#" class="nav-link dropdown-toggle py-0" data-bs-toggle="dropdown">
                       <i class="bi bi-terminal-fill" style="font-size: 20px; vertical-align: middle;"></i>

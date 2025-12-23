@@ -131,7 +131,7 @@ def create_conf
 
   # Create data directory
   FileUtils.mkdir_p(conf["data_dir"])
-  p conf
+
   return conf
 end
 
