@@ -347,7 +347,7 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
       @submit_content = nil
       if params["jobId"] || job_id
         history_db = if @conf.key?("clusters")
-                       cluster_name = params[params["jobId"] ? "cluster" : HEADER_CLUSTER_NAME] || @conf["clusters"].key.first
+                       cluster_name = params[params["jobId"] ? "cluster" : HEADER_CLUSTER_NAME] || @conf["clusters"].keys.first
                        @conf["history_db"][cluster_name]
                      else
                        @conf["history_db"]
