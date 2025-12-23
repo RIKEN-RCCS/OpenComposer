@@ -13,7 +13,7 @@ set :environment, :production
 set :erb, trim: "-"
 
 # Internal Constants
-VERSION                = "1.7.0"
+VERSION                = "1.8.0"
 SCHEDULERS_DIR_PATH    = "./lib/schedulers"
 HISTORY_ROWS           = 10
 JOB_STATUS             = { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED", "failed" => "FAILED" }
@@ -50,6 +50,7 @@ HISTORY_KEY_MAP = {
   "OC_HISTORY_PARTITION"       => JOB_PARTITION,
   "OC_HISTORY_SUBMISSION_TIME" => JOB_SUBMISSION_TIME
 }.freeze
+CLUSTERS_KEYS = ["scheduler", "login_node", "ssh_wrapper", "bin", "bin_overrides", "sge_root"].freeze
 
 # Structure of manifest
 Manifest = Struct.new(:dirname, :name, :category, :description, :icon, :related_apps)
@@ -81,27 +82,22 @@ def create_conf
   ## app_dir
   halt 500, "In ./conf.yml.erb, \"apps_dir:\" must be defined." unless conf.key?("apps_dir")
 
-  ## cluster name
-  if (clusters = conf["cluster"])
-    halt 500, 'In ./conf.yml.erb, "cluster:" must be an array.' unless clusters.is_a?(Array)
+  ## Reject deprecated "cluster:" configuration in v1.8.0 and later
+  halt 500, 'In ./conf.yml.erb, "cluster:" is deprecated.' if conf["cluster"]
 
-    clusters.each do |c|
-      halt 500, 'In ./conf.yml.erb, "cluster:" must have "name:"' unless c["name"]
-    end
-  end
-
-  ## scheduler
-  unless conf["scheduler"]
-    if clusters
-      missing = clusters.select { |c| c["scheduler"].nil? }.map { |c| c["name"] }
-      unless missing.empty?
-        halt 500, 'In ./conf.yml.erb, "scheduler:" must be defined for all clusters. Missing in: ' + missing.join(", ")
-      end
+  ## Check scheduler
+  if !conf.key?("scheduler")
+    if !conf.key?("clusters")
+      halt 500, "The ./conf.yml.erb must have \"scheduler:\""
     else
-      halt 500, 'In ./conf.yml.erb, "scheduler:" must be defined.'
+      conf["clusters"].each do |name, settings|
+        if settings.nil? || !settings.key?("scheduler")
+          halt 500, "In ./conf.yml.erb, the cluster \"#{name}\" must have \"scheduler:\""
+        end
+      end
     end
   end
-
+  
   # Set initial values if not defined
   conf["data_dir"]          ||= ENV["HOME"] + "/composer"
   conf["history"]           ||= HISTORY_KEY_MAP.keys
@@ -113,24 +109,21 @@ def create_conf
   conf["category_color"]    ||= "#5522BB"
   conf["description_color"] ||= conf["category_color"]
   conf["form_color"]        ||= "#BFCFE7"
-  
-  # Set the values for "cluster:" and "history_db"
-  if conf.key?("cluster")
-    keys = %w[scheduler login_node ssh_wrapper bin bin_overrides sge_root]
 
-    defaults = {}
-    keys.each do |key|
-      defaults[key] = conf[key]
-      conf[key] = {}
-    end
+  # Set the values for "clusters:" and "history_db"
+  if conf.key?("clusters")
+    clusters  = conf["clusters"] || {}
+    defaults  = CLUSTERS_KEYS.to_h { |k| [k, conf[k]] }
+    CLUSTERS_KEYS.each { |k| conf[k] = {} }
     conf["history_db"] = {}
     
-    conf["cluster"].each do |c|
-      cluster_name = c["name"]
-      keys.each do |key|
-        conf[key][cluster_name] = c[key] || defaults[key]
+    clusters.each_key do |name|
+      cluster_conf = clusters[name] || {}
+      CLUSTERS_KEYS.each do |key|
+        conf[key][name] = cluster_conf.fetch(key, defaults[key]) || defaults[key]
       end
-      conf["history_db"][cluster_name] = File.join(conf["data_dir"], "#{cluster_name}.db")
+      
+      conf["history_db"][name] = File.join(conf["data_dir"], "#{name}.db")
     end
   else
     conf["history_db"] = File.join(conf["data_dir"], "#{conf["scheduler"]}.db")
@@ -138,7 +131,7 @@ def create_conf
 
   # Create data directory
   FileUtils.mkdir_p(conf["data_dir"])
-  
+  p conf
   return conf
 end
 
@@ -151,6 +144,9 @@ def create_manifest(app_path)
     return nil
   end
 
+  ## Reject deprecated "related_app:" configuration in v1.8.0 and later
+  halt 500, "In #{File.join(app_path, "manifest.yml")}, related_app: is deprecated." if manifest&.key?("related_app")
+  
   dirname = File.basename(app_path)
   return Manifest.new(dirname, dirname, nil, nil, nil, nil) if manifest.nil?
 
@@ -200,8 +196,7 @@ end
 # Create a scheduler object.
 def create_scheduler(conf)
   available = Dir.glob("#{SCHEDULERS_DIR_PATH}/*.rb").map { |f| File.basename(f, ".rb") }
-
-  if conf.key?("cluster")
+  if conf.key?("clusters")
     schedulers = {}
     conf["scheduler"].each do |cluster_name, scheduler_name|
       halt 500, "No such scheduler_name (#{scheduler_name}) found." unless available.include?(scheduler_name)
@@ -267,16 +262,17 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
   @my_ood_url    = request.base_url
   @script_name   = request.script_name
   @dir_name      = request.path_info.sub(/^\//, '')
-  @cluster_name  = if @conf.key?("cluster")
-                     escape_html(params[@dir_name == "history" ? "cluster" : HEADER_CLUSTER_NAME] || @conf["cluster"].first["name"])
+  @cluster_name  = if @conf.key?("clusters")
+                     escape_html(params[@dir_name == "history" ? "cluster" : HEADER_CLUSTER_NAME] || @conf["clusters"].keys.first)
                    else
                      nil
                    end
-  @login_node    = if @conf.key?("cluster")
+  @login_node    = if @conf.key?("clusters")
                      @conf["login_node"][@cluster_name]
                    else
                      @conf["login_node"]
                    end
+
   @ood_logo_path = URI.join(@my_ood_url, @script_name + "/", "ood.png")
   @current_path  = File.join(@script_name, @dir_name)
   @manifests     = create_all_manifests(@apps_dir).sort_by { |m| [(m.category || "").downcase, m.name.downcase] }
@@ -350,8 +346,8 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
       @script_content = nil
       @submit_content = nil
       if params["jobId"] || job_id
-        history_db = if @conf.key?("cluster")
-                       cluster_name = params[params["jobId"] ? "cluster" : HEADER_CLUSTER_NAME] || @conf["cluster"].first["name"]
+        history_db = if @conf.key?("clusters")
+                       cluster_name = params[params["jobId"] ? "cluster" : HEADER_CLUSTER_NAME] || @conf["clusters"].key.first
                        @conf["history_db"][cluster_name]
                      else
                        @conf["history_db"]
@@ -495,18 +491,18 @@ end
 
 post "/*" do
   conf          = create_conf
-  cluster_name  = if conf.key?("cluster")
-                    params[request.path_info == "/history" ? "cluster" : HEADER_CLUSTER_NAME] || conf["cluster"].first["name"]
+  cluster_name  = if conf.key?("clusters")
+                    params[request.path_info == "/history" ? "cluster" : HEADER_CLUSTER_NAME] || conf["clusters"].keys.first
                   else
                     nil
                   end
-  scheduler     = conf.key?("cluster") ? create_scheduler(conf)[cluster_name] : create_scheduler(conf)
-  ssh_wrapper   = conf.key?("cluster") ? conf["ssh_wrapper"][cluster_name] : conf["ssh_wrapper"]
-  bin           = conf.key?("cluster") ? conf["bin"][cluster_name] : conf["bin"]
-  bin_overrides = conf.key?("cluster") ? conf["bin_overrides"][cluster_name] : conf["bin_overrides"]
-  history_db    = conf.key?("cluster") ? conf["history_db"][cluster_name] : conf["history_db"]
+  scheduler     = conf.key?("clusters") ? create_scheduler(conf)[cluster_name] : create_scheduler(conf)
+  ssh_wrapper   = conf.key?("clusters") ? conf["ssh_wrapper"][cluster_name] : conf["ssh_wrapper"]
+  bin           = conf.key?("clusters") ? conf["bin"][cluster_name] : conf["bin"]
+  bin_overrides = conf.key?("clusters") ? conf["bin_overrides"][cluster_name] : conf["bin_overrides"]
+  history_db    = conf.key?("clusters") ? conf["history_db"][cluster_name] : conf["history_db"]
   data_dir      = conf["data_dir"]
-  ENV['SGE_ROOT'] ||= conf.key?("cluster") ? conf["sge_root"][cluster_name] : conf["sge_root"]
+  ENV['SGE_ROOT'] ||= conf.key?("clusters") ? conf["sge_root"][cluster_name] : conf["sge_root"]
 
   if request.path_info == "/history"
     job_ids   = params["JobIds"].split(",")

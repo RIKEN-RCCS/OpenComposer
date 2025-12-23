@@ -44,14 +44,13 @@
             <label class="form-check-label" for="_historyStatusFailed">Failed</label>
           </div>
         </div>
-	<% if @conf.key?("cluster") && @conf["cluster"].size > 1 %>
-        <div class="d-flex justify-content-end mt-1">
-	  <% @conf["cluster"].each_with_index do |cluster, index| %>
-	  <%   end_margin = index == @conf["cluster"].size - 1 ? "me-1" : "" %>
-	  <%   cname = cluster["name"] %>
+	      <% if @conf.key?("clusters") && @conf["clusters"].size > 1 %>
+          <div class="d-flex justify-content-end mt-1">
+	          <% @conf["clusters"].each_key.with_index do |name, index| %>
+	          <%   end_margin = index == @conf["clusters"].size - 1 ? "me-1" : "" %>
 	  <div class="form-check form-check-inline <%= end_margin %>">
-            <input class="form-check-input" type="radio" name="_historyCluster" id="_historyCluster_<%= cname %>" value="<%= cname %>" <%= 'checked' if @cluster_name == cname %>>
-            <label class="form-check-label" for="_historyCluster_<%= cname %>"><%= cname %></label>
+            <input class="form-check-input" type="radio" name="_historyCluster" id="_historyCluster_<%= name %>" value="<%= name %>" <%= 'checked' if @cluster_name == name %>>
+            <label class="form-check-label" for="_historyCluster_<%= name %>"><%= name %></label>
 	  </div>
 	  <% end %>
         </div>

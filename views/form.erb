@@ -1,7 +1,7 @@
 <% if @job_id && @error_msg.nil? && @script_path.nil? %>
   <div class="alert alert-success alert-dismissible mx-1 mb-0">
     Job was successfully submitted (Job ID is <%= @job_id %>).
-    <% if @conf.key?("cluster") && @conf["cluster"].size > 1 %>
+    <% if @conf.key?("clusters") && @conf["clusters"].size > 1 %>
     Go to the <a href="./history?cluster=<%= @cluster_name %>">History page</a>.
     <% else %>
     Go to the <a href="./history">History page</a>.

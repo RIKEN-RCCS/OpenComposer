@@ -15,7 +15,7 @@
       <ul class="nav flex-column px-3 py-2">
         <li class="nav-item"><a href="#install" class="nav-link">1. Installation</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. Setting</a></li>
-	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.1. cluster</a></li>
+	<li class="nav-item ms-3"><a href="#clusters" class="nav-link">2.1. clusters</a></li>
 	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
 	<li class="nav-item ms-3"><a href="#history" class="nav-link">2.3. history</a></li>
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Registration for Open OnDemand</a></li>
@@ -47,7 +47,7 @@
 	<tr><th>Item name</th><th>Setting</th></tr>
 	<tr><td>apps_dir</td><td>Application directory</td></tr>
 	<tr><td>scheduler</td><td>Job scheduler (<code>slurm</code>, <code>pbspro</code>, <code>sge</code>, <code>fujitsu_tcs</code>)</td></tr>
-	<tr><td>cluster</td><td>Cluster properties</td></tr>
+	<tr><td>clusters</td><td>Cluster properties</td></tr>
 	<tr><td>data_dir</td><td>Directory where submitted job information is stored (Default is <code>${HOME}/composer</code>)</td></tr>
 	<tr><td>login_node</td><td>Login node when you launch the Open OnDemand web terminal</td></tr>
 	<tr><td>ssh_wrapper</td><td>Command for using the job scheduler of another node using SSH</td></tr>
@@ -65,36 +65,34 @@
 	<tr><td>form_color</td><td>Background color of the text area in the application page</td></tr>
       </table>
       <p>
-	The <code>apps_dir</code> and <code>scheduler</code> are required. However, the <code>scheduler</code> may be defined inside <code>cluster</code>.
+	The <code>apps_dir</code> and <code>scheduler</code> are required. However, the <code>scheduler</code> may be defined inside <code>clusters</code>.
       </p>
       
-      <h3 id="cluster">2.1. cluster</h3>
+      <h3 id="clusters">2.1. clusters</h3>
       <p>
-	Set this when using multiple job schedulers. This setting is optional if you use only a single job scheduler.
-      </p>
-      <p>
-	The <code>name</code> is required, which sets the name of the cluster.
-	Optionally, you can also set <code>scheduler</code>, <code>login_node</code>, <code>ssh_wrapper</code>, <code>bin</code>, <code>bin_overrides</code>, and <code>sge_root</code>.
+	Set this when using multiple clusters.
+	You can set <code>scheduler</code>, <code>login_node</code>, <code>ssh_wrapper</code>, <code>bin</code>, <code>bin_overrides</code>, and <code>sge_root</code> for each cluster.
+	This setting is optional if you use only a single cluster.
       </p>
       <p>
 	The following defines the use of the <code>fujitsu_tcs</code> and <code>slurm</code> job schedulers on the <code>fugaku</code> and <code>prepost</code> clusters, respectively.
       </p>
-      <pre>cluster:
-  - name: "fugaku"
+      <pre>clusters:
+  fugaku:
     scheduler: "fujitsu_tcs"
-  - name: "prepost"
+  prepost:
     scheduler: "slurm"
     bin_overrides:
       sbatch: "/usr/local/bin/sbatch"</pre>
 
       <p>
-	In the following, both the <code>fugaku</code> and <code>preposet</code> clusters use the <code>slurm</code> job scheduler, but it defines that <code>slurm</code> is executed from different machines.
+	In the following, both the <code>fugaku</code> and <code>prepost</code> clusters use the <code>slurm</code> job scheduler, but it defines that <code>slurm</code> is executed from different machines.
       </p>
       <pre>scheduler: "slurm"
-cluster:
-  - name: "fugaku"
+clusters:
+  fugaku:
     ssh_wrapper "ssh fugaku.example.net"
-  - name: "prepost"
+  prepost:
     ssh_wrapper "ssh prepost.example.net"</pre>
     
       <h3 id="bin_overrides">2.2. bin_overrides</h3>

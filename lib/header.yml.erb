@@ -14,15 +14,15 @@ header:
     value:    [job.sh, ""]
     required: [true, false]
 
-  <% if @conf.key?("cluster") && @conf["cluster"].size > 1 %>
+  <% if @conf.key?("clusters") && @conf["clusters"].size > 1 %>
   _cluster_name:
     widget: select
     label: Cluster name
     required: true
-    value: <%= @conf["cluster"].first["name"] %>
+    value: <%= @conf["clusters"].keys.first %>
     options:
-    <% @conf["cluster"].each do |c| %>
-      - [ <%= c["name"] %> ]
+    <% @conf["clusters"].each_key do |c| %>
+      - [ <%= c %> ]
     <% end %>
   <% end %>
   

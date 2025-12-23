@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.8.0] - 2025-12-??
+### Add
+- Add the function to define multiple login_nodes and ssh_wrappers in conf.yml in [25](https://github.com/RIKEN-RCCS/OpenComposer/discussions/25).
+- Add calc() function in [20](https://github.com/RIKEN-RCCS/OpenComposer/pull/20).
+- History page items can be freely changed in [19](https://github.com/RIKEN-RCCS/OpenComposer/pull/19).
+- Add failed job status in [19](https://github.com/RIKEN-RCCS/OpenComposer/pull/19).
+- The cancel/delete modal and job script modal on the History Page can now be resized horizontally.in [19](https://github.com/RIKEN-RCCS/OpenComposer/pull/19).
+- Add a variable @OC_DIR_NAME.
+
+### Changed
+- Change clusters from cluster in conf.yml (Note that it is an incompatible change).
+- Change related_apps from related_apps in manifest.yml (Note that it is an incompatible change).
+- Changed dirname and basename to work the same as linux commands.
+- Change OC_SCRIPT_CONTENT from SCRIPT_CONTENT.
+
+### Fixed
+- Do nothing if expr returns an error.
+
 ## [1.7.0] - 2025-11-06
 ### Add
 - The function only saves job scripts.

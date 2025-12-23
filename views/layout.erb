@@ -84,7 +84,7 @@
                 </a>
               </li>
               <% unless @login_node.nil? %>
-                <% if @conf["login_node"].is_a?(Hash) && @conf["login_node"].values.uniq.size > 1 %>
+                <% if @conf["login_node"].count { |_, v| !v.nil? } > 1 %>
                   <li class="nav-item dropdown">
                     <a href="#" class="nav-link dropdown-toggle py-0" data-bs-toggle="dropdown">
                       <i class="bi bi-terminal-fill" style="font-size: 20px; vertical-align: middle;"></i>
@@ -98,7 +98,7 @@
                   </li>
                 <% else %>
                   <li class="nav-item">
-                    <a target="_blank" href="<%= @my_ood_url %>/pun/sys/shell" class="nav-link py-0">
+                    <a target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>" class="nav-link py-0">
                       <i class="bi bi-terminal-fill" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
                       <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
                     </a>

@@ -2,13 +2,13 @@
 # Required settings
 apps_dir: "./sample_apps"
 scheduler: "slurm"
-#cluster:
-#  - name: "fugaku"
+#clusters:
+#  fugaku:
 #    scheduler: "fujitsu_tcs"
-#  - name: "prepost"
+#  prepost:
 #    scheduler: "slurm"
 #    bin_overrides:
-#      sbatch:   "/usr/local/bin/sbatch"
+#      sbatch: "/usr/local/bin/sbatch"
 
 # Optional settings
 ## General

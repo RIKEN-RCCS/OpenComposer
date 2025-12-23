@@ -15,7 +15,7 @@
       <ul class="nav flex-column px-3 py-2">
         <li class="nav-item"><a href="#install" class="nav-link">1. インストール</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. 設定</a></li>
-	<li class="nav-item ms-3"><a href="#cluster" class="nav-link">2.1. cluster</a></li>
+	<li class="nav-item ms-3"><a href="#clusters" class="nav-link">2.1. clusters</a></li>
 	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
 	<li class="nav-item ms-3"><a href="#history" class="nav-link">2.3. history</a></li>
 	<li class="nav-item"><a href="#registor" class="nav-link">3. Open OnDemandへの登録</a></li>
@@ -47,7 +47,7 @@
 	<tr><th>項目名</th><th>設定内容</th></tr>
 	<tr><td>apps_dir</td><td>アプリケーションのディレクトリ</td></tr>
 	<tr><td>scheduler</td><td>利用するスケジューラ（<code>slurm</code>、<code>pbspro</code>、<code>sge</code>、<code>fujitsu_tcs</code>）</td></tr>
-	<tr><td>cluster</td><td>クラスタの定義</td></tr>
+	<tr><td>clusters</td><td>クラスタの定義</td></tr>
 	<tr><td>data_dir</td><td>投入したジョブの情報の保存先（デフォルトは<code>${HOME}/composer</code>）</td></tr>
 	<tr><td>login_node</td><td>Open OnDemandのWebターミナルを起動した際のログイン先</td></tr>
 	<tr><td>ssh_wrapper</td><td>SSHを用いて他のノードのジョブスケジューラを用いる場合のコマンド</td></tr>
@@ -65,36 +65,32 @@
 	<tr><td>form_color</td><td>アプリケーションページのテキストエリアの背景色</td></tr>
       </table>
       <p>
-	<code>apps_dir</code>および<code>scheduler</code>は必須です（<code>scheduler</code>は<code>cluster</code>の中に定義しても構いません）。
+	<code>apps_dir</code>および<code>scheduler</code>は必須です（<code>scheduler</code>は<code>clusters</code>の中に定義しても構いません）。
       </p>
 
-      <h3 id="cluster">2.1. cluster</h3>
+      <h3 id="clusters">2.1. clusters</h3>
       <p>
-        複数のジョブスケジューラを設定します。1つのジョブスケジューラのみを使う場合、本設定は省略可能です。
+        複数のクラスタを設定します。本設定では、<code>scheduler</code>、<code>login_node</code>、<code>ssh_wrapper</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>がクラスタ毎に設定できます。1つのクラスタのみを使う場合、本設定は省略可能です。
       </p>
       <p>
-        必須項目は<code>name</code>で、クラスタの名前を設定します。また、オプションとして<code>scheduler</code>、<code>login_node</code>、<code>ssh_wrapper</code>、<code>bin</code>、<code>bin_overrides</code>、<code>sge_root</code>も設定できます。
+        下記では、<code>fugaku</code>と<code>prepost</code>というクラスタにおいて、それぞれ<code>fujitsu_tcs</code>と<code>slurm</code>のジョブスケジューラを利用することを定義しています。
       </p>
-
-      <p>
-        下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、それぞれ<code>fujitsu_tcs</code>と<code>slurm</code>のジョブスケジューラを利用することを定義しています。
-      </p>
-      <pre>cluster:
-  - name: "fugaku"
+      <pre>clusters:
+  fugaku:
     scheduler: "fujitsu_tcs"
-  - name: "prepost"
+  prepost:
     scheduler: "slurm"
     bin_overrides:
       sbatch: "/usr/local/bin/sbatch"</pre>
 
       <p>
-        下記では、<code>fugaku</code>と<code>preposet</code>というクラスタにおいて、両方とも<code>slurm</code>のジョブスケジューラを利用していますが、異なるマシンから<code>slurm</code>を実行することを定義しています。
+        下記では、<code>fugaku</code>と<code>prepost</code>というクラスタにおいて、両方とも<code>slurm</code>のジョブスケジューラを利用していますが、異なるマシンから<code>slurm</code>を実行することを定義しています。
       </p>
       <pre>scheduler: "slurm"
-cluster:
-  - name: "fugaku"
+clusters:
+  fugaku:
     ssh_wrapper "ssh fugaku.example.net"
-  - name: "prepost"
+  prepost:
     ssh_wrapper "ssh prepost.example.net"</pre>
       
       <h3 id="bin_overrides">2.2. bin_overrides</h3>
