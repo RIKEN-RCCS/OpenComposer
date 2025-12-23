@@ -127,21 +127,21 @@
         <% end %>
       </tbody>
     </table>
-  <% end %>
-  
-  <div class="row mt-2">
-    <div class="col text-start">
-      <div>Showing <%= @start_index + 1 %> to <%= @end_index + 1 %> of <%= @jobs_size %> entries</div>
-      <div>Show 
-        <input type="number" id="_historyRows" value=<%= @rows %> style="width: 80px;" onkeydown="if(event.key === 'Enter') ocHistory.redirectWithRows()" >
-      entries
-      </div>
-    </div>
-    <div class="col text-center">
-      <%= output_pagination(@current_page, @page_size, @rows) %>
-    </div>
-    <div class="col text-end"></div>
   </div>
+<% end %>
+  
+<div class="row mt-2 mx-1">
+  <div class="col text-start">
+    <div>Showing <%= @start_index + 1 %> to <%= @end_index + 1 %> of <%= @jobs_size %> entries</div>
+    <div>Show 
+      <input type="number" id="_historyRows" value=<%= @rows %> style="width: 80px;" onkeydown="if(event.key === 'Enter') ocHistory.redirectWithRows()" >
+      entries
+    </div>
+  </div>
+  <div class="col text-center">
+    <%= output_pagination(@current_page, @page_size, @rows) %>
+  </div>
+  <div class="col text-end"></div>
 </div>
 
 <script src="./history.js"></script>
