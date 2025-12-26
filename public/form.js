@@ -617,7 +617,7 @@ function evalCalc(expr) {
       const decimals = Number(parts[1]);      // 3
       return Number(value).toFixed(decimals); // "7.000"
     }
-    return Math.round(safeEval(expr));      // no decimals, just round
+    return Math.floor(safeEval(expr));        // Round the result down to the nearest integer
   } catch (e) {
     console.error(e.message);
     return "";
