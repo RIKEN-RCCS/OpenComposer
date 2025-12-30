@@ -406,22 +406,22 @@ script: |
     <img src="img/zeropadding.png" alt="Zero Padding">
     
     <p>
-      関数<code>calc(expr[, decimalPlaces])</code>は簡単な計算を行います。第2引数<code>decimalPlaces</code>は小数点以下の桁数です。第2引数を省略すると、小数点以下を四捨五入します。
+      関数<code>calc(expr[, decimalPlaces, roundingMode])</code>は、式<code>expr</code>を計算して結果を返します。第2引数<code>decimalPlaces</code>には、小数点以下の桁数を指定します。省略した場合は0になります。第3引数<code>roundingMode</code>には、丸め方式を指定します。<code>OC_ROUNDING_ROUND</code>（四捨五入）、<code>OC_ROUNDING_FLOOR</code>（切り捨て）、<code>OC_ROUNDING_CEIL</code>（切り上げ）のいずれかを指定できます。省略した場合は<code>OC_ROUNDING_ROUND</code>になります。
     </p>
   <pre>form:
   time:
     widget: number
     label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
     size:   2
-    value:  [  1,  0 ]
+    value:  [  1, 10 ]
     min:    [  0,  0 ]
     max:    [ 24, 59 ]
     step:   [  1,  1 ]
 
 script: |
-  #{calc(time_1 + time_2 * 60)}
   #{calc(time_1 + time_2 / 60)}
-  #{calc(time_1 + time_2 / 60, 2)}</pre>
+  #{calc(time_1 + time_2 / 60, 2)}
+  #{calc(time_1 + time_2 / 60, 2, OC_ROUNDING_FLOOR)}</pre>
     <img src="img/calc.png" width="800" alt="Calculation">
     
 	<p>関数<code>dirname(FILE_PATH)</code>と関数<code>basename(FILE_PATH)</code>はディレクトリ名とファイル名を含むパス名から、<code>dirname()</code>はディレクトリ部分を、<code>basename()</code>はファイル部分だけを返します。

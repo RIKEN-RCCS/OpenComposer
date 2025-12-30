@@ -611,13 +611,32 @@ function safeEval(expr) {
 
 function evalCalc(expr) {
   try {
-    const parts = expr.split(',').map(s => s.trim()); // e.g. ["1 + (2 * 3)", "3"]
-    if (parts.length === 2 && /^\d+$/.test(parts[1])) {
-      const value = safeEval(parts[0]);       // 7
-      const decimals = Number(parts[1]);      // 3
-      return Number(value).toFixed(decimals); // "7.000"
+    const parts = expr.split(",").map(s => s.trim()); // e.g. ["1 + (2 * 3)", "3", OC_ROUNDING_FLOOR]
+    const valueExpr = parts[0] ?? "";
+    if (valueExpr === "") return "";
+    const value = safeEval(valueExpr); // 7
+    const decimals = Number(parts[1]); // 3
+    const rounding = parts[2];         // OC_ROUNDING_FLOOR
+
+    // Check values
+    if (!Number.isFinite(value)) throw new Error("Expression did not evaluate to a finite number.");
+    if (!Number.isInteger(decimals) || decimals < 0) throw new Error("decimalPlaces must be a non-negative integer.");
+
+    const factor = 10 ** decimals;
+    const n = value * factor;  // Helper: avoid floating error a bit
+
+    let rounded;
+    if (rounding === "OC_ROUNDING_ROUND") {
+      rounded = (n >= 0 ? Math.floor(n + 0.5) : Math.ceil(n - 0.5)) / factor;
+    } else if (rounding === "OC_ROUNDING_FLOOR") {
+      rounded = Math.floor(n) / factor;
+    } else if (rounding === "OC_ROUNDING_CEIL") {
+      rounded = Math.ceil(n) / factor;
+    } else {
+      throw new Error(`Unknown roundingMode: ${rounding}`);
     }
-    return Math.floor(safeEval(expr));        // Round the result down to the nearest integer
+
+    return rounded.toFixed(decimals);
   } catch (e) {
     console.error(e.message);
     return "";
@@ -722,7 +741,6 @@ ocForm.showLine = function(selectedValues, line, keys, widgets, canHide, separat
     selectedValues.push(line);
   }
 }
-
 
 // Enable a widget.
 ocForm.enableWidget = function(key, num, widget, size) {

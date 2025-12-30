@@ -124,6 +124,27 @@ helpers do
     return html + "</div>\n"
   end
 
+  # Normalize calc(expr) or calc(expr, dp) to calc(expr, dp, OC_ROUNDING_ROUND)
+  def normalize_calc_args(expr)
+    args = expr.split(/\s*,\s*/)
+    case args.length
+    when 1
+      "#{args[0]}, 0, OC_ROUNDING_ROUND"
+    when 2
+      "#{args[0]}, #{args[1]}, OC_ROUNDING_ROUND"
+    else
+      expr
+    end
+  end
+
+  # Wraps an identifier for string interpolation.
+  # Constants starting with "OC_ROUNDING_" are returned as-is.
+  # Other identifiers are converted to "#{name}" (or "#{:name}" if prefixed).
+  def wrap_ident(colon, name)
+    return name if name.start_with?("OC_ROUNDING_")
+    "\#{#{colon ? ':' : ''}#{name}}"
+  end
+  
   # Output a JavaScript code based on a given yml, line in script, and matches data.
   def output_script_js(form, line, app_name, dir_name)
     # Remove leading and trailing whitespace(e.g. #{ time_1  } -> #{time_1})
@@ -142,7 +163,7 @@ helpers do
     line.gsub!(/\#\{:OC_SCRIPT_NAME\}/,     "\#\{:#{HEADER_SCRIPT_NAME}\}")
     line.gsub!(/\#\{OC_JOB_NAME\}/,         "\#\{#{HEADER_JOB_NAME}\}")
     line.gsub!(/\#\{:OC_JOB_NAME\}/,        "\#\{:#{HEADER_JOB_NAME}\}")
-    
+
     # Escape backslashes (`\`) by replacing each `\` with `\\`.
     # This ensures the backslashes are properly interpreted in JavaScript strings.
     line.gsub!("\\", "\\\\\\\\")
@@ -152,7 +173,6 @@ helpers do
     line.gsub!("'", "\\\\'")
 
     matches = line.scan(/\#\{.+?\}/)
-
     return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
 
     keys = matches.flat_map do |str|
@@ -174,30 +194,32 @@ helpers do
 
     line = line.gsub(/\#\{(zeropadding|calc|dirname|basename)\((.*?)\)\}/) do
       func = Regexp.last_match(1)       # "zeropadding", "calc", "dirname", "basename"
-      expr = Regexp.last_match(2) || "" # e.g. "calc(time_1 * time_2), 2"
+      expr = Regexp.last_match(2) || "" # e.g. "time_1 * time_2, 2"
+      expr = normalize_calc_args(expr) if func == "calc"
 
       # --- special case: zeropadding(calc(...), N) ---
       if func == "zeropadding" && expr =~ /\A\s*calc\((.*)\)\s*,\s*(.*)\z/
-        calc_inner = Regexp.last_match(1)  # "time_1 * time_2"
-        second_arg = Regexp.last_match(2).strip  # "2"
-        
+        calc_expr = Regexp.last_match(1)           # "time_1 * time_2"
+        calc_expr = normalize_calc_args(calc_expr) # "time_1 * time_2, 0, OC_ROUNDING_ROUND"
+        z_second_arg = Regexp.last_match(2).strip  # "2"
+  
         # Expand only inside calc(...)
-        replaced_inner = calc_inner.gsub(/(:)?([A-Za-z_]\w*)/) do
+        replaced_calc_expr = calc_expr.gsub(/(:)?([A-Za-z_]\w*)/) do
           colon = Regexp.last_match(1)
           name  = Regexp.last_match(2)
-          "\#\{#{colon ? ':' : ''}#{name}\}"
+          wrap_ident(colon, name)
         end
         
-        next "\#{zeropadding(calc(#{replaced_inner}), #{second_arg})}"
+        next "\#{zeropadding(calc(#{replaced_calc_expr}), #{z_second_arg})}"
       end
-      
+
       # --- normal case: calc(...), dirname(...), basename(...), zeropadding(...) ---
       replaced = expr.gsub(/(:)?([A-Za-z_]\w*)/) do
         colon = Regexp.last_match(1)
         name  = Regexp.last_match(2)
-        "\#\{#{colon ? ':' : ''}#{name}\}"
+        wrap_ident(colon, name)
       end
-      
+
       "\#\{#{func}(#{replaced})\}"
     end
 

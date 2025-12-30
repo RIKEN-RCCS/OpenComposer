@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0] - 2026-??
+### Add
+### Changed
+- Allow calc() to specify OC_ROUNDING_ROUND, OC_ROUNDING_FLOOR, and OC_ROUNDING_CEIL.
+
+### Fixed
+
 ## [1.8.0] - 2025-12-26
 ### Add
 - Add the function to define multiple login_nodes and ssh_wrappers in conf.yml in [25](https://github.com/RIKEN-RCCS/OpenComposer/discussions/25).

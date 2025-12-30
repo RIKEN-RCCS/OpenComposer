@@ -438,24 +438,26 @@ script: |
   <img src="img/zeropadding.png" alt="Zero Padding">
 
   <p>
-    The <code>calc(expr[, decimalPlaces])</code> function performs basic arithmetic evaluation.
-    The second argument, <code>decimalPlaces</code>, specifies the number of digits after the decimal point.
-    If the second argument is omitted, the result is rounded to the nearest integer.
+    The function <code>calc(expr[, decimalPlaces, roundingMode])</code> evaluates the expression <code>expr</code> and returns the result.
+    The second argument, <code>decimalPlaces</code>, specifies the number of digits after the decimal point. If omitted, it defaults to 0.
+    The third argument, <code>roundingMode</code>, specifies the rounding method.
+    One of <code>OC_ROUNDING_ROUND</code> (round half up), <code>OC_ROUNDING_FLOOR</code> (round down),
+    or <code>OC_ROUNDING_CEIL</code> (round up) can be specified. If omitted, it defaults to <code>OC_ROUNDING_ROUND</code>.
   </p>
   <pre>form:
   time:
     widget: number
     label:  [ Maximum run time (0 - 24 h), Maximum run time (0 - 59 m) ]
     size:   2
-    value:  [  1,  0 ]
+    value:  [  1, 10 ]
     min:    [  0,  0 ]
     max:    [ 24, 59 ]
     step:   [  1,  1 ]
 
 script: |
-  #{calc(time_1 + time_2 * 60)}
   #{calc(time_1 + time_2 / 60)}
-  #{calc(time_1 + time_2 / 60, 2)}</pre>
+  #{calc(time_1 + time_2 / 60, 2)}
+  #{calc(time_1 + time_2 / 60, 2, OC_ROUNDING_FLOOR)}</pre>
     <img src="img/calc.png" width="800" alt="Calculation">
     
     <p>
