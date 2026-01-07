@@ -54,9 +54,7 @@
     <!-- Script Content Section -->
     <div class="col py-3 d-flex flex-column">
       <label id="label_<%= OC_SCRIPT_CONTENT %>" class="fw-semibold" for="<%= OC_SCRIPT_CONTENT %>"><%= @script_label %></label>
-      <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" oninput="ocForm.updateHeight(ocForm.scriptArea)" required>
-        (Something wrong)
-      </textarea>
+      <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" oninput="ocForm.updateHeight(ocForm.scriptArea)" required></textarea>
       <!-- Submit Button -->
       <% if @form_action == "confirm" || @form_action == "confirm-save" %>
       <button class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" type="button" data-bs-toggle="modal" data-bs-target="#modal-<%= SUBMIT_CONFIRM %>" tabindex="<%= @table_index + 1 %>">
