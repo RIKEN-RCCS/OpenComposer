@@ -159,7 +159,7 @@ document.addEventListener('keydown', function(event) {
 function rebuildWithSbatchHeader(currentText, headerText) {
   const current = (currentText ?? '').toString();
   const lines = current.split('\n');
-  const hasShebang = lines.length > 0 && lines[0].startsWith('#!');
+  const hasShebang = lines.length>0 && lines[0].startsWith('#!');
 
   const header = (headerText ?? '').toString();
   const headerLines = header.split('\n');
@@ -201,7 +201,8 @@ function rebuildWithSbatchHeader(currentText, headerText) {
   // No shebang: put header at top and keep all user text below
   const shebangToUse = headerShebang || '';
   const body = current.trim();
-  return [shebangToUse, cleanHeader, body].filter(s => s && s !== '').join('\n\n');
+  if (shebangToUse) return [shebangToUse + '\n' + cleanHeader, body].filter(s => s && s !== '').join('\n\n');
+  return [cleanHeader, body].filter(s => s && s !== '').join('\n\n');
 }
 
 ocForm.isFirst = true;
