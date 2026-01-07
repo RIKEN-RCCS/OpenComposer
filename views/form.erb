@@ -185,8 +185,7 @@ function rebuildWithSbatchHeader(currentText, headerText) {
     const suffix = bodyLines.slice(prefixLineCount).join('\n').replace(/^\n+/, '');
 
     const parts = [];
-    if (prefix) parts.push(prefix);
-    parts.push(cleanHeader);
+    parts.push(prefix ? prefix + '\n' + cleanHeader : cleanHeader);
     if (suffix) parts.push(suffix);
 
     return parts.join('\n\n').replace(/\n{3,}/g, '\n\n');
@@ -196,7 +195,7 @@ function rebuildWithSbatchHeader(currentText, headerText) {
   if (hasShebang) {
     const shebang = lines[0];
     const rest = lines.slice(1).join('\n').trim();
-    return [shebang, cleanHeader, rest].filter(s => s && s !== '').join('\n\n').replace(/\n{3,}/g, '\n\n');
+    return [shebang + '\n' + cleanHeader, rest].filter(s => s && s !== '').join('\n\n').replace(/\n{3,}/g, '\n\n');
   }
 
   // No shebang: put header at top and keep all user text below
