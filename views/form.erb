@@ -220,7 +220,10 @@ ocForm.updateValues = function(fromId) {
     ocForm.updateSubmitContents(submitValues);
 
     // Overwrite of script textarea (first run)
-    ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
+    //ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
+    const newHeaderFirst = Object.values(scriptValues).join('\n');
+    const baseTextFirst = ocForm.isScriptCache() ? ocForm.loadScriptCache() : (ocForm.scriptArea.value || '');
+    ocForm.scriptArea.value = rebuildWithSbatchHeader(baseTextFirst, newHeaderFirst);
 
     // Overwrite of submit textarea (first run)
     ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : Object.values(submitValues).join('\n');
@@ -231,7 +234,9 @@ ocForm.updateValues = function(fromId) {
     ocForm.updateSubmitContents(submitValues);
 
     // Overwrite of script textarea (subsequent runs)
-    ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
+    //ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
+    const newHeaderNext = Object.values(scriptValues).join('\n');
+    ocForm.scriptArea.value = rebuildWithSbatchHeader(ocForm.scriptArea.value || '', newHeaderNext);
 
     // Overwrite of submit textarea (subsequent runs)
     ocForm.submitArea.value = Object.values(submitValues).join('\n')
@@ -244,6 +249,8 @@ ocForm.updateValues = function(fromId) {
   //if (!ocForm.submitArea.value.endsWith('\n')){
   //  ocForm.submitArea.value += '\n';
   //}
+
+  // Height adjustments
   ocForm.updateHeight(ocForm.scriptArea);
   ocForm.updateHeight(ocForm.submitArea);
 };
