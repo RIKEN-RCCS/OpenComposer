@@ -218,13 +218,22 @@ ocForm.updateValues = function(fromId) {
     ocForm.onceExec();
     ocForm.updateScriptContents(scriptValues);
     ocForm.updateSubmitContents(submitValues);
+
+    // Overwrite of script textarea (first run)
     ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
+
+    // Overwrite of submit textarea (first run)
     ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : Object.values(submitValues).join('\n');
   }
+
   else {
     ocForm.updateScriptContents(scriptValues);
     ocForm.updateSubmitContents(submitValues);
+
+    // Overwrite of script textarea (subsequent runs)
     ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
+
+    // Overwrite of submit textarea (subsequent runs)
     ocForm.submitArea.value = Object.values(submitValues).join('\n')
   }
 
