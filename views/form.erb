@@ -175,9 +175,19 @@ function splitText(text){
 
 // Temporary function to test changes
 function rebuildWithSbatchHeader2(currentText, headerText) {
-      console.group("test function")
-      const currentBody = splitText(currentText).body;
-      console.log("currentBody",currentBody)
+      console.group("test function");
+
+      const { shebang: currentShebang, header: currentHeader, body: currentBody } = splitText(currentText);
+      const { shebang: renderedShebang, header: renderedHeader, body: renderedBody } = splitText(headerText);
+
+      const finalShebang = renderedShebang?.trim() ? renderedShebang : currentShebang?.trim() || '';
+      const finalHeader = renderedHeader?.length>0 ? renderedHeader : currentHeader?.length>0 ? currentHeader : [];
+      const finalBody = (renderedBody.length===0 && currentBody.length===0) ? [] : [...renderedBody, ...(renderedBody.length>0 && currentBody.length>0 ? [""] : []), ...currentBody];
+
+      console.log("finalShebang",finalShebang);
+      console.log("finalHeader",finalHeader);
+      console.log("finalBody",finalBody);
+
       console.groupEnd();
 }
 
