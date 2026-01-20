@@ -167,7 +167,7 @@ function splitText(text){
       const trimmed = line.trim();
       if (!shebang && trimmed.startsWith("#!")) { shebang = trimmed; }
       else if (trimmed.startsWith("#SBATCH")) { header.push(trimmed); }
-      else { body.push(trimmed); }
+      else if (body.at(-1)!="" || trimmed!="") { body.push(trimmed); }
     }
 
     return { shebang, header, body }
@@ -175,30 +175,37 @@ function splitText(text){
 
 // Temporary function to test changes
 function rebuildWithSbatchHeader2(currentText, headerText) {
-      console.group("test function");
+  console.group("test function");
+  
+  const { shebang: currentShebang, header: currentHeader, body: currentBody } = splitText(currentText);
+  const { shebang: renderedShebang, header: renderedHeader, body: renderedBody } = splitText(headerText);
 
-      const { shebang: currentShebang, header: currentHeader, body: currentBody } = splitText(currentText);
-      const { shebang: renderedShebang, header: renderedHeader, body: renderedBody } = splitText(headerText);
+  const finalShebang = renderedShebang ? renderedShebang : currentShebang || '';
+  const finalHeader = renderedHeader?.length>0 ? renderedHeader : currentHeader?.length>0 ? currentHeader : [];
 
-      const finalShebang = renderedShebang?.trim() ? renderedShebang : currentShebang?.trim() || '';
-      const finalHeader = renderedHeader?.length>0 ? renderedHeader : currentHeader?.length>0 ? currentHeader : [];
-      const finalBody = (renderedBody.length===0 && currentBody.length===0) ? [] : [...renderedBody, ...(renderedBody.length>0 && currentBody.length>0 ? [""] : []), ...currentBody];
-      
-      const hasTopSection = (finalShebang?.trim()!=='') || (finalHeader.length>0);
-      const combined = [
-        ...(finalShebang ? [finalShebang] : []),
-        ...finalHeader,
-        ...(hasTopSection && (finalBody.length>0) ? [""] : []),
-        ...finalBody
-      ];
-      const finalText = combined.join("\n").replace(/\n{2,}/g, "\n");
+  const filteredRenderedBody = renderedBody.filter(item => item.trim() !== "");
+  const filteredCurrentBody  = currentBody.filter(item => item.trim() !== "");
+  let finalBody;
+  if (filteredRenderedBody.length === 0 && filteredCurrentBody.length === 0) { finalBody = []; }
+  else if (filteredRenderedBody.length === 0) { finalBody = currentBody; }
+  else if (filteredCurrentBody.length === 0) { finalBody = renderedBody; }
+  else { finalBody = [...renderedBody, "", ...currentBody]; }
+  if (finalBody[0] === "") { finalBody.shift(); }
+  if (finalBody.at(-1) === "") { finalBody.pop(); }
 
-      console.log("finalShebang", finalShebang)
-      console.log("finalHeader",finalHeader)
-      console.log("finalBody",finalBody)
-      console.log("combined",combined)
-      console.log("finalText", finalText);
-      console.groupEnd();
+  const hasTopSection = (finalShebang?.trim()!=='') || (finalHeader.length>0);
+  const combined = [
+    ...(finalShebang ? [finalShebang] : []),
+    ...finalHeader,
+    ...(hasTopSection && finalBody.length>0 ? [""] : []),
+    ...finalBody
+  ];
+  const finalText = combined.join("\n");
+
+  console.log("finalText", finalText)
+  console.groupEnd();
+
+  return finalText;
 }
 
 // Header helper: rewrite ONLY lines that start with "#SBATCH"
@@ -269,8 +276,8 @@ ocForm.updateValues = function(fromId) {
     //ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
     const newHeaderFirst = Object.values(scriptValues).join('\n');
     const baseTextFirst = ocForm.isScriptCache() ? ocForm.loadScriptCache() : (ocForm.scriptArea.value || '');
-    ocForm.scriptArea.value = rebuildWithSbatchHeader(baseTextFirst, newHeaderFirst);
-    rebuildWithSbatchHeader2(baseTextFirst, newHeaderFirst);
+    //ocForm.scriptArea.value = rebuildWithSbatchHeader(baseTextFirst, newHeaderFirst);
+    ocForm.scriptArea.value = rebuildWithSbatchHeader2(baseTextFirst, newHeaderFirst);
 
     // Overwrite of submit textarea (first run)
     ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : Object.values(submitValues).join('\n');
@@ -283,8 +290,8 @@ ocForm.updateValues = function(fromId) {
     // Overwrite of script textarea (subsequent runs)
     //ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
     const newHeaderNext = Object.values(scriptValues).join('\n');
-    ocForm.scriptArea.value = rebuildWithSbatchHeader(ocForm.scriptArea.value || '', newHeaderNext);
-    rebuildWithSbatchHeader2(ocForm.scriptArea.value || '', newHeaderNext);
+    //ocForm.scriptArea.value = rebuildWithSbatchHeader(ocForm.scriptArea.value || '', newHeaderNext);
+    ocForm.scriptArea.value = rebuildWithSbatchHeader2(ocForm.scriptArea.value || '', newHeaderNext);
 
     // Overwrite of submit textarea (subsequent runs)
     ocForm.submitArea.value = Object.values(submitValues).join('\n')
