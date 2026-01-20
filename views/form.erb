@@ -173,10 +173,8 @@ function splitText(text){
     return { shebang, header, body }
 }
 
-// Temporary function to test changes
+// Rebuild script area content by replacing only the content of the header
 function rebuildWithSbatchHeader(currentText, headerText) {
-  console.group("test function");
-  
   const { shebang: currentShebang, header: currentHeader, body: currentBody } = splitText(currentText);
   const { shebang: renderedShebang, header: renderedHeader, body: renderedBody } = splitText(headerText);
 
@@ -200,12 +198,8 @@ function rebuildWithSbatchHeader(currentText, headerText) {
     ...(hasTopSection && finalBody.length>0 ? [""] : []),
     ...finalBody
   ];
-  const finalText = combined.join("\n");
 
-  console.log("finalText", finalText)
-  console.groupEnd();
-
-  return finalText;
+  return combined.join("\n");
 }
 
 ocForm.isFirst = true;
@@ -224,7 +218,6 @@ ocForm.updateValues = function(fromId) {
     ocForm.updateSubmitContents(submitValues);
 
     // Overwrite of script textarea (first run)
-    //ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
     const newHeaderFirst = Object.values(scriptValues).join('\n');
     const baseTextFirst = ocForm.isScriptCache() ? ocForm.loadScriptCache() : (ocForm.scriptArea.value || '');
     ocForm.scriptArea.value = rebuildWithSbatchHeader(baseTextFirst, newHeaderFirst);
@@ -238,22 +231,12 @@ ocForm.updateValues = function(fromId) {
     ocForm.updateSubmitContents(submitValues);
 
     // Overwrite of script textarea (subsequent runs)
-    //ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
     const newHeaderNext = Object.values(scriptValues).join('\n');
-    //ocForm.scriptArea.value = rebuildWithSbatchHeader(ocForm.scriptArea.value || '', newHeaderNext);
     ocForm.scriptArea.value = rebuildWithSbatchHeader2(ocForm.scriptArea.value || '', newHeaderNext);
 
     // Overwrite of submit textarea (subsequent runs)
     ocForm.submitArea.value = Object.values(submitValues).join('\n')
   }
-
-  // Add a newline if it is not the last one
-  //if (!ocForm.scriptArea.value.endsWith('\n')){
-  //  ocForm.scriptArea.value += '\n';
-  //}
-  //if (!ocForm.submitArea.value.endsWith('\n')){
-  //  ocForm.submitArea.value += '\n';
-  //}
 
   // Height adjustments
   ocForm.updateHeight(ocForm.scriptArea);
