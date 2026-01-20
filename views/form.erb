@@ -174,7 +174,7 @@ function splitText(text){
 }
 
 // Temporary function to test changes
-function rebuildWithSbatchHeader2(currentText, headerText) {
+function rebuildWithSbatchHeader(currentText, headerText) {
   console.group("test function");
   
   const { shebang: currentShebang, header: currentHeader, body: currentBody } = splitText(currentText);
@@ -208,59 +208,10 @@ function rebuildWithSbatchHeader2(currentText, headerText) {
   return finalText;
 }
 
-// Header helper: rewrite ONLY lines that start with "#SBATCH"
-function rebuildWithSbatchHeader(currentText, headerText) {
-  const current = (currentText ?? '').toString();
-  const lines = current.split('\n');
-  const hasShebang = lines.length>0 && lines[0].startsWith('#!');
-
-  const header = (headerText ?? '').toString();
-  const headerLines = header.split('\n');
-  const headerShebang = headerLines.find(l => l.startsWith('#!')) || '';
-  const headerSbatch  = headerLines.filter(l => l.trim().startsWith('#SBATCH'));
-  const cleanHeader = headerSbatch.join('\n');
-
-  // Find indices of all existing #SBATCH lines
-  const sbatchIdxs = [];
-  for (let i=0; i<lines.length; i++) {
-    if (lines[i].trim().startsWith('#SBATCH')) sbatchIdxs.push(i);
-  }
-
-  // Case A: Existing #SBATCH lines found — replace them with the new header
-  if (sbatchIdxs.length > 0) {
-    const firstIdx = Math.min(...sbatchIdxs);
-    // Prefix: everything before the first #SBATCH line (kept as-is)
-    const prefix = lines.slice(0, firstIdx).join('\n').replace(/\n+$/, '');
-    // Body: every line EXCEPT those starting with #SBATCH (kept as-is and in original order
-    const bodyLines = lines.filter(l => !l.trim().startsWith('#SBATCH'));
-    // Remove the prefix portion from bodyLines to avoid duplication
-    const prefixLineCount = prefix ? prefix.split('\n').length : 0;
-    const suffix = bodyLines.slice(prefixLineCount).join('\n').replace(/^\n+/, '');
-
-    const parts = [];
-    parts.push(prefix ? prefix + '\n' + cleanHeader : cleanHeader);
-    if (suffix) parts.push(suffix);
-
-    return parts.join('\n\n').replace(/\n{3,}/g, '\n\n');
-  }
-
-  // Case B: No #SBATCH lines — insert header near shebang or at the top
-  if (hasShebang) {
-    const shebang = lines[0];
-    const rest = lines.slice(1).join('\n').trim();
-    return [shebang + '\n' + cleanHeader, rest].filter(s => s && s !== '').join('\n\n').replace(/\n{3,}/g, '\n\n');
-  }
-
-  // No shebang: put header at top and keep all user text below
-  const shebangToUse = headerShebang || '';
-  const body = current.trim();
-  if (shebangToUse) return [shebangToUse + '\n' + cleanHeader, body].filter(s => s && s !== '').join('\n\n');
-  return [cleanHeader, body].filter(s => s && s !== '').join('\n\n');
-}
-
 ocForm.isFirst = true;
 ocForm.multiSelectDisabledIndexes = {};
 ocForm.updateValues = function(fromId) {
+  console.group("updateValues");
   let scriptValues = [];
   let submitValues = [];
   ocForm.initDynamicWidget(fromId);
@@ -276,8 +227,7 @@ ocForm.updateValues = function(fromId) {
     //ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
     const newHeaderFirst = Object.values(scriptValues).join('\n');
     const baseTextFirst = ocForm.isScriptCache() ? ocForm.loadScriptCache() : (ocForm.scriptArea.value || '');
-    //ocForm.scriptArea.value = rebuildWithSbatchHeader(baseTextFirst, newHeaderFirst);
-    ocForm.scriptArea.value = rebuildWithSbatchHeader2(baseTextFirst, newHeaderFirst);
+    ocForm.scriptArea.value = rebuildWithSbatchHeader(baseTextFirst, newHeaderFirst);
 
     // Overwrite of submit textarea (first run)
     ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : Object.values(submitValues).join('\n');
@@ -308,6 +258,7 @@ ocForm.updateValues = function(fromId) {
   // Height adjustments
   ocForm.updateHeight(ocForm.scriptArea);
   ocForm.updateHeight(ocForm.submitArea);
+  console.groupEnd();
 };
 
 window.onload = ocForm.updateValues();
