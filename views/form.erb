@@ -166,8 +166,8 @@ function splitText(text){
     for (const line of lines) {
       const trimmed = line.trim();
       if (!shebang && trimmed.startsWith("#!")) { shebang = trimmed; }
-      else if (trimmed.startsWith("#SBATCH")) { header.push(line); }
-      else { body.push(line); }
+      else if (trimmed.startsWith("#SBATCH")) { header.push(trimmed); }
+      else { body.push(trimmed); }
     }
 
     return { shebang, header, body }
@@ -191,8 +191,12 @@ function rebuildWithSbatchHeader2(currentText, headerText) {
         ...(hasTopSection && (finalBody.length>0) ? [""] : []),
         ...finalBody
       ];
-      const finalText = combined.join("\n").replace(/\n{2,}/g, "\n").trimEnd();
+      const finalText = combined.join("\n").replace(/\n{2,}/g, "\n");
 
+      console.log("finalShebang", finalShebang)
+      console.log("finalHeader",finalHeader)
+      console.log("finalBody",finalBody)
+      console.log("combined",combined)
       console.log("finalText", finalText);
       console.groupEnd();
 }
