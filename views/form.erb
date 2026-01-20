@@ -184,16 +184,16 @@ function rebuildWithSbatchHeader2(currentText, headerText) {
       const finalHeader = renderedHeader?.length>0 ? renderedHeader : currentHeader?.length>0 ? currentHeader : [];
       const finalBody = (renderedBody.length===0 && currentBody.length===0) ? [] : [...renderedBody, ...(renderedBody.length>0 && currentBody.length>0 ? [""] : []), ...currentBody];
       
-      const hasTopSection = (finalShebang?.trim() !== '') || (finalHeader.length > 0);
+      const hasTopSection = (finalShebang?.trim()!=='') || (finalHeader.length>0);
       const combined = [
         ...(finalShebang ? [finalShebang] : []),
         ...finalHeader,
         ...(hasTopSection && (finalBody.length>0) ? [""] : []),
         ...finalBody
       ];
-      const finalText = combined.join("\n").replace(/\n{2,}/g, "\n").trim();
+      const finalText = combined.join("\n").replace(/\n{2,}/g, "\n").trimEnd();
 
-      console.log(finalText);
+      console.log("finalText", finalText);
       console.groupEnd();
 }
 

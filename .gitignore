@@ -1,5 +1,6 @@
 # General
 .DS_Store
+.swp
 
 # bundle
 Gemfile.lock
