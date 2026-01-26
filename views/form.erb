@@ -178,15 +178,6 @@ function rebuildWithSbatchHeader(currentText, headerText) {
   const { shebang: currentShebang, header: currentHeader, body: currentBody } = splitText(currentText);
   const { shebang: renderedShebang, header: renderedHeader, body: renderedBody } = splitText(headerText);
 
-  console.group("rebuildWithSbatchHeader");
-  console.log("currentShebang", currentShebang);
-  console.log("currentHeader", currentHeader);
-  console.log("currentBody", currentBody);
-  console.log("renderedShebang", renderedShebang);
-  console.log("renderedHeader", renderedHeader);
-  console.log("renderedBody", renderedBody);
-  console.groupEnd();
-
   const finalShebang = renderedShebang ? renderedShebang : currentShebang || '';
   const finalHeader = renderedHeader?.length>0 ? renderedHeader : currentHeader?.length>0 ? currentHeader : [];
 
@@ -194,11 +185,14 @@ function rebuildWithSbatchHeader(currentText, headerText) {
   const filteredCurrentBody  = currentBody.filter(item => item.trim() !== "");
   let finalBody;
   if (filteredRenderedBody.length === 0 && filteredCurrentBody.length === 0) { finalBody = []; }
-  else if (filteredRenderedBody.length === 0) { finalBody = currentBody; }
-  else if (filteredCurrentBody.length === 0) { finalBody = renderedBody; }
-  else { finalBody = [...renderedBody, "", ...currentBody]; }
-  if (finalBody[0] === "") { finalBody.shift(); }
-  if (finalBody.at(-1) === "") { finalBody.pop(); }
+  else if (filteredCurrentBody.length>0) { finalBody = currentBody; } // Give priority to currentBody if not empty
+  else { finalBody = renderedBody; }
+  if (finalBody[0] === "") { finalBody.shift(); } // Remove first line if empty (it will be introduced if hasTopSection)
+  if (finalBody.at(-1) === "") { finalBody.pop(); } // Remove empty line at the end
+
+  console.group("rebuildWithSbatchHeader");
+  console.log("finalBody", finalBody);
+  console.groupEnd();
 
   const hasTopSection = (finalShebang?.trim()!=='') || (finalHeader.length>0);
   const combined = [
