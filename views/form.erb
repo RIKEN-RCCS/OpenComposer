@@ -91,6 +91,7 @@
     </div>
   </div>
 </form>
+
 <script>
 var ocForm = ocForm || {};
 ocForm.scriptArea = document.getElementById('<%= OC_SCRIPT_CONTENT %>');
@@ -169,6 +170,8 @@ function splitText(text){
       else if (trimmed.startsWith("#SBATCH")) { header.push(trimmed); }
       else if (body.at(-1)!="" || trimmed!="") { body.push(trimmed); }
     }
+
+    if (body.length === 1 && body[0] === "") return { shebang, header, body: [] };
 
     return { shebang, header, body }
 }
