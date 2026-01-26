@@ -97,7 +97,29 @@ var ocForm = ocForm || {};
 ocForm.scriptArea = document.getElementById('<%= OC_SCRIPT_CONTENT %>');
 ocForm.submitArea = document.getElementById('<%= SUBMIT_CONTENT %>');
 </script>
+
 <script src="form.js"></script>
+
+<%
+require "yaml"
+require "erb"
+require "pathname"
+
+app_root  = Pathname.new(__dir__).join("..").expand_path
+conf_path = app_root.join("conf.yml.erb")
+
+conf_hash =
+  if conf_path.exist?
+    rendered = ERB.new(conf_path.read).result(binding)
+    YAML.safe_load(rendered) || {}
+  else
+    {}
+  end
+
+# If scheduler is missing, this becomes "slurm"
+scheduler = conf_hash.fetch("scheduler", "slurm")
+%>
+
 <script>
 // Executes functions that should run once.
 ocForm.onceExec = function() {
@@ -156,7 +178,7 @@ document.addEventListener('keydown', function(event) {
   }
 });
 
-// Split text into shebang, header (SBATCH lines) and body
+// Split text into shebang, header (scheduler directive lines lines) and body
 function splitText(text){
     text = (text ?? '').toString();
     const lines = text.split('\n');
@@ -164,10 +186,23 @@ function splitText(text){
     const header = [];
     const body = [];
 
+    // Choose a directive for the header depending on the scheduler selected in conf.yml.erb
+    const scheduler = "<%= scheduler.to_s %>".trim().toLowerCase();
+    let directive;
+    if (scheduler === "slurm") { directive = "#SBATCH"; }
+    else if (scheduler === "pbs" || scheduler === "pbspro" || scheduler === "torque") { directive = "#PBS"; }
+    else if (scheduler === "grid_engine" || scheduler === "sge") { directive = "#$"; }
+    else if (scheduler === "lsf") { directive = "#BSUB"; }
+    else { directive = "#SBATCH"; }
+
+    console.group("splitText")
+    console.log("directive", directive)
+    console.groupEnd()
+
     for (const line of lines) {
       const trimmed = line.trim();
       if (!shebang && trimmed.startsWith("#!")) { shebang = trimmed; }
-      else if (trimmed.startsWith("#SBATCH")) { header.push(trimmed); }
+      else if (trimmed.startsWith(directive)) { header.push(trimmed); }
       else if (body.at(-1)!="" || trimmed!="") { body.push(trimmed); }
     }
 
