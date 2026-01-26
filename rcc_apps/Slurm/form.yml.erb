@@ -1,0 +1,208 @@
+<%
+require 'open3'
+
+class SlurmAccounts
+  def self.accounts
+    return @accounts if defined?(@accounts) && @accounts.is_a?(Array)
+
+    user = ENV['USER'] || ''
+    cmd = "/opt/slurm/bin/sacctmgr -nP show assoc user=#{user} format=account"
+
+    out, err, st = Open3.capture3(cmd)
+
+    if st.success? && out && !out.strip.empty?
+      accounts = out.to_s.split(/\s+/).reject(&:empty?).uniq
+    else
+      accounts = [""]
+    end
+
+    @accounts = Array(accounts)
+  end
+end
+
+accounts = SlurmAccounts.accounts
+accounts_size = accounts.size
+first_account = accounts[0]
+%>
+---
+form:
+  account:
+    label: "SLURM Account"
+    required: true
+<% if accounts_size == 1 && first_account == "" %>
+    widget: text
+<% else %>
+    widget: select
+    options:
+<% (0...accounts_size).each do |i| %>
+    - ["<%= accounts[i] %>", "<%= accounts[i] %>"]
+<% end %>
+<% end %>
+
+  partition:
+    widget: select
+    label: Partition
+    required: true
+    options:
+      - [ Normal, normal, 
+          hide-show_gpus_option, 
+          disable-cores2,
+          disable-gpus,
+          disable-gpus2,
+          disable-gpus_type ]
+      - [ High memory, bigmem, 
+          hide-show_mpi_option,
+          hide-nodes_tasks,
+          hide-show_gpus_option, 
+          disable-cores2,
+          disable-gpus,
+          disable-gpus2,
+          disable-gpus_type ]
+      - [ GPU, gpu,
+          hide-show_mpi_option,
+          hide-nodes_tasks,
+          hide-show_cores_option, 
+          disable-cores ]
+
+  show_cores_option:
+    widget: checkbox
+    options:
+      - [ "My job runs in parallel (multi-threaded)", "", show-cores ]
+
+  cores:
+    widget: number
+    label: "Number of threads (1 - 48)"
+    indent: 1
+    min: 1
+    max: 48
+    step: 1
+
+  show_gpus_option:
+    widget: checkbox
+    options:
+      - [ "My job runs in parallel (multi-threaded)", "", show-gpus_type, show-gpus, show-cores2 ]
+
+  gpus_type:
+    widget: select
+    label: "GPU type"
+    value: "First available"
+    options:
+      - [ "First available", "", disable-gpus2 ]
+      - [ "v100", "v100", show-gpus2, disable-gpus ]
+      - [ "a40", "a40", show-gpus2, disable-gpus ]
+      - [ "l40s", "l40s", show-gpus2, disable-gpus, set-label-gpus2: "Number of gpus (1 - 8)", set-max-gpus2: 8, seet-max-gpus: 4, set-label-cores2: "Threads per gpu (1 - 128)", set-max-cores2: 128 ]
+    help: Most jobs will NOT benefit from specifying a GPU type. Instead, it may potentially delay scheduling your job. Select 'First available' unless your program requires a specific type of GPU.
+
+  gpus:
+    widget: number
+    label: "Number of gpus (1 - 4)"
+    indent: 1
+    value: 1
+    min: 1
+    max: 4
+    step: 1
+
+  gpus2:
+    widget: number
+    label: "Number of gpus (1 - 4)"
+    indent: 1
+    value: 1
+    min: 1
+    max: 4
+    step: 1
+
+  cores2:
+    widget: number
+    label: "Threads per gpu (1 - 48)"
+    indent: 1
+    value: 1
+    min: 1
+    max: 48
+    step: 1
+
+  show_mpi_option:
+    widget: checkbox
+    options:
+      - [ "My job uses MPI", "", show-nodes_tasks ]
+
+  nodes_tasks:
+    widget: number
+    label: [ "Number of nodes (1 - 30)", "Number of tasks (1 - 48)" ]
+    size: 2
+    indent: 1
+    value: [ 1, 1 ]
+    min: [ 1, 1 ]
+    max: [ 30, 48 ]
+    step: [ 1, 1 ]
+
+  time:
+    widget: number
+    label: "Walltime hours (1 - 168)"
+    required: true
+    value: 2
+    min: 1
+    max: 168
+    step: 1
+
+  show_array_option:
+    widget: checkbox
+    options:
+      - [ "Show array options", "", show-array ]
+
+  array:
+    widget: number
+    label: [ "Array Job", [start index, last index] ]
+    size: 2
+    indent: 1
+    min: [0, 0]
+    help: Each job executed from an array job is assigned a task ID, which can be referenced in the shell script via the environment variable SLURM_ARRAY_TASK_ID.
+
+  show_mail_option:
+    widget: checkbox
+    options:
+      - [ "Show email options", "", show-mail_option, show-email ]
+    
+  mail_option:
+    widget: checkbox
+    label: "Mail option"
+    direction: horizontal
+    separator: ","
+    indent: 1
+    options:
+      - [ "Beginning of job execution", 'BEGIN',   enable-email ]
+      - [ "End of job execution",       'END',     enable-email ]
+      - [ "Fail of job",                'FAIL',    enable-email ]
+      - [ "All",                        'ALL',     enable-email ]
+      
+  email:
+    widget: email
+    label: Email
+    value: <%= ENV['USER'] %>@mcw.edu
+    indent: 2
+
+script: |
+  #!/bin/bash
+  #SBATCH --account=#{account}
+  #SBATCH --partition=#{partition}
+  #SBATCH --nodes=#{nodes_tasks_1}
+  #SBATCH --ntasks=#{nodes_tasks_2}
+  #SBATCH --cpus-per-task=#{cores}
+  #SBATCH --cpus-per-task=#{calc(gpus * cores2)}
+  #SBATCH --cpus-per-task=#{calc(gpus2 * cores2)}
+  #SBATCH --gres=gpu:#{gpus}
+  #SBATCH --gres=gpu:#{gpus_type}:#{gpus2}
+  #SBATCH --time=#{zeropadding(time,2)}:00:00
+  #SBATCH --mail-user=#{email}
+  #SBATCH --mail-type=#{mail_option}
+  #SBATCH --array=#{array_1}-#{array_2}
+
+check: |
+  index1_int = @array_1.to_i
+  index2_int = @array_2.to_i
+  msg_if_false = "Last index of array must be greater than start index."
+  oc_assert((index1_int==0 && index2_int==0) || index1_int<index2_int, msg_if_false)
+
+submit: |
+  #!/bin/bash
+
+  #{OC_SUBMIT_OPTIONS}=" -J "#{OC_JOB_NAME}

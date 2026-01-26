@@ -190,10 +190,6 @@ function rebuildWithSbatchHeader(currentText, headerText) {
   if (finalBody[0] === "") { finalBody.shift(); } // Remove first line if empty (it will be introduced if hasTopSection)
   if (finalBody.at(-1) === "") { finalBody.pop(); } // Remove empty line at the end
 
-  console.group("rebuildWithSbatchHeader");
-  console.log("finalBody", finalBody);
-  console.groupEnd();
-
   const hasTopSection = (finalShebang?.trim()!=='') || (finalHeader.length>0);
   const combined = [
     ...(finalShebang ? [finalShebang] : []),
