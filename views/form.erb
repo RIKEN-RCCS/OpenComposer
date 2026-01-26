@@ -235,7 +235,7 @@ ocForm.updateValues = function(fromId) {
 
     // Overwrite of script textarea (subsequent runs)
     const newHeaderNext = Object.values(scriptValues).join('\n');
-    ocForm.scriptArea.value = rebuildWithSbatchHeader2(ocForm.scriptArea.value || '', newHeaderNext);
+    ocForm.scriptArea.value = rebuildWithSbatchHeader(ocForm.scriptArea.value || '', newHeaderNext);
 
     // Overwrite of submit textarea (subsequent runs)
     ocForm.submitArea.value = Object.values(submitValues).join('\n')
