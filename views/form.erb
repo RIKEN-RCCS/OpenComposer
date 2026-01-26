@@ -195,10 +195,6 @@ function splitText(text){
     else if (scheduler === "lsf") { directive = "#BSUB"; }
     else { directive = "#SBATCH"; }
 
-    console.group("splitText")
-    console.log("directive", directive)
-    console.groupEnd()
-
     for (const line of lines) {
       const trimmed = line.trim();
       if (!shebang && trimmed.startsWith("#!")) { shebang = trimmed; }
