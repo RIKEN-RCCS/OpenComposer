@@ -75,10 +75,10 @@ per-application `form.yml` files to define job submission forms.
 
 ## Testing
 
-| System      | Site        | Scheduler     | Repository |
-|-------------|-------------|---------------|------------|
-| Fugaku      | RIKEN RCCS  | Fujitsu_TCS   | https://github.com/RIKEN-RCCS/composer_fugaku |
-| R-CCS Cloud | RIKEN RCCS  | Slurm         | https://github.com/RIKEN-RCCS/composer_rccs_cloud |
+| System      | Site        | Scheduler          | Repository |
+|-------------|-------------|--------------------|------------|
+| Fugaku      | RIKEN RCCS  | Fujitsu TCS, Slurm | https://github.com/RIKEN-RCCS/composer_fugaku     |
+| R-CCS Cloud | RIKEN RCCS  | Slurm              | https://github.com/RIKEN-RCCS/composer_rccs_cloud |
 
 
 ## Contributing
@@ -106,5 +106,4 @@ No major limitations are currently known.
 ## Acknowledgments
 
 The authors thank the Open OnDemand community for providing a robust ecosystem for HPC web applications.
-
 Development of Open Composer has been carried out at [RIKEN R-CCS](https://www.r-ccs.riken.jp/en/), with significant contributions from [RIST](https://www.rist.or.jp/ehome.html).
