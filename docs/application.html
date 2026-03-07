@@ -12,7 +12,7 @@
   <div class="container-fluid">
     <nav class="sidebar bg-body-secondary">
       <h5 class="ps-3 pe-1 d-inline">Contents</h5>
-      <ul class="nav flex-column px-3 py-2">
+      <ul class="nav flex-column px-2 py-2">
 	<li class="nav-item"><a href="#intro" class="nav-link">1. Introduction</a></li>
 	<li class="nav-item ms-3"><a href="#manifest" class="nav-link">1.1. manifest.yml</a></li>
         <li class="nav-item ms-3"><a href="#form" class="nav-link">1.2. form.yml</a></li>
@@ -36,6 +36,7 @@
 	<li class="nav-item ms-3"><a href="#save" class="nav-link">5.2. Save file</a></li>
 	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. Hide script</a></li>
 	<li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. Special variables</a></li>
+	<li class="nav-item ms-3"><a href="#overwrite_warning" class="nav-link">5.5. Disable warning</a></li>
 	<li class="nav-item"><a href="#check" class="nav-link">6. Check section</a></li>
 	<li class="nav-item"><a href="#submit" class="nav-link">7. Submit section</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">8. Header section</a></li>
@@ -753,6 +754,19 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
         <li>#{OC_SCRIPT_NAME}: <code>Script Name</code> defined in the <code>header</code> section</li>
         <li>#{OC_JOB_NAME}: <code>Job Name</code> defined in the <code>header</code> section</li>
       </ul>
+
+      <h3 id="overwrite_warning">5.5. Disable warning</h3>
+      <p>
+	After manually modifying the <code>script</code> section, if you attempt to use the widget that edits the <code>script</code> section, the following warning will be displayed.
+      <p>
+	<img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
+      <p>
+	To disable this warning, set <code>overwrite_warning: false</code> in the <code>script</code> section.
+      </p>
+
+      <pre>script:
+  overwrite_warning: false
+  content: |</pre>
       
       <h2 id="check">6. Check section</h2>
       <p>
@@ -919,9 +933,7 @@ queue:
 	    <li>Submit the job script</li>
 	  </ol>
 	</li>
-	<li>When developing Open Composer with general user privileges, it is recommended to run Open Composer in development mode. When an error occurs, its cause will be displayed in the web browser. Please edit <code>./run.rb</code> as follows.
-<pre>#set :environment, :production
-set :environment, :development</pre></li>
+	<li>When developing Open Composer with general user privileges, it is recommended to run Open Composer in development mode. When an error occurs, its cause will be displayed in the web browser. Rename <code>dot.htaccess</code> to <code>.htaccess</code>.</li>
       </ul>
     </main>
   </div>

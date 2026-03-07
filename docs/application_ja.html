@@ -12,7 +12,7 @@
   <div class="container-fluid">
     <nav class="sidebar bg-body-secondary">
       <h5 class="ps-3 pe-1 d-inline">目次</h5>
-      <ul class="nav flex-column px-3 py-2">
+      <ul class="nav flex-column px-2 py-2">
 	<li class="nav-item"><a href="#intro" class="nav-link">1. はじめに</a></li>
 	<li class="nav-item ms-3"><a href="#manifest" class="nav-link">1.1. manifest.yml</a></li>
         <li class="nav-item ms-3"><a href="#form" class="nav-link">1.2. form.yml</a></li>
@@ -36,6 +36,7 @@
 	<li class="nav-item ms-3"><a href="#save" class="nav-link">5.2. ファイルの保存</a></li>
 	<li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. 非表示化</a></li>
         <li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. 特殊な変数</a></li>
+	<li class="nav-item ms-3"><a href="#overwrite_warning" class="nav-link">5.5. 警告の無効化</a></li>
 	<li class="nav-item"><a href="#check" class="nav-link">6. checkセクション</a></li>
 	<li class="nav-item"><a href="#submit" class="nav-link">7. submitセクション</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">8. headerセクション</a></li>
@@ -385,9 +386,9 @@ script: |
       <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
           
     <h3 id="functions">2.9. 関数</h3>
-     <p>
-	  <code>script</code>セクションと<code>header</code>セクションで利用できる関数を紹介します。
-	</p>
+      <p>
+	<code>script</code>セクションと<code>header</code>セクションで利用できる関数を紹介します。
+      </p>
     <p>
       関数<code>zeropadding(key, digit)</code>は数値に対してゼロパディングを行います。第2引数<code>digit</code>に指定した桁数に満たない場合、不足分を「0」で埋めます。
     </p>
@@ -436,7 +437,7 @@ script: |
   cd #{dirname(input_file)}
   mpiexec ./#{basename(input_file)}</pre>
       <img width="800" src="img/path3.png" alt="path">
-      
+
       <h2 id="dynamic">3. Dynamic Form Widget</h2>
       <p>
 	ウィジットの設定を動的に変更できます。<code>select</code>、<code>radio</code>、<code>checkbox</code>ウィジットのoptionで設定します。
@@ -698,7 +699,20 @@ script:
       	<li>#{OC_SCRIPT_NAME}: ヘッダで定義されている<code>Script Name</code></li>
         <li>#{OC_JOB_NAME}: ヘッダで定義されている<code>Job Name</code></li>
       </ul>
+
+      <h3 id="overwrite_warning">5.5. 警告の無効化</h3>
+      <p>
+        <code>script</code>セクションを手動で変更した後に、<code>script</code>セクションを変更するウィジットを変更しようとすると、下記のような警告が表示されます。
+      <p>
+        <img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
+      <p>
+        その警告を無効化するには、<code>script</code>セクションで<code>overwrite_warning: false</code>を設定します。
+      </p>
       
+      <pre>script:
+  overwrite_warning: false
+  content: |</pre>
+
       <h2 id="check">6. checkセクション</h2>
       <p>
 	<code>check</code>セクションでは、ウィジットに設定された値のチェックをRuby言語を用いて定義します。このチェックはジョブの投入前に行われます。<code>check</code>セクションでは、関数<code>oc_assert(condition, message)</code>を利用できます。この関数は<code>condition</code>が<code>false</code>の場合、<code>message</code>を出力して処理を終了します。
@@ -850,9 +864,7 @@ queue:
 	    <li>ジョブスクリプトが投入される</li>
 	  </ol>
 	</li>
-	<li>一般ユーザ権限でOpen Composerの開発を行う場合、Open Composerを開発モードに設定すると便利です。エラーが発生した場合、Webブラウザのその原因が表示されます。<code>./run.rb</code>を下記のように編集してください。
-<pre>#set :environment, :production
-set :environment, :development</pre></li>
+	<li>一般ユーザ権限でOpen Composerの開発を行う場合、Open Composerを開発モードに設定すると便利です。エラーが発生した場合、Webブラウザのその原因が表示されます。<code>dot.htaccess</code>を<code>.htaccess</code>にリネームしてください。</li>
       </ul>
     </main>
   </div>
