@@ -113,7 +113,7 @@ helpers do
       html += output_attribute(key, value, i, 'step') if value['widget'] == "number"
       html += output_attribute(key, value, i, 'value')
       html += output_attribute(key, value, i, 'required')
-      html += "oninput=\"ocForm.updateValues('#{id}')\">\n"
+      html += "onfocus=\"ocForm.storePreviousValue('#{id}')\" oninput=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}');})\">\n"
       html += output_help(key, value, i) if value['help'].is_a?(Array)
       html += "</div>\n"
       @table_index += 1
@@ -267,7 +267,7 @@ helpers do
     return "" if value['options'].nil?
     
     html = output_label_with_span_tag(key, value)
-    html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" onchange=\"ocForm.updateValues('#{key}')\">\n"
+    html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" onfocus=\"ocForm.storePreviousValue('#{key}')\" onchange=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}');})\">\n"
     @table_index += 1
     
     value['options'].each_with_index do |v, i|
@@ -307,8 +307,8 @@ helpers do
 
     html += <<~HTML
     <div class="input-group">
-      <input type="text" tabindex=\"#{@table_index}\" class="form-control" id="#{key}" onkeydown="ocForm.handleKeyDown(event, '#{key}')" oninput="ocForm.showSuggestions('#{key}')" onfocus="ocForm.showSuggestions('#{key}', true)" onblur="ocForm.hideSuggestions('#{key}')" data-required=\"#{required}\">
-      <button class="btn btn-dark" id="#{add_button_id}" disabled onclick="ocForm.addSelectedItem('#{key}')">add</button>
+      <input type="text" tabindex=\"#{@table_index}\" class="form-control" id="#{key}" data-widget="multi_select" onkeydown="ocForm.handleKeyDown(event, '#{key}')" oninput="ocForm.showSuggestions('#{key}')" onfocus="ocForm.showSuggestions('#{key}', true)" onblur="ocForm.hideSuggestions('#{key}')" data-required=\"#{required}\">
+      <button type="button" class="btn btn-dark" id="#{add_button_id}" disabled onclick="ocForm.addSelectedItem('#{key}')">add</button>
     </div>
     <ul class="list-group position-absolute w-100" id="#{suggestions_list_id}"></ul>
     <div id="#{selected_items_id}" class="d-flex flex-wrap gap-2 mt-2"></div>
@@ -350,7 +350,7 @@ helpers do
       id = "#{key}_#{i+1}"
       html += <<-HTML
       <div class="#{div_class}">
-        <input type="radio" tabindex="#{@table_index}" id="#{id}" data-value='#{escaped_data}' value="#{escaped_item}" name="#{key}" class="form-check-input" #{checked} #{required} oninput="ocForm.updateValues('#{id}')">
+        <input type="radio" tabindex="#{@table_index}" id="#{id}" data-value='#{escaped_data}' value="#{escaped_item}" name="#{key}" class="form-check-input" #{checked} #{required} onchange="ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})"> 
         <label class="form-check-label" for="#{id}">#{escaped_item}</label>
       </div>
       HTML
@@ -385,7 +385,7 @@ helpers do
       id = "#{key}_#{i+1}"
       html += <<-HTML
       <div class="#{div_class}">
-        <input type="checkbox" tabindex="#{@table_index}" data-value='#{escaped_data}' value="#{escaped_item}" id="#{id}" name="#{id}" class="form-check-input" #{'checked' if checked} #{'required' if required} oninput="ocForm.updateValues('#{id}')">
+        <input type="checkbox" tabindex="#{@table_index}" data-value='#{escaped_data}' value="#{escaped_item}" id="#{id}" name="#{id}" class="form-check-input" #{'checked' if checked} #{'required' if required} onchange="ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})">
         <label class="form-check-label" data-label="#{item_label}" data-required="#{required}" id="label_#{id}" for="#{id}">#{item_label}</label>
       </div>
       HTML
@@ -414,8 +414,8 @@ helpers do
     html  = output_label_with_span_tag(key, value)
     html += <<~HTML
     <div class="d-flex align-items-center">
-      <input type="text" tabindex="#{@table_index}" value="#{current_value}" id="#{key}" name="#{key}" #{required} class="form-control mt-0" oninput="ocForm.updateValues('#{key}')">
-      <button class="btn btn-dark mt-0 text-nowrap" data-bs-toggle="modal" data-bs-target="#modal-#{key}" tabindex="-1" onclick="ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true); return false;">Select Path</button>
+      <input type="text" tabindex="#{@table_index}" value="#{current_value}" id="#{key}" name="#{key}" #{required} class="form-control mt-0" oninput="ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}')})" onfocus="ocForm.storePreviousValue('#{key}')">
+      <button type="button" class="btn btn-dark mt-0 text-nowrap" data-bs-toggle="modal" data-bs-target="#modal-#{key}" tabindex="-1" onclick="ocForm.storePreviousValue('#{key}'); ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true); return false;">Select Path</button>
     </div>
     <div class="modal" id="modal-#{key}">
       <div class="modal-dialog modal-lg" style="overflow-y: initial !important;">
@@ -465,12 +465,12 @@ helpers do
                        <tr class='table-secondary'>
                         <th class='text-center' style="white-space: nowrap; width: 1%;">Type
                           <div class="d-inline">
-                            <button tabindex="-1" style="font-size:8px;" class="btn btn-sm btn-outline-primary p-1" id="oc-modal-button-#{key}-0" onclick="ocForm.toggleSort('#{key}', 0); return false;" data-direction="desc">&#9660;</button>
+                            <button type="button" tabindex="-1" style="font-size:8px;" class="btn btn-sm btn-outline-primary p-1" id="oc-modal-button-#{key}-0" onclick="ocForm.toggleSort('#{key}', 0); return false;" data-direction="desc">&#9660;</button>
                           </div>
                         </th>
                         <th class='text-center'>Name
                           <div class="d-inline">
-                            <button tabindex="-1" style="font-size:8px;" class="btn btn-sm btn-outline-primary p-1" id="oc-modal-button-#{key}-1" onclick="ocForm.toggleSort('#{key}', 1); return false;" data-direction="desc">&#9660;</button>
+                            <button type="button" tabindex="-1" style="font-size:8px;" class="btn btn-sm btn-outline-primary p-1" id="oc-modal-button-#{key}-1" onclick="ocForm.toggleSort('#{key}', 1); return false;" data-direction="desc">&#9660;</button>
                           </div>
                         </th>
                       </tr>
@@ -482,8 +482,8 @@ helpers do
             </div> <!-- <div class="container-fluid"> -->
           </div> <!-- <div class="modal-body"> -->
           <div class="modal-footer">
-            <button class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1" type="button">Close</button>
-            <button class="btn btn-primary" data-bs-dismiss="modal" tabindex="-1" type="button" onclick="ocForm.updatePath('#{key}')">Select Path</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1">Close</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" tabindex="-1" onclick="ocForm.confirmOverwrite('#{key}', function(){ ocForm.updatePath('#{key}') })">Select Path</button>
           </div>
         </div> <!-- <div class="modal-content"> -->
       </div> <!-- <div class="modal-dialog"> -->

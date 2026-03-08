@@ -195,27 +195,32 @@ ocForm.addSelectedItem = function(id, updateValuesFlag = true) {
   const selectedItems = ocForm.getSelectedItems(id);
   const validSuggestions = ocForm.getValidSuggestions(id);
   const selectedText = searchInput.value;
-  const anchors = Array.from(selectedItems.getElementsByTagName('a'));
 
-  if (selectedText && validSuggestions.includes(selectedText)) {
+  const addBadge = () => {
     const badge = document.createElement('a');
     badge.href = "#";
-    badge.classList.add('badge', 'rounded-pill', 'bg-primary', 'p-2', 'text-white', 'text-decoration-none');
+    badge.classList.add('badge','rounded-pill','bg-primary','p-2','text-white','text-decoration-none');
+
     badge.textContent = selectedText;
+
     const validSuggestionItems = ocForm.validSuggestionItems(id);
+
     Array.from(validSuggestionItems).some(li => {
       if (li.textContent.trim() === selectedText) {
-	badge.setAttribute('data-value', li.getAttribute('data-value'));
-	return true; // Escape loop
+        badge.setAttribute('data-value', li.getAttribute('data-value'));
+        return true; // Escape loop
       }
     });
-    
-    badge.addEventListener('click', () => {
-      event.preventDefault(); // Prevent the page from wrapping
-      selectedItems.removeChild(badge);
-      ocForm.updateHiddenValues(id);
-      ocForm.checkSubmitState(id);
-      ocForm.updateValues(id);
+
+    badge.addEventListener('click', (event) => {
+      event.preventDefault();
+      const removeBadge = () => {
+        selectedItems.removeChild(badge);
+        ocForm.updateHiddenValues(id);
+        ocForm.checkSubmitState(id);
+        ocForm.updateValues(id);
+      };
+      ocForm.confirmOverwrite(id, removeBadge);
     });
 
     selectedItems.appendChild(badge);
@@ -223,10 +228,14 @@ ocForm.addSelectedItem = function(id, updateValuesFlag = true) {
     ocForm.checkSubmitState(id);
     searchInput.value = '';
     ocForm.updateAddButtonState(id, validSuggestions);
-    
+
     if (updateValuesFlag) {
       ocForm.updateValues(id);
     }
+  };
+
+  if (selectedText && validSuggestions.includes(selectedText)) {
+    ocForm.confirmOverwrite(id, addBadge);
   }
 };
 

@@ -1,4 +1,5 @@
 require "sinatra"
+require "sinatra/reloader" if ENV.fetch("RACK_ENV", "production") == "development"
 require "yaml"
 require "erb"
 require "pstore"
@@ -8,9 +9,13 @@ require "./lib/form"
 require "./lib/history"
 require "./lib/scheduler"
 
-set :environment, :production
-#set :environment, :development
+set :environment, ENV.fetch("RACK_ENV", "production").to_sym
 set :erb, trim: "-"
+
+configure :development do
+  register Sinatra::Reloader
+  also_reload "./lib/**/*.rb"
+end
 
 # Internal Constants
 VERSION                = "1.9.0-dev"
@@ -31,6 +36,9 @@ FORM_LAYOUT            = "_form_layout"
 SUBMIT_BUTTON          = "_submitButton"
 SUBMIT_CONFIRM         = "_submitConfirm"
 SUBMIT_CONTENT         = "_submit_content"
+WARNING_MODAL          = "_script_warning_modal"
+WARNING_MODAL_CANCEL   = "_script_warning_cancel"
+WARNING_MODAL_DISCARD  = "_script_warning_discard"
 SUBMIT_FORM            = "_submit_form"
 JOB_NAME               = "Job Name"
 JOB_PARTITION          = "Partition"
@@ -254,6 +262,26 @@ def get_form_action(body)
   end
 end
 
+# Determine whether to show the overwrite warning when script content will be regenerated.
+# Default: true
+def get_script_overwrite_warning(body)
+  return true unless body["script"].is_a?(Hash)
+
+  script = body["script"]
+  raw_value = script["overwrite_warning"]
+
+  return true if raw_value.nil?
+  return raw_value if [true, false].include?(raw_value)
+
+  if raw_value.is_a?(String)
+    normalized = raw_value.strip.downcase
+    return true if ["true", "1", "yes", "on"].include?(normalized)
+    return false if ["false", "0", "no", "off"].include?(normalized)
+  end
+
+  !!raw_value
+end
+
 # Create a website of Home, Application, and History.
 def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path = nil)
   @conf          = create_conf
@@ -329,6 +357,7 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
         return erb :error
       end
       @form_action = get_form_action(@body)
+      @script_overwrite_warning_enabled = get_script_overwrite_warning(@body)
 
       # Since the widget name is used as a variable in Ruby, it should consist of only
       # alphanumeric characters and underscores, and numbers should not be used at the

@@ -54,7 +54,7 @@
     <!-- Script Content Section -->
     <div class="col py-3 d-flex flex-column">
       <label id="label_<%= OC_SCRIPT_CONTENT %>" class="fw-semibold" for="<%= OC_SCRIPT_CONTENT %>"><%= @script_label %></label>
-      <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" oninput="ocForm.updateHeight(ocForm.scriptArea)" required>
+      <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control mt-1 mb-3 flex-grow-1" tabindex="<%= @table_index %>" accesskey="s" onchange="ocForm.checkScriptManuallyModified()" oninput="ocForm.updateHeight(ocForm.scriptArea); ocForm.storePreviousValue('<%= OC_SCRIPT_CONTENT %>')" required>
         (Something wrong)
       </textarea>
       <!-- Submit Button -->
@@ -93,6 +93,25 @@
     </div>
   </div>
 </form>
+<!-- Overwrite Warning Modal -->
+<div class="modal fade" id="<%= WARNING_MODAL %>" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Warning</h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Your manual changes in the right text area will be discarded.
+        Do you want to continue?
+      </div>
+      <div class="modal-footer">
+        <button id="<%= WARNING_MODAL_CANCEL %>" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button id="<%= WARNING_MODAL_DISCARD %>" type="button" class="btn btn-danger" data-bs-dismiss="modal">Discard and continue</button>
+      </div>
+    </div>
+  </div>
+</div>
 <script>
 var ocForm = ocForm || {};
 ocForm.scriptArea = document.getElementById('<%= OC_SCRIPT_CONTENT %>');
@@ -158,12 +177,82 @@ document.addEventListener('keydown', function(event) {
 });
 
 ocForm.isFirst = true;
+ocForm.scriptManuallyModified = false;
+ocForm.scriptOverwriteWarningEnabled = <%= @script_overwrite_warning_enabled ? "true" : "false" %>;
+ocForm.previousScript = ""
 ocForm.multiSelectDisabledIndexes = {};
-ocForm.updateValues = function(fromId) {
+ocForm.previousValues = {};
+
+// Save the current value of a form element before modification.
+ocForm.storePreviousValue = function(id) {
+   const element = document.getElementById(id);
+   ocForm.previousValues[id] = element.value;
+};
+
+// Save the current value of a form element before modification.
+ocForm.restorePreviousValue = function(id) {
+  if (ocForm.previousValues[id] !== undefined) {
+    document.getElementById(id).value = ocForm.previousValues[id];
+  }
+};
+
+// Mark that the script textarea was manually edited by the user.
+ocForm.checkScriptManuallyModified = function() {
+  ocForm.scriptManuallyModified = true;
+};
+
+// Show overwrite warning if the script was manually modified.
+// If the user chooses "Discard", execute the provided callback (onDiscard).
+ocForm.confirmOverwrite = function(id, onDiscard) {
+  if (!ocForm.scriptManuallyModified || !ocForm.scriptOverwriteWarningEnabled) {
+    onDiscard();
+    return;
+  }
+
+  const element = document.getElementById(id);
+  let previousRadio = null;
+
+  if (element.type === "radio") {
+    const radios = document.querySelectorAll(`input[name="${element.name}"]`);
+    radios.forEach(r => {
+      if (!r.checked) previousRadio = r.id;
+    });
+  }
+
+  if (!ocForm.overwriteModal) {
+    ocForm.overwriteModal = new bootstrap.Modal(document.getElementById('<%= WARNING_MODAL %>'));
+  }
+  ocForm.overwriteModal.show();
+
+  document.getElementById('<%= WARNING_MODAL_CANCEL %>').onclick = () => {
+    if (element.type === "radio" && previousRadio) {
+      document.getElementById(previousRadio).checked = true;
+    }
+    else if (element.type === "checkbox") {
+      element.checked = !element.checked;
+    }
+    else {
+      ocForm.restorePreviousValue(id);
+    }
+
+    ocForm.restorePreviousValue(ocForm.scriptArea.id);
+    ocForm.initDynamicWidget(id);
+    ocForm.execDynamicWidget(id);
+    ocForm.updateHeight(ocForm.scriptArea);
+    ocForm.scriptManuallyModified = true;
+  };
+
+  document.getElementById('<%= WARNING_MODAL_DISCARD %>').onclick = () => {
+    ocForm.scriptManuallyModified = false;
+    onDiscard();
+  };
+ };
+ 
+ocForm.updateValues = function(id) {
   let scriptValues = [];
   let submitValues = [];
-  ocForm.initDynamicWidget(fromId);
-  ocForm.execDynamicWidget(fromId);
+  ocForm.initDynamicWidget(id);
+  ocForm.execDynamicWidget(id);
 
   if (ocForm.isFirst) {
     ocForm.isFirst = false;
@@ -180,16 +269,9 @@ ocForm.updateValues = function(fromId) {
     ocForm.submitArea.value = Object.values(submitValues).join('\n')
   }
 
-  // Add a newline if it is not the last one
-  //if (!ocForm.scriptArea.value.endsWith('\n')){
-  //  ocForm.scriptArea.value += '\n';
-  //}
-  //if (!ocForm.submitArea.value.endsWith('\n')){
-  //  ocForm.submitArea.value += '\n';
-  //}
   ocForm.updateHeight(ocForm.scriptArea);
   ocForm.updateHeight(ocForm.submitArea);
 };
 
-window.onload = ocForm.updateValues();
+window.onload = ocForm.updateValues;
 </script>
