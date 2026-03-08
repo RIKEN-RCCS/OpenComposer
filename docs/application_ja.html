@@ -40,8 +40,7 @@
 	<li class="nav-item"><a href="#check" class="nav-link">6. checkセクション</a></li>
 	<li class="nav-item"><a href="#submit" class="nav-link">7. submitセクション</a></li>
 	<li class="nav-item"><a href="#header" class="nav-link">8. headerセクション</a></li>
-	<li class="nav-item"><a href="#sample" class="nav-link">9. サンプル</a></li>
-	<li class="nav-item"><a href="#supplement" class="nav-link">10. 補足</a></li>
+	<li class="nav-item"><a href="#supplement" class="nav-link">9. 補足</a></li>
       </ul>
     </nav>
 
@@ -842,15 +841,7 @@ queue:
     - [large]
 &lt;% end %&gt;</pre>
 
-      <h2 id="sample">9. サンプル</h2>
-      <p>アプリケーションのサンプルは下記の通りです。</p>
-      <ul>
-        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps">https://github.com/RIKEN-RCCS/OpenComposer/tree/main/sample_apps</a></li>
-        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_fugaku">https://github.com/RIKEN-RCCS/composer_fugaku</a></li>
-        <li><a target="_blank" href="https://github.com/RIKEN-RCCS/composer_rccs_cloud">https://github.com/RIKEN-RCCS/composer_rccs_cloud</a></li>
-      </ul>
-	  
-      <h2 id="supplement">10. 補足</h2>
+      <h2 id="supplement">9. 補足</h2>
       <ul>
 	<li>本ページのサンプルはすべてbash言語で記述されていますが、他のシェルも利用することができます。ただし、<code>submit</code>セクションだけはbash言語しか記述できません。</li>
 	<li>ウィジット名に利用できるのは英数字とアンダースコアのみです。数字とアンダースコアを先頭に用いることもできません。末尾がアンダースコア+数字のウィジット名（例：<code>nodes_1</code>）も利用しないで下さい。アプリケーションを保存するディレクトリ名も同様です。ただし、<code>header</code>セクションを<code>form.yml</code>で定義する場合、<code>lib/header.yml.erb</code>で用いられているアンダースコアで始まるウィジット名（例：<code>_script_location</code>）は利用可能です。</li>
