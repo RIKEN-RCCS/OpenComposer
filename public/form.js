@@ -1,3 +1,4 @@
+
 // Adjust a textarea height based on the content.
 ocForm.updateHeight = function(area) {
   area.style.height = 'auto';
@@ -94,7 +95,7 @@ ocForm.showSuggestions = function(id, showAll = false) {
 };
 
 // Handle keyboard navigation and selection in the suggestions list.
-ocForm.handleKeyDown = function(event, id) {
+ocForm.handleKeyDown = function(event, id, confirmOverwriteFlag = true) {
   const suggestionsList = ocForm.getSuggestionsList(id);
   const items = suggestionsList.getElementsByClassName('list-group-item');
   let currentIndex = -1;
@@ -120,7 +121,12 @@ ocForm.handleKeyDown = function(event, id) {
     else if (event.key === 'Enter') {
       const input = ocForm.getSearchInput(id);
       if (input.value !== "") {
-	ocForm.addSelectedItem(id);
+        if (confirmOverwriteFlag) {
+          ocForm.addSelectedItem(id);
+	 }
+	else {
+	  ocForm.addSelectedItem(id, false);
+	}
       }
       if (currentIndex >= 0) {
 	input.value = items[currentIndex].textContent;
@@ -190,7 +196,7 @@ ocForm.checkSubmitState = function(id) {
 }
 
 // Add a selected item to the display inputs.
-ocForm.addSelectedItem = function(id, updateValuesFlag = true) {
+ocForm.addSelectedItem = function(id, confirmOverwriteFlag = true) {
   const searchInput = ocForm.getSearchInput(id);
   const selectedItems = ocForm.getSelectedItems(id);
   const validSuggestions = ocForm.getValidSuggestions(id);
@@ -220,7 +226,13 @@ ocForm.addSelectedItem = function(id, updateValuesFlag = true) {
         ocForm.checkSubmitState(id);
         ocForm.updateValues(id);
       };
-      ocForm.confirmOverwrite(id, removeBadge);
+
+     if (confirmOverwriteFlag) {
+       ocForm.confirmOverwrite(id, removeBadge);
+     }
+     else {
+       removeBadge();
+     }
     });
 
     selectedItems.appendChild(badge);
@@ -228,14 +240,16 @@ ocForm.addSelectedItem = function(id, updateValuesFlag = true) {
     ocForm.checkSubmitState(id);
     searchInput.value = '';
     ocForm.updateAddButtonState(id, validSuggestions);
-
-    if (updateValuesFlag) {
-      ocForm.updateValues(id);
-    }
+    ocForm.updateValues(id);
   };
 
   if (selectedText && validSuggestions.includes(selectedText)) {
-    ocForm.confirmOverwrite(id, addBadge);
+    if (confirmOverwriteFlag){
+      ocForm.confirmOverwrite(id, addBadge);
+    }
+    else{
+      addBadge();
+    }
   }
 };
 
@@ -1059,9 +1073,9 @@ ocForm.setValue = function(key, num, widget, attr, value, fromId) {
       }
       break;
     case 'multi_select':
-      if (key !== fromId) {
+	if (key !== fromId) {
         ocForm.getSearchInput(key).value = value;
-        ocForm.addSelectedItem(key, false);
+        ocForm.addSelectedItem(key);
       }
       break;
     case 'radio':
@@ -1087,7 +1101,6 @@ ocForm.setValue = function(key, num, widget, attr, value, fromId) {
 // Update the selected path in the file input.
 ocForm.updatePath = function(key) {
   document.getElementById(key).value = document.getElementById("oc-modal-data-" + key).dataset.path;
-  ocForm.updateValues(key);
 };
 
 // If a checkbox widget has `required: true` attribute and none are checked,

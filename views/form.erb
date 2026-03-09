@@ -124,16 +124,12 @@ ocForm.onceExec = function() {
 <%= @js["once"].chomp %>
 };
 
-// Initialize dynamic form widgets.
-ocForm.initDynamicWidget = function(fromId) {
-<%= @js["init_dw"].lines.map(&:chomp).sort.uniq.join("\n") %>
-};
-
 // Execute dynamic form widgets.
 ocForm.execDynamicWidget = function(fromId) {
+<%= @js["init_dw"].lines.map(&:chomp).sort.uniq.join("\n") %>
 <%= @js["exec_dw"].chomp %>
 };
-
+ 
 // Update the script section.
 ocForm.updateScriptContents = function(selectedValues) {
 <%= @js["script"].chomp %>
@@ -236,7 +232,6 @@ ocForm.confirmOverwrite = function(id, onDiscard) {
     }
 
     ocForm.restorePreviousValue(ocForm.scriptArea.id);
-    ocForm.initDynamicWidget(id);
     ocForm.execDynamicWidget(id);
     ocForm.updateHeight(ocForm.scriptArea);
     ocForm.scriptManuallyModified = true;
@@ -251,7 +246,6 @@ ocForm.confirmOverwrite = function(id, onDiscard) {
 ocForm.updateValues = function(id) {
   let scriptValues = [];
   let submitValues = [];
-  ocForm.initDynamicWidget(id);
   ocForm.execDynamicWidget(id);
 
   if (ocForm.isFirst) {

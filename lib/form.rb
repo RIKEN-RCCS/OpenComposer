@@ -1,3 +1,6 @@
+NONSCRIPT_FROM_COLOR ||= "#FFDB69"
+NONSCRIPT_FROM_COLOR_BUTTON ||= "#FFA000"
+
 helpers do
   # If flag is true, returns "active"; otherwise returns nil.
   def active?(flag)
@@ -60,7 +63,7 @@ helpers do
   end
 
   # Output attributes.
-  def output_attribute(key, value, i, attr)
+  def output_attribute(value, i, attr)
     return "" unless value.key?(attr)
     
     attr_value = value[attr].is_a?(Array) ? value[attr][i] : value[attr]
@@ -90,9 +93,33 @@ helpers do
   def add_indent_style(value)
     value.key?('indent') && (1..5).include?(value['indent'].to_i) ? "padding-left: #{value['indent'].to_i * 1.2}em;" : ""
   end
-  
+
+# Check if #{...} expressions reference key/key_i or if options contain flags
+  def script_or_options_have_flag?(script_content, key, options = nil)
+    n = options&.map { |opt| opt[1].is_a?(Array) ? opt[1].size : 0 }&.max || 0
+    
+    script_match =
+      script_content&.scan(/\#\{([^}]*)\}/)&.any? do |m|
+      expr = m[0]
+      (0..n).any? do |i|
+        k = i == 0 ? key.to_s : "#{key}_#{i}"
+        expr.match?(/\b:?#{Regexp.escape(k)}\b/)
+      end
+    end
+    
+    option_match =
+      options&.any? do |opt|
+      opt&.drop(2)&.any? do |v|
+        v.is_a?(String) && v.start_with?("disable-", "enable-") ||
+          v.is_a?(Hash) && v.keys.any? { |k| k.start_with?("set-value-") }
+      end
+    end
+    
+    !!(script_match || option_match)
+  end
+
   # Output a number, text, or email widget.
-  def output_number_text_email_html(key, value)
+  def output_number_text_email_html(key, value, script_content)
     size = value.key?('size') ? value['size'] : 1
     html  = "<div class=\"row g-1 gx-3\">\n"
     if !value['label'].is_a?(Array) || value['label'].dig(1).is_a?(Array)
@@ -106,14 +133,18 @@ helpers do
         html += output_label_with_label_tag(key, value, i)
       else
         html += "<div class=\"col mt-0\">\n"
-      end
+      end      
       html += "<input type=\"#{value['widget']}\" class=\"form-control\" tabindex=\"#{@table_index}\" id=\"#{id}\" name=\"#{id}\" "
-      html += output_attribute(key, value, i, 'min')  if value['widget'] == "number"
-      html += output_attribute(key, value, i, 'max')  if value['widget'] == "number"
-      html += output_attribute(key, value, i, 'step') if value['widget'] == "number"
-      html += output_attribute(key, value, i, 'value')
-      html += output_attribute(key, value, i, 'required')
-      html += "onfocus=\"ocForm.storePreviousValue('#{id}')\" oninput=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}');})\">\n"
+      html += output_attribute(value, i, 'min')  if value['widget'] == "number"
+      html += output_attribute(value, i, 'max')  if value['widget'] == "number"
+      html += output_attribute(value, i, 'step') if value['widget'] == "number"
+      html += output_attribute(value, i, 'value')
+      html += output_attribute(value, i, 'required')
+      if script_or_options_have_flag?(script_content, id)
+        html += "onfocus=\"ocForm.storePreviousValue('#{id}')\" oninput=\"ocForm.confirmOverwrite('#{id}',function(){ocForm.updateValues('#{id}');})\">\n"
+      else
+        html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
+      end
       html += output_help(key, value, i) if value['help'].is_a?(Array)
       html += "</div>\n"
       @table_index += 1
@@ -261,13 +292,18 @@ helpers do
       return "  selectedValues.push('#{line}');\n"
     end
   end
-
-  # Output a select widget.
-  def output_select_html(key, value)
-    return "" if value['options'].nil?
     
+  # Output a select widget.
+  def output_select_html(key, value, script_content)
+    return "" if value['options'].nil?
+
     html = output_label_with_span_tag(key, value)
-    html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" onfocus=\"ocForm.storePreviousValue('#{key}')\" onchange=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}');})\">\n"
+    html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" "
+    if script_or_options_have_flag?(script_content, key, value['options'])
+      html += "onfocus=\"ocForm.storePreviousValue('#{key}')\" onchange=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}');})\">\n"
+    else
+      html += "onchange=\"ocForm.execDynamicWidget('#{key}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
+    end
     @table_index += 1
     
     value['options'].each_with_index do |v, i|
@@ -284,7 +320,7 @@ helpers do
   end
 
   # Output a multi-select widget.
-  def output_multi_select_html(key, value)
+  def output_multi_select_html(key, value, script_content)
     return "" if value['options'].nil?
     
     search_input_id      = key
@@ -305,10 +341,16 @@ helpers do
     end
     html += "</ul>\n"
 
-    html += <<~HTML
-    <div class="input-group">
-      <input type="text" tabindex=\"#{@table_index}\" class="form-control" id="#{key}" data-widget="multi_select" onkeydown="ocForm.handleKeyDown(event, '#{key}')" oninput="ocForm.showSuggestions('#{key}')" onfocus="ocForm.showSuggestions('#{key}', true)" onblur="ocForm.hideSuggestions('#{key}')" data-required=\"#{required}\">
-      <button type="button" class="btn btn-dark" id="#{add_button_id}" disabled onclick="ocForm.addSelectedItem('#{key}')">add</button>
+    html += "<div class=\"input-group\">\n"
+    html += "<input type=\"text\" tabindex=\"#{@table_index}\" class=\"form-control\" id=\"#{key}\" data-widget=\"multi_select\" oninput=\"ocForm.showSuggestions('#{key}')\" onfocus=\"ocForm.showSuggestions('#{key}', true)\" onblur=\"ocForm.hideSuggestions('#{key}')\" data-required=\"#{required}\" "
+    if script_or_options_have_flag?(script_content, key, value['options'])
+      html += "onkeydown=\"ocForm.handleKeyDown(event, '#{key}')\">\n"
+      html += "<button type=\"button\" class=\"btn btn-dark\" id=\"#{add_button_id}\" disabled onclick=\"ocForm.addSelectedItem('#{key}')\">add</button>\n"
+    else
+      html += "onkeydown=\"ocForm.handleKeyDown(event, '#{key}', false)\" style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
+      html += "<button type=\"button\" class=\"btn btn-dark\" id=\"#{add_button_id}\" disabled onclick=\"ocForm.addSelectedItem('#{key}', false)\">add</button>\n"
+    end
+    html += <<-HTML
     </div>
     <ul class="list-group position-absolute w-100" id="#{suggestions_list_id}"></ul>
     <div id="#{selected_items_id}" class="d-flex flex-wrap gap-2 mt-2"></div>
@@ -320,7 +362,7 @@ helpers do
   end
 
   # Output a JavaScript code to prepopulate the multi-select input with existing values.
-  def output_multi_select_js(key, value)
+  def output_multi_select_js(key, value, script_content)
     return "" unless value.key?('value') && !value['value'].to_s.empty?
     
     values = value['value'].is_a?(Array) ? value['value'] : [value['value']]
@@ -328,14 +370,14 @@ helpers do
     values.each do |v|
       js += "  textarea.innerHTML = '#{escape_html(v)}';\n"
       js += "  ocForm.getSearchInput('#{key}').value = textarea.value;\n"
-      js += "  ocForm.addSelectedItem('#{key}', false);\n"
+      js += "  ocForm.addSelectedItem('#{key}', #{script_or_options_have_flag?(script_content, key, value['options'])});\n"
     end
     
     return js
   end
 
   # Output a radio widget.
-  def output_radio_html(key, value)
+  def output_radio_html(key, value, script_content)
     return "" if value['options'].nil?
     
     is_horizontal = value['direction'] == "horizontal"
@@ -348,12 +390,15 @@ helpers do
       escaped_data = escape_html(data_value)
       escaped_item = escape_html(v[0])
       id = "#{key}_#{i+1}"
-      html += <<-HTML
-      <div class="#{div_class}">
-        <input type="radio" tabindex="#{@table_index}" id="#{id}" data-value='#{escaped_data}' value="#{escaped_item}" name="#{key}" class="form-check-input" #{checked} #{required} onchange="ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})"> 
-        <label class="form-check-label" for="#{id}">#{escaped_item}</label>
-      </div>
-      HTML
+      html += "<div class=\"#{div_class}\">\n"
+      html += "<input type=\"radio\" tabindex=\"#{@table_index}\" id=\"#{id}\" data-value='#{escaped_data}' value=\"#{escaped_item}\" name=\"#{key}\" class=\"form-check-input\" #{checked} #{required} "
+      if script_or_options_have_flag?(script_content, key, value['options'])
+        html += "onchange=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})\">\n"
+      else
+        html += "onchange=\"ocForm.execDynamicWidget('#{id}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
+      end
+      html += "<label class=\"form-check-label\" for=\"#{id}\">#{escaped_item}</label>\n"
+      html +="</div>\n"
     end
 
     @table_index += 1
@@ -361,7 +406,7 @@ helpers do
   end
 
   # Output a checkbox widget.
-  def output_checkbox_html(key, value)
+  def output_checkbox_html(key, value, script_content)
     return "" if value['options'].nil?
     
     is_horizontal = value['direction'] == "horizontal"
@@ -383,12 +428,15 @@ helpers do
       escaped_item = escape_html(v[0])
       item_label = "#{escaped_item}#{required ? '*' : ''}"
       id = "#{key}_#{i+1}"
-      html += <<-HTML
-      <div class="#{div_class}">
-        <input type="checkbox" tabindex="#{@table_index}" data-value='#{escaped_data}' value="#{escaped_item}" id="#{id}" name="#{id}" class="form-check-input" #{'checked' if checked} #{'required' if required} onchange="ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})">
-        <label class="form-check-label" data-label="#{item_label}" data-required="#{required}" id="label_#{id}" for="#{id}">#{item_label}</label>
-      </div>
-      HTML
+      html += "<div class=\"#{div_class}\">\n"
+      html += "<input type=\"checkbox\" tabindex=\"#{@table_index}\" data-value='#{escaped_data}' value=\"#{escaped_item}\" id=\"#{id}\" name=\"#{id}\" class=\"form-check-input\" #{'checked' if checked} #{'required' if required} "
+      if script_or_options_have_flag?(script_content, key, value['options'])
+        html += "onchange=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})\">\n"
+      else
+        html += "onchange=\"ocForm.execDynamicWidget('#{id}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
+      end
+      html += "<label class=\"form-check-label\" data-label=\"#{item_label}\" data-required=\"#{required}\" id=\"label_#{id}\" for=\"#{id}\">#{item_label}</label>\n"
+      html += "</div>\n"
 
       @table_index += 1
     end
@@ -403,7 +451,7 @@ helpers do
   end
   
   # Output a path widget.
-  def output_path_html(key, value)
+  def output_path_html(key, value, script_content)
     favorites = value['favorites'] ? value['favorites'].select { |path| File.exist?(path) } : []
     current_value = escape_html(value['value']) || ""
     current_path = escape_html(value['value']) || Dir.home
@@ -412,9 +460,14 @@ helpers do
     show_files   = value['show_files'].nil? ? true : value['show_files']
     required     = value['required'].to_s == "true" ? "required" : ""
     html  = output_label_with_span_tag(key, value)
+    html += "<div class=\"d-flex align-items-center\">\n"
+    html += "<input type=\"text\" tabindex=\"#{@table_index}\" value=\"#{current_value}\" id=\"#{key}\" name=\"#{key}\" #{required} class=\"form-control mt-0\" "
+    if script_or_options_have_flag?(script_content, key)
+      html += "oninput=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}')})\" onfocus=\"ocForm.storePreviousValue('#{key}')\">\n"
+    else
+      html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
+    end
     html += <<~HTML
-    <div class="d-flex align-items-center">
-      <input type="text" tabindex="#{@table_index}" value="#{current_value}" id="#{key}" name="#{key}" #{required} class="form-control mt-0" oninput="ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}')})" onfocus="ocForm.storePreviousValue('#{key}')">
       <button type="button" class="btn btn-dark mt-0 text-nowrap" data-bs-toggle="modal" data-bs-target="#modal-#{key}" tabindex="-1" onclick="ocForm.storePreviousValue('#{key}'); ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true); return false;">Select Path</button>
     </div>
     <div class="modal" id="modal-#{key}">
@@ -483,7 +536,15 @@ helpers do
           </div> <!-- <div class="modal-body"> -->
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1">Close</button>
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" tabindex="-1" onclick="ocForm.confirmOverwrite('#{key}', function(){ ocForm.updatePath('#{key}') })">Select Path</button>
+HTML
+    html += "<button type=\"button\" class=\"btn btn-primary\" data-bs-dismiss=\"modal\" tabindex=\"-1\" "
+    if script_or_options_have_flag?(script_content, key)
+      html += "onclick=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateValues('#{key}')})\">Select Path</button>\n"
+    else
+      html += "onclick=\"ocForm.updatePath('#{key}')\">Select Path</button>\n"
+    end
+
+    html += <<-HTML
           </div>
         </div> <!-- <div class="modal-content"> -->
       </div> <!-- <div class="modal-dialog"> -->
@@ -832,6 +893,9 @@ helpers do
     @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "" }
     form = body["form"].merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
     obj = form.merge(header)
+    script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
+    submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
+
     html = ""
     form.each_with_index do |(key, value), index|
       next if key == OC_SCRIPT_CONTENT
@@ -840,25 +904,25 @@ helpers do
       
       case value['widget']
       when 'number', 'text', 'email'
-        html += output_number_text_email_html(key, value)
+        html += output_number_text_email_html(key, value, script_content)
       when 'select'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_select_html(key, value)
+        html += output_select_html(key, value, script_content)
       when 'multi_select'
-        @js["once"] += output_multi_select_js(key, value)
-        html += output_multi_select_html(key, value)
+        @js["once"] += output_multi_select_js(key, value, script_content)
+        html += output_multi_select_html(key, value, script_content)
       when 'radio'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_radio_html(key, value)
+        html += output_radio_html(key, value, script_content)
       when 'checkbox'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         @js["exec_dw"] += output_checkbox_js(key, value)
-        html += output_checkbox_html(key, value)
+        html += output_checkbox_html(key, value, script_content)
       when 'path'
-        html += output_path_html(key, value)
+        html += output_path_html(key, value, script_content)
       end
       
       html += "</div>\n"
@@ -871,7 +935,6 @@ helpers do
       end
     end
 
-    submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
     if !submit_content.nil?
       submit_content.split("\n").each do |line|
         @js["submit"] += output_script_js(obj, line, app_name, dir_name)
@@ -886,6 +949,7 @@ helpers do
     return "" if header.nil? || header.empty?
 
     @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => ""}
+    script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     
     html = ""
     header = header.merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
@@ -897,25 +961,25 @@ helpers do
 
       case value['widget']
       when 'number', 'text', 'email'
-        html += output_number_text_email_html(key, value)
+        html += output_number_text_email_html(key, value, script_content)
       when 'select'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
 	@js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_select_html(key, value)
+        html += output_select_html(key, value, script_content)
       when 'multi_select'
-        @js["once"] += output_multi_select_js(key, value)
-        html += output_multi_select_html(key, value)
+        @js["once"] += output_multi_select_js(key, value, script_content)
+        html += output_multi_select_html(key, value, script_content)
       when 'radio'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_radio_html(key, value)
+        html += output_radio_html(key, value, script_content)
       when 'checkbox'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         @js["exec_dw"] += output_checkbox_js(key, value)
-        html += output_checkbox_html(key, value)
+        html += output_checkbox_html(key, value, script_content)
       when 'path'
-        html += output_path_html(key, value)
+        html += output_path_html(key, value, script_content)
       end
       
       html += "</div>\n"
