@@ -63,7 +63,7 @@ You can access the full documentation below:
 
 ```sh
 cd /var/www/ood/apps/sys
-git clone https://github.com/RIKEN-RCCS/OpenComposer.git
+git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git
 cd OpenComposer
 
 # Pin to a release (recommended)
