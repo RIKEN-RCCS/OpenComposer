@@ -240,9 +240,10 @@ script: |
       <img width="800" src="img/select1.png" alt="select">
       <p>
 	For multi-dimensional values,
-	<code>options</code> can use an array for the second element.
+	<code>options</code> can use an array for the second-element.
 	In this example, <code>#{package_1}</code> and <code>#{package_2}</code> are replaced with the respective first and second values of the selected array.
 	This format is also available for the <code>multi_select</code>, <code>radio</code> and <code>checkbox</code> widgets.
+	Note that the size of the second-element arrays must be the same for all entries.
       </p>
       <pre>form:
   package:
@@ -756,7 +757,7 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
 
       <h3 id="overwrite_warning">5.5. Disable warning</h3>
       <p>
-	After manually modifying the <code>script</code> section, if you attempt to use the widget that edits the <code>script</code> section, the following warning will be displayed.
+	If you manually modify the <code>script</code> or <code>submit</code> sections and then try to modify the widgets that modify them, you will see the following warning:
       <p>
 	<img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
       <p>

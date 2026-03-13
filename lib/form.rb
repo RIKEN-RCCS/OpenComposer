@@ -94,32 +94,35 @@ helpers do
     value.key?('indent') && (1..5).include?(value['indent'].to_i) ? "padding-left: #{value['indent'].to_i * 1.2}em;" : ""
   end
 
-# Check if #{...} expressions reference key/key_i or if options contain flags
-  def script_or_options_have_flag?(script_content, key, options = nil)
+  # Check whether script/submit content references key/key_i or options contain flags
+  def references_key_or_has_flag?(key, options, script_content, submit_content, app_name, dir_name)
     n = options&.map { |opt| opt[1].is_a?(Array) ? opt[1].size : 0 }&.max || 0
-    
-    script_match =
-      script_content&.scan(/\#\{([^}]*)\}/)&.any? do |m|
-      expr = m[0]
-      (0..n).any? do |i|
-        k = i == 0 ? key.to_s : "#{key}_#{i}"
-        expr.match?(/\b:?#{Regexp.escape(k)}\b/)
-      end
-    end
-    
-    option_match =
-      options&.any? do |opt|
-      opt&.drop(2)&.any? do |v|
-        v.is_a?(String) && v.start_with?("disable-", "enable-") ||
-          v.is_a?(Hash) && v.keys.any? { |k| k.start_with?("set-value-") }
-      end
-    end
-    
-    !!(script_match || option_match)
-  end
 
+    check_expr = lambda do |content|
+      content&.scan(/\#\{([^}]*)\}/)&.any? do |m|
+        expr = m[0]
+        (0..n).any? do |i|
+          k = i.zero? ? key.to_s : "#{key}_#{i}"
+          expr.match?(/\b:?#{Regexp.escape(k)}\b/)
+        end
+      end
+    end
+
+    script_match = check_expr.call(substitute_oc_constants(script_content, app_name, dir_name))
+    submit_match = check_expr.call(substitute_oc_constants(submit_content, app_name, dir_name))
+    
+    option_match = options&.any? do |opt|
+      opt&.drop(2)&.any? do |v|
+        (v.is_a?(String) && v.start_with?("disable-", "enable-")) ||
+          (v.is_a?(Hash) && v.keys.any? { |k| k.start_with?("set-value-") })
+      end
+    end
+    
+    !!(script_match || submit_match || option_match)
+  end
+  
   # Output a number, text, or email widget.
-  def output_number_text_email_html(key, value, script_content)
+  def output_number_text_email_html(key, value, script_content, submit_content, app_name, dir_name)
     size = value.key?('size') ? value['size'] : 1
     html  = "<div class=\"row g-1 gx-3\">\n"
     if !value['label'].is_a?(Array) || value['label'].dig(1).is_a?(Array)
@@ -140,7 +143,7 @@ helpers do
       html += output_attribute(value, i, 'step') if value['widget'] == "number"
       html += output_attribute(value, i, 'value')
       html += output_attribute(value, i, 'required')
-      if script_or_options_have_flag?(script_content, id)
+      if references_key_or_has_flag?(id, nil, script_content, submit_content, app_name, dir_name)
         html += "onfocus=\"ocForm.storePreviousValue('#{id}')\" oninput=\"ocForm.confirmOverwrite('#{id}',function(){ocForm.updateValues('#{id}');})\">\n"
       else
         html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
@@ -175,34 +178,57 @@ helpers do
     return name if name.start_with?("OC_ROUNDING_")
     "\#{#{colon ? ':' : ''}#{name}}"
   end
+
+  # Normalize #{ ... } expressions (remove inner whitespace)
+  # e.g. #{ time_1  } -> #{time_1}
+  def normalize_interpolation(str)
+    return str unless str
+    s = str.dup
+    s.gsub!(/#\{\s*(.*?)\s*\}/, '#{\1}')
+    s
+  end
   
-  # Output a JavaScript code based on a given yml, line in script, and matches data.
-  def output_script_js(form, line, app_name, dir_name)
-    # Remove leading and trailing whitespace(e.g. #{ time_1  } -> #{time_1})
-    line.gsub!(/#\{\s*(.*?)\s*\}/, '#{\1}')
+  # Substitute constant variables used in OC templates
+  def substitute_oc_constants(str, app_name, dir_name)
+    return str unless str
+    s = str.dup
     
-    # Substitute constant valiables
-    line.gsub!(/\#\{OC_APP_NAME\}/,         app_name)
-    line.gsub!(/\#\{:OC_APP_NAME\}/,        app_name)
-    line.gsub!(/\#\{OC_DIR_NAME\}/,         dir_name)
-    line.gsub!(/\#\{:OC_DIR_NAME\}/,        dir_name)
-    line.gsub!(/\#\{OC_SCRIPT_LOCATION\}/,  "\#\{#{HEADER_SCRIPT_LOCATION}\}")
-    line.gsub!(/\#\{:OC_SCRIPT_LOCATION\}/, "\#\{:#{HEADER_SCRIPT_LOCATION}\}")
-    line.gsub!(/\#\{OC_CLUSTER_NAME\}/,     "\#\{#{HEADER_CLUSTER_NAME}\}")
-    line.gsub!(/\#\{:OC_CLUSTER_NAME\}/,    "\#\{:#{HEADER_CLUSTER_NAME}\}")
-    line.gsub!(/\#\{OC_SCRIPT_NAME\}/,      "\#\{#{HEADER_SCRIPT_NAME}\}")
-    line.gsub!(/\#\{:OC_SCRIPT_NAME\}/,     "\#\{:#{HEADER_SCRIPT_NAME}\}")
-    line.gsub!(/\#\{OC_JOB_NAME\}/,         "\#\{#{HEADER_JOB_NAME}\}")
-    line.gsub!(/\#\{:OC_JOB_NAME\}/,        "\#\{:#{HEADER_JOB_NAME}\}")
+    s.gsub!(/\#\{OC_APP_NAME\}/,         app_name)
+    s.gsub!(/\#\{:OC_APP_NAME\}/,        app_name)
+    s.gsub!(/\#\{OC_DIR_NAME\}/,         dir_name)
+    s.gsub!(/\#\{:OC_DIR_NAME\}/,        dir_name)
+    s.gsub!(/\#\{OC_SCRIPT_LOCATION\}/,  "\#\{#{HEADER_SCRIPT_LOCATION}\}")
+    s.gsub!(/\#\{:OC_SCRIPT_LOCATION\}/, "\#\{:#{HEADER_SCRIPT_LOCATION}\}")
+    s.gsub!(/\#\{OC_CLUSTER_NAME\}/,     "\#\{#{HEADER_CLUSTER_NAME}\}")
+    s.gsub!(/\#\{:OC_CLUSTER_NAME\}/,    "\#\{:#{HEADER_CLUSTER_NAME}\}")
+    s.gsub!(/\#\{OC_SCRIPT_NAME\}/,      "\#\{#{HEADER_SCRIPT_NAME}\}")
+    s.gsub!(/\#\{:OC_SCRIPT_NAME\}/,     "\#\{:#{HEADER_SCRIPT_NAME}\}")
+    s.gsub!(/\#\{OC_JOB_NAME\}/,         "\#\{#{HEADER_JOB_NAME}\}")
+    s.gsub!(/\#\{:OC_JOB_NAME\}/,        "\#\{:#{HEADER_JOB_NAME}\}")
+    s
+  end
+  
+  # Escape string for embedding into JavaScript
+  def escape_js_string(str)
+    return str unless str
+    s = str.dup
 
     # Escape backslashes (`\`) by replacing each `\` with `\\`.
     # This ensures the backslashes are properly interpreted in JavaScript strings.
-    line.gsub!("\\", "\\\\\\\\")
-    
+    s.gsub!("\\", "\\\\\\\\")
+
     # Escape single quotes (`'`) by replacing each `'` with `\'`.
     # This prevents syntax errors in JavaScript when embedding the string.
-    line.gsub!("'", "\\\\'")
-
+    s.gsub!("'", "\\\\'")
+    s
+  end
+  
+  # Output a JavaScript code based on a given yml, line in script, and matches data.
+  def output_script_js(form, line, app_name, dir_name)
+    line = normalize_interpolation(line)
+    line = substitute_oc_constants(line, app_name, dir_name)
+    line = escape_js_string(line)
+    
     matches = line.scan(/\#\{.+?\}/)
     return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
 
@@ -294,12 +320,12 @@ helpers do
   end
     
   # Output a select widget.
-  def output_select_html(key, value, script_content)
+  def output_select_html(key, value, script_content, submit_content, app_name, dir_name)
     return "" if value['options'].nil?
 
     html = output_label_with_span_tag(key, value)
     html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" "
-    if script_or_options_have_flag?(script_content, key, value['options'])
+    if references_key_or_has_flag?(key, value['options'], script_content, submit_content, app_name, dir_name)
       html += "onfocus=\"ocForm.storePreviousValue('#{key}')\" onchange=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}');})\">\n"
     else
       html += "onchange=\"ocForm.execDynamicWidget('#{key}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
@@ -320,7 +346,7 @@ helpers do
   end
 
   # Output a multi-select widget.
-  def output_multi_select_html(key, value, script_content)
+  def output_multi_select_html(key, value, script_content, submit_content, app_name, dir_name)
     return "" if value['options'].nil?
     
     search_input_id      = key
@@ -343,7 +369,7 @@ helpers do
 
     html += "<div class=\"input-group\">\n"
     html += "<input type=\"text\" tabindex=\"#{@table_index}\" class=\"form-control\" id=\"#{key}\" data-widget=\"multi_select\" oninput=\"ocForm.showSuggestions('#{key}')\" onfocus=\"ocForm.showSuggestions('#{key}', true)\" onblur=\"ocForm.hideSuggestions('#{key}')\" data-required=\"#{required}\" "
-    if script_or_options_have_flag?(script_content, key, value['options'])
+    if references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)
       html += "onkeydown=\"ocForm.handleKeyDown(event, '#{key}')\">\n"
       html += "<button type=\"button\" class=\"btn btn-dark\" id=\"#{add_button_id}\" disabled onclick=\"ocForm.addSelectedItem('#{key}')\">add</button>\n"
     else
@@ -362,7 +388,7 @@ helpers do
   end
 
   # Output a JavaScript code to prepopulate the multi-select input with existing values.
-  def output_multi_select_js(key, value, script_content)
+  def output_multi_select_js(key, value, script_content, submit_content, app_name, dir_name)
     return "" unless value.key?('value') && !value['value'].to_s.empty?
     
     values = value['value'].is_a?(Array) ? value['value'] : [value['value']]
@@ -370,14 +396,14 @@ helpers do
     values.each do |v|
       js += "  textarea.innerHTML = '#{escape_html(v)}';\n"
       js += "  ocForm.getSearchInput('#{key}').value = textarea.value;\n"
-      js += "  ocForm.addSelectedItem('#{key}', #{script_or_options_have_flag?(script_content, key, value['options'])});\n"
+      js += "  ocForm.addSelectedItem('#{key}', #{references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)});\n"
     end
     
     return js
   end
 
   # Output a radio widget.
-  def output_radio_html(key, value, script_content)
+  def output_radio_html(key, value, script_content, submit_content, app_name, dir_name)
     return "" if value['options'].nil?
     
     is_horizontal = value['direction'] == "horizontal"
@@ -392,7 +418,7 @@ helpers do
       id = "#{key}_#{i+1}"
       html += "<div class=\"#{div_class}\">\n"
       html += "<input type=\"radio\" tabindex=\"#{@table_index}\" id=\"#{id}\" data-value='#{escaped_data}' value=\"#{escaped_item}\" name=\"#{key}\" class=\"form-check-input\" #{checked} #{required} "
-      if script_or_options_have_flag?(script_content, key, value['options'])
+      if references_key_or_has_flag?(key, value['options'], script_content, submit_content, app_name, dir_name)
         html += "onchange=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})\">\n"
       else
         html += "onchange=\"ocForm.execDynamicWidget('#{id}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
@@ -406,7 +432,7 @@ helpers do
   end
 
   # Output a checkbox widget.
-  def output_checkbox_html(key, value, script_content)
+  def output_checkbox_html(key, value, script_content, submit_content, app_name, dir_name)
     return "" if value['options'].nil?
     
     is_horizontal = value['direction'] == "horizontal"
@@ -430,7 +456,7 @@ helpers do
       id = "#{key}_#{i+1}"
       html += "<div class=\"#{div_class}\">\n"
       html += "<input type=\"checkbox\" tabindex=\"#{@table_index}\" data-value='#{escaped_data}' value=\"#{escaped_item}\" id=\"#{id}\" name=\"#{id}\" class=\"form-check-input\" #{'checked' if checked} #{'required' if required} "
-      if script_or_options_have_flag?(script_content, key, value['options'])
+      if references_key_or_has_flag?(key, value['options'], script_content, submit_content, app_name, dir_name)
         html += "onchange=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})\">\n"
       else
         html += "onchange=\"ocForm.execDynamicWidget('#{id}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
@@ -451,7 +477,7 @@ helpers do
   end
   
   # Output a path widget.
-  def output_path_html(key, value, script_content)
+  def output_path_html(key, value, script_content, submit_content, app_name, dir_name)
     favorites = value['favorites'] ? value['favorites'].select { |path| File.exist?(path) } : []
     current_value = escape_html(value['value']) || ""
     current_path = escape_html(value['value']) || Dir.home
@@ -462,7 +488,7 @@ helpers do
     html  = output_label_with_span_tag(key, value)
     html += "<div class=\"d-flex align-items-center\">\n"
     html += "<input type=\"text\" tabindex=\"#{@table_index}\" value=\"#{current_value}\" id=\"#{key}\" name=\"#{key}\" #{required} class=\"form-control mt-0\" "
-    if script_or_options_have_flag?(script_content, key)
+    if references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)
       html += "oninput=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}')})\" onfocus=\"ocForm.storePreviousValue('#{key}')\">\n"
     else
       html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
@@ -538,7 +564,7 @@ helpers do
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1">Close</button>
 HTML
     html += "<button type=\"button\" class=\"btn btn-primary\" data-bs-dismiss=\"modal\" tabindex=\"-1\" "
-    if script_or_options_have_flag?(script_content, key)
+    if references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)
       html += "onclick=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateValues('#{key}')})\">Select Path</button>\n"
     else
       html += "onclick=\"ocForm.updatePath('#{key}')\">Select Path</button>\n"
@@ -904,25 +930,25 @@ HTML
       
       case value['widget']
       when 'number', 'text', 'email'
-        html += output_number_text_email_html(key, value, script_content)
+        html += output_number_text_email_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'select'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_select_html(key, value, script_content)
+        html += output_select_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'multi_select'
-        @js["once"] += output_multi_select_js(key, value, script_content)
-        html += output_multi_select_html(key, value, script_content)
+        @js["once"] += output_multi_select_js(key, value, script_content, submit_content, app_name, dir_name)
+        html += output_multi_select_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'radio'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_radio_html(key, value, script_content)
+        html += output_radio_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'checkbox'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         @js["exec_dw"] += output_checkbox_js(key, value)
-        html += output_checkbox_html(key, value, script_content)
+        html += output_checkbox_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'path'
-        html += output_path_html(key, value, script_content)
+        html += output_path_html(key, value, script_content, submit_content, app_name, dir_name)
       end
       
       html += "</div>\n"
@@ -945,11 +971,12 @@ HTML
   end
 
   # Output a header of webform. This function is a shorthand for output_body().
-  def output_header(body, header)
+  def output_header(body, header, app_name="A", dir_name="B")
     return "" if header.nil? || header.empty?
 
     @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => ""}
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
+    submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
     
     html = ""
     header = header.merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
@@ -961,25 +988,25 @@ HTML
 
       case value['widget']
       when 'number', 'text', 'email'
-        html += output_number_text_email_html(key, value, script_content)
+        html += output_number_text_email_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'select'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
 	@js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_select_html(key, value, script_content)
+        html += output_select_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'multi_select'
-        @js["once"] += output_multi_select_js(key, value, script_content)
-        html += output_multi_select_html(key, value, script_content)
+        @js["once"] += output_multi_select_js(key, value, script_content, submit_content, app_name, dir_name)
+        html += output_multi_select_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'radio'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        html += output_radio_html(key, value, script_content)
+        html += output_radio_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'checkbox'
         @js["init_dw"] += output_init_dw_js(value["options"], obj)
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         @js["exec_dw"] += output_checkbox_js(key, value)
-        html += output_checkbox_html(key, value, script_content)
+        html += output_checkbox_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'path'
-        html += output_path_html(key, value, script_content)
+        html += output_path_html(key, value, script_content, submit_content, app_name, dir_name)
       end
       
       html += "</div>\n"

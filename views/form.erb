@@ -72,7 +72,7 @@
               <div class="container-fluid">
                 <div class="row">
                   <div class="col">
-		    <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control flex-grow-1 w-100" rows="6" oninput="ocForm.updateHeight(ocForm.submitArea)">
+		    <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control flex-grow-1 w-100" rows="6" onchange="ocForm.checkScriptManuallyModified()" oninput="ocForm.updateHeight(ocForm.submitArea); ocForm.storePreviousValue('<%= SUBMIT_CONTENT %>')">
 		      (Something Wrong)
 		    </textarea>
                   </div>
@@ -102,7 +102,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        Your manual changes in the right text area will be discarded.
+        Your manual changes in the script area will be discarded.
         Do you want to continue?
       </div>
       <div class="modal-footer">
@@ -241,7 +241,7 @@ ocForm.confirmOverwrite = function(id, onDiscard) {
     ocForm.scriptManuallyModified = false;
     onDiscard();
   };
- };
+};
  
 ocForm.updateValues = function(id) {
   let scriptValues = [];
