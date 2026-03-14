@@ -18,34 +18,35 @@ configure :development do
 end
 
 # Internal Constants
-VERSION                = "1.9.0-dev"
-SCHEDULERS_DIR_PATH    = "./lib/schedulers"
-HISTORY_ROWS           = 10
-JOB_STATUS             = { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED", "failed" => "FAILED" }
-JOB_ID                 = "id"
-JOB_APP_NAME           = "appName"
-JOB_DIR_NAME           = "appPath"
-JOB_STATUS_ID          = "status"
-HEADER_SCRIPT_LOCATION = "_script_location"
-HEADER_SCRIPT_NAME     = "_script_1"
-HEADER_JOB_NAME        = "_script_2"
-HEADER_CLUSTER_NAME    = "_cluster_name"
-OC_SCRIPT_CONTENT      = "_script_content"
-SCRIPT_CONTENT         = OC_SCRIPT_CONTENT  # Compatibility with previous versions
-FORM_LAYOUT            = "_form_layout"
-SUBMIT_BUTTON          = "_submitButton"
-SUBMIT_CONFIRM         = "_submitConfirm"
-SUBMIT_CONTENT         = "_submit_content"
-WARNING_MODAL          = "_script_warning_modal"
-WARNING_MODAL_CANCEL   = "_script_warning_cancel"
-WARNING_MODAL_DISCARD  = "_script_warning_discard"
-SUBMIT_FORM            = "_submit_form"
-JOB_NAME               = "Job Name"
-JOB_PARTITION          = "Partition"
-JOB_SUBMISSION_TIME    = "Submission Time"
-JOB_KEYS               = "job_keys"
-SKIP_KEYS = ['splat', OC_SCRIPT_CONTENT]
-DEFINED_KEYS = {
+VERSION                ||= "1.9.0-dev"
+SCHEDULERS_DIR_PATH    ||= "./lib/schedulers"
+HISTORY_ROWS           ||= 10
+JOB_STATUS             ||= { "queued" => "QUEUED", "running" => "RUNNING", "completed" => "COMPLETED", "failed" => "FAILED" }
+JOB_ID                 ||= "id"
+JOB_APP_NAME           ||= "appName"
+JOB_DIR_NAME           ||= "appPath"
+JOB_STATUS_ID          ||= "status"
+HEADER_SCRIPT_LOCATION ||= "_script_location"
+HEADER_SCRIPT_NAME     ||= "_script_1"
+HEADER_JOB_NAME        ||= "_script_2"
+HEADER_CLUSTER_NAME    ||= "_cluster_name"
+OC_SCRIPT_CONTENT      ||= "_script_content"
+SCRIPT_CONTENT         ||= OC_SCRIPT_CONTENT  # Compatibility with previous versions
+FORM_LAYOUT            ||= "_form_layout"
+SUBMIT_BUTTON          ||= "_submitButton"
+SUBMIT_CONFIRM         ||= "_submitConfirm"
+SUBMIT_CONTENT         ||= "_submit_content"
+WARNING_MODAL          ||= "_warning_modal"
+WARNING_MODAL_CANCEL   ||= "_warning_cancel"
+WARNING_MODAL_DISCARD  ||= "_warning_discard"
+WARNING_MESSAGE        ||= "_warning_message"
+SUBMIT_FORM            ||= "_submit_form"
+JOB_NAME               ||= "Job Name"
+JOB_PARTITION          ||= "Partition"
+JOB_SUBMISSION_TIME    ||= "Submission Time"
+JOB_KEYS               ||= "job_keys"
+SKIP_KEYS ||= ['splat', OC_SCRIPT_CONTENT]
+DEFINED_KEYS ||= {
   JOB_APP_NAME           => 'OC_APP_NAME',
   JOB_DIR_NAME           => 'OC_DIR_NAME',
   HEADER_SCRIPT_LOCATION => 'OC_SCRIPT_LOCATION',
@@ -53,15 +54,15 @@ DEFINED_KEYS = {
   HEADER_JOB_NAME        => 'OC_JOB_NAME',
   HEADER_CLUSTER_NAME    => 'OC_CLUSTER_NAME'
 }.freeze
-HISTORY_KEY_MAP = {
+HISTORY_KEY_MAP ||= {
   "OC_HISTORY_JOB_NAME"        => JOB_NAME,
   "OC_HISTORY_PARTITION"       => JOB_PARTITION,
   "OC_HISTORY_SUBMISSION_TIME" => JOB_SUBMISSION_TIME
 }.freeze
-CLUSTERS_KEYS = ["scheduler", "login_node", "ssh_wrapper", "bin", "bin_overrides", "sge_root"].freeze
+CLUSTERS_KEYS ||= ["scheduler", "login_node", "ssh_wrapper", "bin", "bin_overrides", "sge_root"].freeze
 
 # Structure of manifest
-Manifest = Struct.new(:dirname, :name, :category, :description, :icon, :related_apps)
+Manifest ||= Struct.new(:dirname, :name, :category, :description, :icon, :related_apps)
 
 # Create a YAML or ERB file object. Give priority to ERB.
 # If the file does not exist, return nil.
@@ -264,11 +265,10 @@ end
 
 # Determine whether to show the overwrite warning when script content will be regenerated.
 # Default: true
-def get_script_overwrite_warning(body)
-  return true unless body["script"].is_a?(Hash)
+def check_overwrite_warning?(content)
+  return true unless content.is_a?(Hash)
 
-  script = body["script"]
-  raw_value = script["overwrite_warning"]
+  raw_value = content["overwrite_warning"]
 
   return true if raw_value.nil?
   return raw_value if [true, false].include?(raw_value)
@@ -357,7 +357,8 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
         return erb :error
       end
       @form_action = get_form_action(@body)
-      @script_overwrite_warning_enabled = get_script_overwrite_warning(@body)
+      @script_overwrite_warning_enabled = check_overwrite_warning?(@body["script"])
+      @submit_overwrite_warning_enabled = check_overwrite_warning?(@body["submit"])
 
       # Since the widget name is used as a variable in Ruby, it should consist of only
       # alphanumeric characters and underscores, and numbers should not be used at the

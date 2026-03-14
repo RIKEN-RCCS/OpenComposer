@@ -701,14 +701,18 @@ script:
 
       <h3 id="overwrite_warning">5.5. 警告の無効化</h3>
       <p>
-        <code>script</code>セクションや<code>submit</code>セクションを手動で変更した後に、それらを変更するウィジットを変更しようとすると、下記のような警告が表示されます。
+        <code>script</code>セクションや<code>submit</code>セクションを手動で変更した後に、それらを変更するウィジットを変更しようとすると、下記のような警告が表示されます。"Discard and continue"をクリックすると、各セクションに加えた変更は消去され、新しいスクリプトが生成されます。
       <p>
         <img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
       <p>
-        その警告を無効化するには、<code>script</code>セクションで<code>overwrite_warning: false</code>を設定します。
+        この警告を無効化するには、無効化したいセクションの設定で<code>overwrite_warning: false</code>を指定します。
       </p>
       
       <pre>script:
+  overwrite_warning: false
+  content: |</pre>
+
+     <pre>submit:
   overwrite_warning: false
   content: |</pre>
 

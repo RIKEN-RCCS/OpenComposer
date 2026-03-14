@@ -95,7 +95,7 @@ ocForm.showSuggestions = function(id, showAll = false) {
 };
 
 // Handle keyboard navigation and selection in the suggestions list.
-ocForm.handleKeyDown = function(event, id, confirmOverwriteFlag = true) {
+ocForm.handleKeyDown = function(event, id) {
   const suggestionsList = ocForm.getSuggestionsList(id);
   const items = suggestionsList.getElementsByClassName('list-group-item');
   let currentIndex = -1;
@@ -121,12 +121,7 @@ ocForm.handleKeyDown = function(event, id, confirmOverwriteFlag = true) {
     else if (event.key === 'Enter') {
       const input = ocForm.getSearchInput(id);
       if (input.value !== "") {
-        if (confirmOverwriteFlag) {
-          ocForm.addSelectedItem(id);
-	 }
-	else {
-	  ocForm.addSelectedItem(id, false);
-	}
+        ocForm.addSelectedItem(id);
       }
       if (currentIndex >= 0) {
 	input.value = items[currentIndex].textContent;
@@ -196,16 +191,31 @@ ocForm.checkSubmitState = function(id) {
 }
 
 // Add a selected item to the display inputs.
-ocForm.addSelectedItem = function(id, confirmOverwriteFlag = true) {
+ocForm.addSelectedItem = function(id) {
   const searchInput = ocForm.getSearchInput(id);
   const selectedItems = ocForm.getSelectedItems(id);
   const validSuggestions = ocForm.getValidSuggestions(id);
   const selectedText = searchInput.value;
+  const scriptOverwriteFlag = searchInput.dataset.scriptFlag === "true";
+  const submitOverwriteFlag = searchInput.dataset.submitFlag === "true";
 
   const addBadge = () => {
     const badge = document.createElement('a');
     badge.href = "#";
-    badge.classList.add('badge','rounded-pill','bg-primary','p-2','text-white','text-decoration-none');
+    let bgColor, textColor;
+    if (scriptOverwriteFlag) {
+      bgColor = 'bg-primary';
+      textColor = 'text-color';
+    }
+    else if (submitOverwriteFlag) {
+      bgColor = 'bg-danger-subtle';
+      textColor = 'text-dark';
+    }
+    else {
+      bgColor = 'bg-warning';
+      textColor = 'text-dark';
+    }
+    badge.classList.add('badge', 'rounded-pill', bgColor, textColor, 'p-2', 'text-decoration-none');
 
     badge.textContent = selectedText;
 
@@ -220,19 +230,24 @@ ocForm.addSelectedItem = function(id, confirmOverwriteFlag = true) {
 
     badge.addEventListener('click', (event) => {
       event.preventDefault();
-      const removeBadge = () => {
+      const removeBadge = (contentType) => {
         selectedItems.removeChild(badge);
         ocForm.updateHiddenValues(id);
         ocForm.checkSubmitState(id);
-        ocForm.updateValues(id);
+        ocForm.updateArea(contentType, id);
       };
 
-     if (confirmOverwriteFlag) {
-       ocForm.confirmOverwrite(id, removeBadge);
-     }
-     else {
-       removeBadge();
-     }
+      if (!scriptOverwriteFlag && !submitOverwriteFlag) {
+        removeBadge();
+      }
+      else {
+        if (scriptOverwriteFlag) {
+          ocForm.confirmOverwrite('script', id,  () => removeBadge('script'));
+        }
+        else { // submitOverwriteFlag === true
+          ocForm.confirmOverwrite('submit', id,  () => removeBadge('submit'));
+        }
+      }
     });
 
     selectedItems.appendChild(badge);
@@ -240,15 +255,21 @@ ocForm.addSelectedItem = function(id, confirmOverwriteFlag = true) {
     ocForm.checkSubmitState(id);
     searchInput.value = '';
     ocForm.updateAddButtonState(id, validSuggestions);
-    ocForm.updateValues(id);
+    if (scriptOverwriteFlag) ocForm.updateArea('script', id);
+    if (submitOverwriteFlag) ocForm.updateArea('submit', id);
   };
 
   if (selectedText && validSuggestions.includes(selectedText)) {
-    if (confirmOverwriteFlag){
-      ocForm.confirmOverwrite(id, addBadge);
+    const runAddBadge = () => addBadge();
+    
+    if (!scriptOverwriteFlag && !submitOverwriteFlag) {
+      runAddBadge();
     }
-    else{
-      addBadge();
+    else if (scriptOverwriteFlag) {
+      ocForm.confirmOverwrite('script', id, runAddBadge);
+    }
+    else {
+      ocForm.confirmOverwrite('submit', id, runAddBadge);
     }
   }
 };
@@ -1073,7 +1094,7 @@ ocForm.setValue = function(key, num, widget, attr, value, fromId) {
       }
       break;
     case 'multi_select':
-	if (key !== fromId) {
+      if (key !== fromId) {
         ocForm.getSearchInput(key).value = value;
         ocForm.addSelectedItem(key);
       }

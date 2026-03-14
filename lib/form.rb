@@ -1,5 +1,7 @@
 NONSCRIPT_FROM_COLOR ||= "#FFDB69"
 NONSCRIPT_FROM_COLOR_BUTTON ||= "#FFA000"
+SUBMIT_FROM_COLOR ||= "#FFCCCC"
+SUBMIT_FROM_COLOR_BUTTON ||= "#FFAAAA"
 
 helpers do
   # If flag is true, returns "active"; otherwise returns nil.
@@ -95,30 +97,28 @@ helpers do
   end
 
   # Check whether script/submit content references key/key_i or options contain flags
-  def references_key_or_has_flag?(key, options, script_content, submit_content, app_name, dir_name)
+  def references_key_or_has_flag?(key, options, content, app_name, dir_name)
+    return false if content.nil?
     n = options&.map { |opt| opt[1].is_a?(Array) ? opt[1].size : 0 }&.max || 0
 
-    check_expr = lambda do |content|
-      content&.scan(/\#\{([^}]*)\}/)&.any? do |m|
-        expr = m[0]
-        (0..n).any? do |i|
-          k = i.zero? ? key.to_s : "#{key}_#{i}"
-          expr.match?(/\b:?#{Regexp.escape(k)}\b/)
-        end
+    expr_match = substitute_oc_constants(content, app_name, dir_name)
+                   &.scan(/\#\{([^}]*)\}/)
+                   &.any? do |m|
+      expr = m[0]
+      (0..n).any? do |i|
+        k = i.zero? ? key.to_s : "#{key}_#{i}"
+        expr.match?(/\b:?#{Regexp.escape(k)}\b/)
       end
     end
-
-    script_match = check_expr.call(substitute_oc_constants(script_content, app_name, dir_name))
-    submit_match = check_expr.call(substitute_oc_constants(submit_content, app_name, dir_name))
     
-    option_match = options&.any? do |opt|
+    flag_match = options&.any? do |opt|
       opt&.drop(2)&.any? do |v|
         (v.is_a?(String) && v.start_with?("disable-", "enable-")) ||
           (v.is_a?(Hash) && v.keys.any? { |k| k.start_with?("set-value-") })
       end
     end
-    
-    !!(script_match || submit_match || option_match)
+
+    !!(expr_match || flag_match)
   end
   
   # Output a number, text, or email widget.
@@ -143,11 +143,23 @@ helpers do
       html += output_attribute(value, i, 'step') if value['widget'] == "number"
       html += output_attribute(value, i, 'value')
       html += output_attribute(value, i, 'required')
-      if references_key_or_has_flag?(id, nil, script_content, submit_content, app_name, dir_name)
-        html += "onfocus=\"ocForm.storePreviousValue('#{id}')\" oninput=\"ocForm.confirmOverwrite('#{id}',function(){ocForm.updateValues('#{id}');})\">\n"
+      script_flag = references_key_or_has_flag?(id, nil, script_content, app_name, dir_name)
+      submit_flag = references_key_or_has_flag?(id, nil, submit_content, app_name, dir_name)
+      type = if script_flag && submit_flag
+               'both'
+             elsif script_flag
+               'script'
+             elsif submit_flag
+               'submit'
+             end
+      if type
+        html << "onfocus=\"ocForm.storePreviousValue('#{id}')\" " \
+                "oninput=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}');})\""
+        html << " style=\"background-color: #{SUBMIT_FROM_COLOR};\"" if type == 'submit'
       else
-        html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
+        html << "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
       end
+      html << ">\n"
       html += output_help(key, value, i) if value['help'].is_a?(Array)
       html += "</div>\n"
       @table_index += 1
@@ -325,13 +337,27 @@ helpers do
 
     html = output_label_with_span_tag(key, value)
     html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" "
-    if references_key_or_has_flag?(key, value['options'], script_content, submit_content, app_name, dir_name)
-      html += "onfocus=\"ocForm.storePreviousValue('#{key}')\" onchange=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}');})\">\n"
+    script_flag = references_key_or_has_flag?(key, value['options'], script_content, app_name, dir_name)
+    submit_flag = references_key_or_has_flag?(key, value['options'], submit_content, app_name, dir_name)
+    type = if script_flag && submit_flag
+             'both'
+           elsif script_flag
+             'script'
+           elsif submit_flag
+             'submit'
+           end
+    if type
+      html << "onfocus=\"ocForm.storePreviousValue('#{key}')\" " \
+              "onchange=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}');})\""
+      html << " style=\"background-color: #{SUBMIT_FROM_COLOR};\"" if type == 'submit'
     else
-      html += "onchange=\"ocForm.execDynamicWidget('#{key}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
+      html << "onchange=\"ocForm.execDynamicWidget('#{key}')\" " \
+              "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
     end
-    @table_index += 1
+    html << ">\n"
     
+    @table_index += 1
+   
     value['options'].each_with_index do |v, i|
       # The data-value is used in Script Content (ocForm.getValue() in form.js)
       # If v[1] is not defined, v[0] is used instead.
@@ -369,13 +395,19 @@ helpers do
 
     html += "<div class=\"input-group\">\n"
     html += "<input type=\"text\" tabindex=\"#{@table_index}\" class=\"form-control\" id=\"#{key}\" data-widget=\"multi_select\" oninput=\"ocForm.showSuggestions('#{key}')\" onfocus=\"ocForm.showSuggestions('#{key}', true)\" onblur=\"ocForm.hideSuggestions('#{key}')\" data-required=\"#{required}\" "
-    if references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)
-      html += "onkeydown=\"ocForm.handleKeyDown(event, '#{key}')\">\n"
-      html += "<button type=\"button\" class=\"btn btn-dark\" id=\"#{add_button_id}\" disabled onclick=\"ocForm.addSelectedItem('#{key}')\">add</button>\n"
-    else
-      html += "onkeydown=\"ocForm.handleKeyDown(event, '#{key}', false)\" style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
-      html += "<button type=\"button\" class=\"btn btn-dark\" id=\"#{add_button_id}\" disabled onclick=\"ocForm.addSelectedItem('#{key}', false)\">add</button>\n"
-    end
+    script_flag = references_key_or_has_flag?(key, nil, script_content, app_name, dir_name)
+    submit_flag = references_key_or_has_flag?(key, nil, submit_content, app_name, dir_name)
+    html += "data-script-flag=#{script_flag} data-submit-flag=#{submit_flag} "
+    style = if script_flag
+              ""
+            elsif submit_flag
+              " style=\"background-color: #{SUBMIT_FROM_COLOR};\""
+            else
+              " style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
+            end
+    html << "onkeydown=\"ocForm.handleKeyDown(event, '#{key}')\"#{style}>\n"
+    html << "<button type=\"button\" class=\"btn btn-dark\" id=\"#{add_button_id}\" disabled onclick=\"ocForm.addSelectedItem('#{key}')\">add</button>\n"
+
     html += <<-HTML
     </div>
     <ul class="list-group position-absolute w-100" id="#{suggestions_list_id}"></ul>
@@ -390,13 +422,13 @@ helpers do
   # Output a JavaScript code to prepopulate the multi-select input with existing values.
   def output_multi_select_js(key, value, script_content, submit_content, app_name, dir_name)
     return "" unless value.key?('value') && !value['value'].to_s.empty?
-    
+
     values = value['value'].is_a?(Array) ? value['value'] : [value['value']]
     js = "  const textarea = document.createElement('textarea');\n"
     values.each do |v|
       js += "  textarea.innerHTML = '#{escape_html(v)}';\n"
       js += "  ocForm.getSearchInput('#{key}').value = textarea.value;\n"
-      js += "  ocForm.addSelectedItem('#{key}', #{references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)});\n"
+      js += "  ocForm.addSelectedItem('#{key}');\n"
     end
     
     return js
@@ -418,10 +450,22 @@ helpers do
       id = "#{key}_#{i+1}"
       html += "<div class=\"#{div_class}\">\n"
       html += "<input type=\"radio\" tabindex=\"#{@table_index}\" id=\"#{id}\" data-value='#{escaped_data}' value=\"#{escaped_item}\" name=\"#{key}\" class=\"form-check-input\" #{checked} #{required} "
-      if references_key_or_has_flag?(key, value['options'], script_content, submit_content, app_name, dir_name)
-        html += "onchange=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})\">\n"
+      script_flag = references_key_or_has_flag?(key, value['options'], script_content, app_name, dir_name)
+      submit_flag = references_key_or_has_flag?(key, value['options'], submit_content, app_name, dir_name)
+      type = if script_flag && submit_flag
+               'both'
+             elsif script_flag
+               'script'
+             elsif submit_flag
+               'submit'
+             end
+      if type
+        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
+        html << " style=\"background-color: #{SUBMIT_FROM_COLOR_BUTTON};\"" if type == 'submit'
+        html << ">\n"
       else
-        html += "onchange=\"ocForm.execDynamicWidget('#{id}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
+        html << "onchange=\"ocForm.execDynamicWidget('#{id}')\" " \
+                "style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
       end
       html += "<label class=\"form-check-label\" for=\"#{id}\">#{escaped_item}</label>\n"
       html +="</div>\n"
@@ -456,10 +500,22 @@ helpers do
       id = "#{key}_#{i+1}"
       html += "<div class=\"#{div_class}\">\n"
       html += "<input type=\"checkbox\" tabindex=\"#{@table_index}\" data-value='#{escaped_data}' value=\"#{escaped_item}\" id=\"#{id}\" name=\"#{id}\" class=\"form-check-input\" #{'checked' if checked} #{'required' if required} "
-      if references_key_or_has_flag?(key, value['options'], script_content, submit_content, app_name, dir_name)
-        html += "onchange=\"ocForm.confirmOverwrite('#{id}', function(){ocForm.updateValues('#{id}')})\">\n"
+      script_flag = references_key_or_has_flag?(key, value['options'], script_content, app_name, dir_name)
+      submit_flag = references_key_or_has_flag?(key, value['options'], submit_content, app_name, dir_name)
+      type = if script_flag && submit_flag
+               'both'
+             elsif script_flag
+               'script'
+             elsif submit_flag
+               'submit'
+             end
+      if type
+        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
+        html << " style=\"background-color: #{SUBMIT_FROM_COLOR_BUTTON};\"" if type == 'submit'
+        html << ">\n"
       else
-        html += "onchange=\"ocForm.execDynamicWidget('#{id}')\" style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
+        html << "onchange=\"ocForm.execDynamicWidget('#{id}')\" " \
+                "style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
       end
       html += "<label class=\"form-check-label\" data-label=\"#{item_label}\" data-required=\"#{required}\" id=\"label_#{id}\" for=\"#{id}\">#{item_label}</label>\n"
       html += "</div>\n"
@@ -488,13 +544,30 @@ helpers do
     html  = output_label_with_span_tag(key, value)
     html += "<div class=\"d-flex align-items-center\">\n"
     html += "<input type=\"text\" tabindex=\"#{@table_index}\" value=\"#{current_value}\" id=\"#{key}\" name=\"#{key}\" #{required} class=\"form-control mt-0\" "
-    if references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)
-      html += "oninput=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updateValues('#{key}')})\" onfocus=\"ocForm.storePreviousValue('#{key}')\">\n"
+    script_flag = references_key_or_has_flag?(key, nil, script_content, app_name, dir_name)
+    submit_flag = references_key_or_has_flag?(key, nil, submit_content, app_name, dir_name)
+    type = if script_flag && submit_flag
+             'both'
+           elsif script_flag
+             'script'
+           elsif submit_flag
+             'submit'
+           end
+    if type
+      html += "oninput=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}')})\" "
+      html += "onfocus=\"ocForm.storePreviousValue('#{key}')\""
+      html += " style=\"background-color: #{SUBMIT_FROM_COLOR};\"" if type == 'submit'
     else
-      html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\">\n"
+      html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
+    end
+    html += ">\n"
+    html += "<button type=\"button\" class=\"btn btn-dark mt-0 text-nowrap\" data-bs-toggle=\"modal\" data-bs-target=\"#modal-#{key}\" tabindex=\"-1\" "
+    if type
+      html += "onclick=\"ocForm.storePreviousValue('#{key}'); ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
+    else
+      html += "onclick=\"ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
     end
     html += <<~HTML
-      <button type="button" class="btn btn-dark mt-0 text-nowrap" data-bs-toggle="modal" data-bs-target="#modal-#{key}" tabindex="-1" onclick="ocForm.storePreviousValue('#{key}'); ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true); return false;">Select Path</button>
     </div>
     <div class="modal" id="modal-#{key}">
       <div class="modal-dialog modal-lg" style="overflow-y: initial !important;">
@@ -564,12 +637,12 @@ helpers do
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1">Close</button>
 HTML
     html += "<button type=\"button\" class=\"btn btn-primary\" data-bs-dismiss=\"modal\" tabindex=\"-1\" "
-    if references_key_or_has_flag?(key, nil, script_content, submit_content, app_name, dir_name)
-      html += "onclick=\"ocForm.confirmOverwrite('#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateValues('#{key}')})\">Select Path</button>\n"
-    else
-      html += "onclick=\"ocForm.updatePath('#{key}')\">Select Path</button>\n"
-    end
-
+    onclick = if type
+                "ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')})"
+              else
+                "ocForm.updatePath('#{key}')"
+              end
+    html << "onclick=\"#{onclick}\">Select Path</button>\n"
     html += <<-HTML
           </div>
         </div> <!-- <div class="modal-content"> -->
