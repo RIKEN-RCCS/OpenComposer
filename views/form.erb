@@ -177,17 +177,53 @@ ocForm["submitManuallyModified"] = false;
 ocForm.previousScript = ""
 ocForm.multiSelectDisabledIndexes = {};
 ocForm.previousValues = {};
+ocForm.previousRadioValues = {};
 
 // Save the current value of a form element before modification.
 ocForm.storePreviousValue = function(id) {
   const element = document.getElementById(id);
-  ocForm.previousValues[id] = element.value;
+  if (!element) return;
+
+  if (element.type === "radio") {
+    let previous = ocForm.previousValues[element.name];
+    if (previous === undefined) {
+      const radios = document.querySelectorAll(`input[name="${element.name}"]`);
+      radios.forEach(r => {
+        if (r.defaultChecked) previous = r.id;
+      });
+    }
+
+    ocForm.previousValues[element.name] = element.id;
+    ocForm.previousRadioValues[element.name] = previous;
+  }
+	else if (element.type === "checkbox") {
+		element.checked = !element.checked;
+	}
+  else {
+    ocForm.previousValues[id] = element.value;
+  }
 };
 
 // Save the current value of a form element before modification.
 ocForm.restorePreviousValue = function(id) {
-  if (ocForm.previousValues[id] !== undefined) {
-    document.getElementById(id).value = ocForm.previousValues[id];
+  const element = document.getElementById(id);
+  if (!element) return;
+
+  if (element.type === "radio") {
+    const prevId = ocForm.previousRadioValues[element.name];
+
+    if (prevId) {
+      const prev = document.getElementById(prevId);
+      if (prev) {
+        prev.checked = true;
+        ocForm.previousValues[element.name] = prevId;
+      }
+    }
+  }
+  else {
+    if (ocForm.previousValues[id] !== undefined) {
+      element.value = ocForm.previousValues[id];
+    }
   }
 };
 
@@ -215,18 +251,10 @@ ocForm.confirmOverwrite = function(content_type, id, onDiscard) {
                 "script and submit areas")
              : (content_type === "script" ? "script area" : "submit area");
   const element = document.getElementById(id);
-  let previousRadio = null;
 
   if (modifiedKeys.every(k => !ocForm[k])) {
     onDiscard();
     return;
-  }
-
-  if (element.type === "radio") {
-    const radios = document.querySelectorAll(`input[name="${element.name}"]`);
-    radios.forEach(r => {
-      if (!r.checked) previousRadio = r.id;
-    });
   }
 
   if (!ocForm.overwriteModal) {
@@ -239,15 +267,7 @@ ocForm.confirmOverwrite = function(content_type, id, onDiscard) {
   ocForm.overwriteModal.show();
 
   document.getElementById('<%= WARNING_MODAL_CANCEL %>').onclick = () => {
-    if (element.type === "radio" && previousRadio) {
-      document.getElementById(previousRadio).checked = true;
-    }
-    else if (element.type === "checkbox") {
-      element.checked = !element.checked;
-    }
-    else {
-      ocForm.restorePreviousValue(id);
-    }
+    ocForm.restorePreviousValue(id);
 
     contentAreas.forEach(a => {
       ocForm.restorePreviousValue(a.id);

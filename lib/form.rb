@@ -460,7 +460,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
+        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\" oninput=\"ocForm.storePreviousValue('#{id}')\""
         html << " style=\"background-color: #{SUBMIT_FROM_COLOR_BUTTON};\"" if type == 'submit'
         html << ">\n"
       else
