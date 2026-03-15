@@ -108,16 +108,20 @@ def create_conf
   end
   
   # Set initial values if not defined
-  conf["data_dir"]          ||= ENV["HOME"] + "/composer"
-  conf["history"]           ||= HISTORY_KEY_MAP.keys
-  conf["footer"]            ||= "&nbsp;"
-  conf["thumbnail_width"]   ||= "100"
-  conf["navbar_color"]      ||= "#3D3B40"
-  conf["dropdown_color"]    ||= conf["navbar_color"]
-  conf["footer_color"]      ||= conf["navbar_color"]
-  conf["category_color"]    ||= "#5522BB"
-  conf["description_color"] ||= conf["category_color"]
-  conf["form_color"]        ||= "#BFCFE7"
+  conf["data_dir"]                ||= ENV["HOME"] + "/composer"
+  conf["history"]                 ||= HISTORY_KEY_MAP.keys
+  conf["footer"]                  ||= "&nbsp;"
+  conf["thumbnail_width"]         ||= "100"
+  conf["navbar_color"]            ||= "#3D3B40"
+  conf["dropdown_color"]          ||= conf["navbar_color"]
+  conf["footer_color"]            ||= conf["navbar_color"]
+  conf["category_color"]          ||= "#5522BB"
+  conf["description_color"]       ||= conf["category_color"]
+  conf["form_color"]              ||= "#BFCFE7"
+  conf["non_script_color"]        ||= "#FFDB69"
+  conf["non_script_button_color"] ||= "#FFA000"
+  conf["submit_color"]            ||= "#FFCCCC"
+  conf["submit_button_color"]     ||= "#FFAAAA"
 
   # Set the values for "clusters:" and "history_db"
   if conf.key?("clusters")
@@ -356,6 +360,16 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
         @error_msg = e.message
         return erb :error
       end
+
+      # Check if the form key exists
+      ["form.yml", "form.yml.erb"].each do |name|
+        file = File.join(@apps_dir, @dir_name, name)
+        next unless File.exist?(file)
+        
+        halt 500, "In ./#{file}, \"form:\" must be defined." unless @body.key?("form")
+        halt 500, "In ./#{file}, \"form:\" must have a key." unless @body["form"]
+      end
+      
       @form_action = get_form_action(@body)
       @script_overwrite_warning_enabled = check_overwrite_warning?(@body["script"])
       @submit_overwrite_warning_enabled = check_overwrite_warning?(@body["submit"])
@@ -696,6 +710,6 @@ post "/*" do
     # Output log
     output_log("Submit job", scheduler, cluster: cluster_name, job_ids: Array(job_id), app_dir: manifest["dirname"], app_name: manifest["name"], category: manifest["category"])
 
-    return show_website(job_id, error_msg, params)
+    return show_website(job_id, error_msg, params, script_path)
   end
 end

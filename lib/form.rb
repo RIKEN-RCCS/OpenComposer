@@ -1,8 +1,3 @@
-NONSCRIPT_FROM_COLOR ||= "#FFDB69"
-NONSCRIPT_FROM_COLOR_BUTTON ||= "#FFA000"
-SUBMIT_FROM_COLOR ||= "#FFCCCC"
-SUBMIT_FROM_COLOR_BUTTON ||= "#FFAAAA"
-
 helpers do
   # If flag is true, returns "active"; otherwise returns nil.
   def active?(flag)
@@ -69,11 +64,8 @@ helpers do
     return "" unless value.key?(attr)
     
     attr_value = value[attr].is_a?(Array) ? value[attr][i] : value[attr]
-    if attr_value
-      return attr == 'required' ? " required " : " #{attr}=\"#{escape_html(attr_value)}\" "
-    else
-      return ""
-    end
+    return "" if attr_value.nil? || attr_value == false || attr_value == ""
+    attr == "required" ? " required " : " #{attr}=\"#{escape_html(attr_value)}\" "
   end
 
   # Output a help text.
@@ -155,9 +147,9 @@ helpers do
       if type
         html << "onfocus=\"ocForm.storePreviousValue('#{id}')\" " \
                 "oninput=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}');})\""
-        html << " style=\"background-color: #{SUBMIT_FROM_COLOR};\"" if type == 'submit'
+        html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
       else
-        html << "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
+        html << "style=\"background-color: #{@conf["non_script_color"]};\""
       end
       html << ">\n"
       html += output_help(key, value, i) if value['help'].is_a?(Array)
@@ -349,10 +341,10 @@ helpers do
     if type
       html << "onfocus=\"ocForm.storePreviousValue('#{key}')\" " \
               "onchange=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}');})\""
-      html << " style=\"background-color: #{SUBMIT_FROM_COLOR};\"" if type == 'submit'
+      html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html << "onchange=\"ocForm.execDynamicWidget('#{key}')\" " \
-              "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
+              "style=\"background-color: #{@conf["non_script_color"]};\""
     end
     html << ">\n"
     
@@ -401,9 +393,9 @@ helpers do
     style = if script_flag
               ""
             elsif submit_flag
-              " style=\"background-color: #{SUBMIT_FROM_COLOR};\""
+              " style=\"background-color: #{@conf["submit_color"]};\""
             else
-              " style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
+              " style=\"background-color: #{@conf["non_script_color"]};\""
             end
     html << "onkeydown=\"ocForm.handleKeyDown(event, '#{key}')\"#{style}>\n"
     html << "<button type=\"button\" class=\"btn btn-dark\" id=\"#{add_button_id}\" disabled onclick=\"ocForm.addSelectedItem('#{key}')\">add</button>\n"
@@ -461,11 +453,11 @@ helpers do
              end
       if type
         html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\" oninput=\"ocForm.storePreviousValue('#{id}')\""
-        html << " style=\"background-color: #{SUBMIT_FROM_COLOR_BUTTON};\"" if type == 'submit'
+        html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
         html << "onchange=\"ocForm.execDynamicWidget('#{id}')\" " \
-                "style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
+                "style=\"background-color: #{@conf["non_script_button_color"]};\">\n"
       end
       html += "<label class=\"form-check-label\" for=\"#{id}\">#{escaped_item}</label>\n"
       html +="</div>\n"
@@ -511,11 +503,11 @@ helpers do
              end
       if type
         html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
-        html << " style=\"background-color: #{SUBMIT_FROM_COLOR_BUTTON};\"" if type == 'submit'
+        html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
         html << "onchange=\"ocForm.execDynamicWidget('#{id}')\" " \
-                "style=\"background-color: #{NONSCRIPT_FROM_COLOR_BUTTON};\">\n"
+                "style=\"background-color: #{@conf["non_script_button_color"]};\">\n"
       end
       html += "<label class=\"form-check-label\" data-label=\"#{item_label}\" data-required=\"#{required}\" id=\"label_#{id}\" for=\"#{id}\">#{item_label}</label>\n"
       html += "</div>\n"
@@ -556,9 +548,9 @@ helpers do
     if type
       html += "oninput=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}')})\" "
       html += "onfocus=\"ocForm.storePreviousValue('#{key}')\""
-      html += " style=\"background-color: #{SUBMIT_FROM_COLOR};\"" if type == 'submit'
+      html += " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
-      html += "style=\"background-color: #{NONSCRIPT_FROM_COLOR};\""
+      html += "style=\"background-color: #{@conf["non_script_color"]};\""
     end
     html += ">\n"
     html += "<button type=\"button\" class=\"btn btn-dark mt-0 text-nowrap\" data-bs-toggle=\"modal\" data-bs-target=\"#modal-#{key}\" tabindex=\"-1\" "

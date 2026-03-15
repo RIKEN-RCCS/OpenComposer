@@ -13,10 +13,10 @@
     <nav class="sidebar bg-body-secondary">
       <h5 class="ps-3 pe-1 d-inline">Contents</h5>
       <ul class="nav flex-column px-3 py-2">
-	<li class="nav-item"><a href="#intro" class="nav-link">1. Introduction</a></li>
+				<li class="nav-item"><a href="#intro" class="nav-link">1. Introduction</a></li>
         <li class="nav-item"><a href="#home" class="nav-link">2. Home Page</a></li>
         <li class="nav-item"><a href="#application" class="nav-link">3. Application Page</a></li>
-	<li class="nav-item"><a href="#history" class="nav-link">4. History Page</a></li>
+				<li class="nav-item"><a href="#history" class="nav-link">4. History Page</a></li>
       </ul>
     </nav>
 
@@ -24,48 +24,57 @@
       <h1>Open Composer User Manual</h1>
       <h2 id="intro">1. Introduction</h2>
       <p>
-	Open Composer is a web application to submit batch jobs to an HPC cluster system from a web browser.
-	Open Composer consists of "Home page", "Application page", and "History page".
+				Open Composer is a web application to submit batch jobs to an HPC cluster system from a web browser.
+				Open Composer consists of "Home page", "Application page", and "History page".
       </p>
       
       <h2 id="home">2. Home Page</h2>
       <p>
-	Displays application icons by category.
-	On the left side of the navigation bar are links to the "Home page", "Application page", and "History page".
-	On the right side of the navigation bar are links to the Open OnDemand "Home Directory", "Shell Access", and "Dashboard".
-	Note that "Shell Access" is only displayed if <code>login_node</code> is set in <code>conf.yml.erb</code>.
+				Displays application icons by category.
+				On the left side of the navigation bar are links to the "Home page", "Application page", and "History page".
+				On the right side of the navigation bar are links to the Open OnDemand "Home Directory", "Shell Access", and "Dashboard".
+				Note that "Shell Access" is only displayed if <code>login_node</code> is set in <code>conf.yml.erb</code>.
       </p>
       <img src="img/home_page.png" width="800" alt="Home page">
       
       <h2 id="application">3. Application Page</h2>
       <p>
-	Generates a job script.
-	When you enter values in the web form on the left side of the page,
-	a job script is dynamically generated in the text area on the right side of the page.
-	The text area can be freely edited.
-	When you click the "Submit" button below the text area, the generated job script is submitted to an HPC cluster system.
+				Generates a job script.
+				When you enter values in the web form on the left side of the page,
+				a job script is dynamically generated in the text area on the right side of the page.
+				The text area can be freely edited.
+				When you click the "Submit" button below the text area, the generated job script is submitted to an HPC cluster system.
       </p>
       <img src="img/application_page.png" width="800" alt="Application page">
 
       <ul class="mt-3">
-	<li>The "Script location," "Script name," and "Job name" in the header section specify the "job script save directory," "job script file name," and "job name," respectively. </li>
-	<li>The "Cluster name" in the header section  is only displayed if multiple job schedulers are configured. The job script will be submitted using the selected job scheduler. </li>
-      </ul>
-      
+				<li>The "Script location," "Script name," and "Job name" in the header section specify the "job script save directory," "job script file name," and "job name," respectively. </li>
+				<li>The "Cluster name" in the header section  is only displayed if multiple job schedulers are configured. The job script will be submitted using the selected job scheduler. </li>
+				<li>An asterisk next to the label of each web form indicates that it is a required field.</li>
+				<li>If you try to modify a web form with a white background after manually editing the job script, a warning like the one shown below will appear.
+					If you click "Discard and continue", the changes made in the web form will be discarded and a new script will be generated.
+					<p>
+						<img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
+					</p>
+				</li>
+				<li>If the background color of the web form is <span style="background-color:#FFDB69">#FFDB69</span> (or <span style="background-color:#FFA000">#FFA000</span> for buttons), it indicates that neither the job script nor the script that performs processing before job submission will be modified.</li>
+				<li>If the background color of the web form is <span style="background-color:#FFCCCC">#FFCCCC</span> (or <span style="background-color:#FFAAAA">#FFAAAA</span> for buttons), it indicates that only the script that performs processing before job submission will be modified. If you try to modify these web forms after manually editing that script, the same warning described above will appear.</li>
+			</ul>
+			
       <h2 id="history">4. History Page</h2>
       <p>
-	Displays the job history.
-	You can check the execution status of jobs and stop currently running jobs.
+				Displays the job history.
+				You can check the execution status of jobs and stop currently running jobs.
       </p>
       <img src="img/history_page.png" width="800" alt="History page">
 
       <ul class="mt-3">
-	<li>Enter text in the "Filter" box to the right of the header and press the Enter key to display only jobs whose text matches each element in the table.</li>
-	<li>Click the "All," "Running," "Queued," "Completed," or "Failed" radio button on the right of the header to display only jobs corresponding to that status. The radio buttons below will only be displayed if multiple job schedulers are configured (The image shows "Fugaku" and "Prepost", but the display names will depend on the configuration). Click the radio button to display only jobs from the selected job scheduler.</li>
+				<li>Enter text in the "Filter" box to the right of the header and press the Enter key to display only jobs whose text matches each element in the table.</li>
+				<li>Click the "All," "Running," "Queued," "Completed," or "Failed" radio button on the right of the header to display only jobs corresponding to that status. The radio buttons below will only be displayed if multiple job schedulers are configured (The image shows "Fugaku" and "Prepost", but the display names will depend on the configuration). Click the radio button to display only jobs from the selected job scheduler.</li>
         <li>To cancel a running job or a queued job, check the leftmost check box of the job and click "Cancel Job" above the table.</li>
         <li>To delete a completed job information from the table, check the leftmost check box of the job and click "Delete Info" above the table.</li>
         <li>Click the "Job ID" link to view job details.</li>
-	<li>Click the "Application" link to go to the application page. If there is an icon next to it, clicking that icon will open the corresponding Open OnDemand application page.</li>
+				<li>Click the "Application" link to go to the application page. If there is an icon next to it, clicking that icon will open the corresponding Open OnDemand application page.</li>
         <li>Click the "Script Location" link will launch the Open OnDemand Home Directory application. If there is a terminal icon, clicking that icon will launch the Open OnDemand Terminal application.</li>
         <li>Click the "Script Name" link to go to the application page with the parameters used in the script loaded.</li>
       </ul>

@@ -13,10 +13,10 @@
     <nav class="sidebar bg-body-secondary">
       <h5 class="ps-3 pe-1 d-inline">目次</h5>
       <ul class="nav flex-column px-3 py-2">
-	<li class="nav-item"><a href="#intro" class="nav-link">1. はじめに</a></li>
+				<li class="nav-item"><a href="#intro" class="nav-link">1. はじめに</a></li>
         <li class="nav-item"><a href="#home" class="nav-link">2. ホームページ</a></li>
         <li class="nav-item"><a href="#application" class="nav-link">3. アプリケーションページ</a></li>
-	<li class="nav-item"><a href="#history" class="nav-link">4. 履歴ページ</a></li>
+				<li class="nav-item"><a href="#history" class="nav-link">4. 履歴ページ</a></li>
       </ul>
     </nav>
 
@@ -24,24 +24,33 @@
       <h1>Open Composerユーザマニュアル</h1>
       <h2 id="intro">1. はじめに</h2>
       <p>
-	Open ComposerはWebブラウザからHPCクラスタにバッチジョブを投入することができるWebアプリケーションです。Open Composerは「ホームページ」、「アプリケーションページ」、「履歴ページ」の3つのページから構成されています。
+				Open ComposerはWebブラウザからHPCクラスタにバッチジョブを投入することができるWebアプリケーションです。Open Composerは「ホームページ」、「アプリケーションページ」、「履歴ページ」の3つのページから構成されています。
       </p>
       
       <h2 id="home">2. ホームページ</h2>
       <p>
-	アプリケーションのアイコンがカテゴリ毎に表示されます。ナビゲーションバーの左側には、それぞれ「ホームページ」、「アプリケーションページ」、「履歴ページ」へのリンクがあります。ナビゲーションバーの右側には、それぞれOpen OnDemandの「Home Directory」、「Shell Access」、「ダッシュボード」へのリンクがあります。ただし、「Shell Access」は<code>conf.yml.erb</code>で<code>login_node</code>が設定されている場合のみ表示されます。
+				アプリケーションのアイコンがカテゴリ毎に表示されます。ナビゲーションバーの左側には、それぞれ「ホームページ」、「アプリケーションページ」、「履歴ページ」へのリンクがあります。ナビゲーションバーの右側には、それぞれOpen OnDemandの「Home Directory」、「Shell Access」、「ダッシュボード」へのリンクがあります。ただし、「Shell Access」は<code>conf.yml.erb</code>で<code>login_node</code>が設定されている場合のみ表示されます。
       </p>
       <img src="img/home_page.png" width="800" alt="Home page">
       
       <h2 id="application">3. アプリケーションページ</h2>
       <p>
-	ジョブスクリプトを生成します。ページ左のWebフォームに値を入力すると、ページ右のテキストエリアにジョブスクリプトが動的に生成されます。テキストエリアは自由に編集できます。テキストエリアの下の「Submit」ボタンをクリックすると、生成されたジョブスクリプトがHPCクラスタに投入されます。
+				ジョブスクリプトを生成します。ページ左のWebフォームに値を入力すると、ページ右のテキストエリアにジョブスクリプトが動的に生成されます。テキストエリアは自由に編集できます。テキストエリアの下の「Submit」ボタンをクリックすると、生成されたジョブスクリプトがHPCクラスタに投入されます。
       </p>
       <img src="img/application_page.png" width="800" alt="Application page">
 
       <ul class="mt-3">
-	<li>ヘッダの「Script location」と「Script name」と「Job name」は、それぞれ「ジョブスクリプトの保存先ディレクトリ」と「ジョブスクリプトのファイル名」と「ジョブ名」を記述します。</li>
-	<li>ヘッダの「Cluster name」は複数のジョブスケジューラを設定している場合のみ表示されます。選択されたジョブスケジューラを使ってジョブスクリプトが投入されます。</li>
+				<li>ヘッダの「Script location」と「Script name」と「Job name」は、それぞれ「ジョブスクリプトの保存先ディレクトリ」と「ジョブスクリプトのファイル名」と「ジョブ名」を記述します。</li>
+				<li>ヘッダの「Cluster name」は複数のジョブスケジューラを設定している場合のみ表示されます。選択されたジョブスケジューラを使ってジョブスクリプトが投入されます。</li>
+				<li>各Webフォームのラベルにアスタリスクがある場合、それは必須項目であることを表します。</li>
+				<li>ジョブスクリプトを手動で変更した後に、背景色が白色のWebフォームを変更しようとすると、下記のような警告が表示されます。
+					"Discard and continue"をクリックすると、Webフォームに加えられた変更は消去され、新しいスクリプトが生成されます。
+					<p>
+						<img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
+					</p>
+				</li>
+				<li>Webフォームの背景色が<span style="background-color:#FFDB69">#FFDB69</span>（ボタンの場合は<span style="background-color:#FFA000">#FFA000</span>）は、ジョブスクリプトおよびジョブ投入前の処理を行うスクリプトを変更しないことを示します。</li>
+				<li>Webフォームの背景色が<span style="background-color:#FFCCCC">#FFCCCC</span>（ボタンの場合は<span style="background-color:#FFAAAA">#FFAAAA</span>）は、ジョブ投入前の処理を行うスクリプトのみを変更することを示します。そのスクリプトを手動で変更した後に、これらのWebフォームを変更しようとすると、上記と同様の警告が表示されます。</li>
       </ul>
       
       <h2 id="history">4. 履歴ページ</h2>
@@ -51,14 +60,14 @@
       <img src="img/history_page.png" width="800" alt="History page">
 
       <ul class="mt-3">
-	<li>ヘッダ右の「Filter」に文字を入力してエンターキーを押すと、その文字と表の各要素とが一致しているジョブのみが表示されます。</li>
-	<li>ヘッダ右の「All」、「Running」、「Queued」、「Completed」、「Failed」のラジオボタンをクリックすると、それぞれの状態に対応したジョブのみが表示されます。その下のラジオボタンは複数のジョブスケジューラを設定している場合のみ表示されます（図では「Fugaku」と「Prepost」と表示されていますが、表示名は設定によります）。そのラジオボタンをクリックすると、選択されたジョブスケジューラのジョブだけが表示されます。</li>
-	<li>実行中のジョブやキューに登録されているジョブをキャンセルしたい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Cancel Job」をクリックします。</li>
-	<li>完了したジョブの情報を表から削除したい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Delete Info」をクリックします。</li>
-	<li>「Job ID」のリンクをクリックすると、ジョブの詳細が表示されます。</li>
-	<li>「Application」のリンクをクリックすると、そのアプリケーションのページが開きます。また、その横にアイコンがある場合、そのアイコンをクリックすると該当のOpen OnDemandのアプリケーションページが開きます。</li>
-	<li>「Script Location」のリンクをクリックすると、Open OnDemandのHome Directoryのアプリケーションが起動します。また、ターミナルのアイコンがある場合、そのアイコンをクリックするとOpen OnDemandのTerminalアプリケーションが起動します。</li>
-	<li>「Script Name」のリンクをクリックすると、そのスクリプトで用いられたパラメータがロードされた状態でアプリケーションのページが開きます。</li>
+				<li>ヘッダ右の「Filter」に文字を入力してエンターキーを押すと、その文字と表の各要素とが一致しているジョブのみが表示されます。</li>
+				<li>ヘッダ右の「All」、「Running」、「Queued」、「Completed」、「Failed」のラジオボタンをクリックすると、それぞれの状態に対応したジョブのみが表示されます。その下のラジオボタンは複数のジョブスケジューラを設定している場合のみ表示されます（図では「Fugaku」と「Prepost」と表示されていますが、表示名は設定によります）。そのラジオボタンをクリックすると、選択されたジョブスケジューラのジョブだけが表示されます。</li>
+				<li>実行中のジョブやキューに登録されているジョブをキャンセルしたい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Cancel Job」をクリックします。</li>
+				<li>完了したジョブの情報を表から削除したい場合は、そのジョブの一番左のチェックボックスをチェックし、表の上にある「Delete Info」をクリックします。</li>
+				<li>「Job ID」のリンクをクリックすると、ジョブの詳細が表示されます。</li>
+				<li>「Application」のリンクをクリックすると、そのアプリケーションのページが開きます。また、その横にアイコンがある場合、そのアイコンをクリックすると該当のOpen OnDemandのアプリケーションページが開きます。</li>
+				<li>「Script Location」のリンクをクリックすると、Open OnDemandのHome Directoryのアプリケーションが起動します。また、ターミナルのアイコンがある場合、そのアイコンをクリックするとOpen OnDemandのTerminalアプリケーションが起動します。</li>
+				<li>「Script Name」のリンクをクリックすると、そのスクリプトで用いられたパラメータがロードされた状態でアプリケーションのページが開きます。</li>
       </ul>
     </main>
   </div>

@@ -1,26 +1,32 @@
-<% if @job_id && @error_msg.nil? && @script_path.nil? %>
+<% if @script_path %>
+  <% script_link = "<a target=\"_blank\" href=\"#{@my_ood_url}/pun/sys/dashboard/files/fs#{File.dirname(@script_path)}\">#{@script_path}</a>" %>
+  <% if @login_node %>
+    <% script_link += " <a style=\"color: black; text-decoration: none; vertical-align: middle;\" target=\"_blank\" href=\"#{@my_ood_url}/pun/sys/shell/ssh/#{@login_node}/#{File.dirname(@script_path)}\"><i class=\"bi bi-terminal-fill fs-5\"></i></a>" %>
+  <% end %>
+  <% script_msg = "The script file is saved as #{script_link}." %>
+<% end %>
+
+<% if @job_id && @error_msg.nil? %>
   <div class="alert alert-success alert-dismissible mx-1 mb-0">
-    Job was successfully submitted (Job ID is <%= @job_id %>).
+    Job was successfully submitted (Job ID is <code><%= @job_id %></code>).
+    <%= script_msg %>
     <% if @conf.key?("clusters") && @conf["clusters"].size > 1 %>
-    Go to the <a href="./history?cluster=<%= @cluster_name %>">History page</a>.
+      Go to the <a href="./history?cluster=<%= @cluster_name %>">History page</a>.
     <% else %>
-    Go to the <a href="./history">History page</a>.
+      Go to the <a href="./history">History page</a>.
     <% end %>
     <button class="btn-close" data-bs-dismiss="alert"></button>
   </div>
-<% elsif !@error_msg.nil? %>
+
+<% elsif @error_msg %>
   <div class="alert alert-warning alert-dismissible mx-1 mb-0">
     Job submission failed. (<%= @error_msg %>)
     <button class="btn-close" data-bs-dismiss="alert"></button>
   </div>
-<% elsif !@script_path.nil? %>
+
+<% elsif @script_path %>
   <div class="alert alert-info alert-dismissible mx-1 mb-0">
-    Saved to the following path: <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files/fs<%= File.dirname(@script_path) %>"><%= @script_path %></a>
-    <% unless @login_node.nil? %>
-    <a style="color: black; text-decoration: none; vertical-align: middle;" target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>/<%= File.dirname(@script_path) %>">
-      <i class="bi bi-terminal-fill fs-5"></i>
-    </a>
-    <% end %>
+    <%= script_msg %>
     <button class="btn-close" data-bs-dismiss="alert"></button>
   </div>
 <% end %>
@@ -124,7 +130,7 @@ ocForm.onceExec = function() {
 };
 
 // Execute dynamic form widgets.
-ocForm.execDynamicWidget = function(fromId = null) {
+ocForm.execDynamicWidget = function(fromId) {
   <%= @js["init_dw"].lines.map(&:chomp).sort.uniq.join("\n") %>
 
   <%= @js["exec_dw"].chomp %>
@@ -196,9 +202,6 @@ ocForm.storePreviousValue = function(id) {
     ocForm.previousValues[element.name] = element.id;
     ocForm.previousRadioValues[element.name] = previous;
   }
-	else if (element.type === "checkbox") {
-		element.checked = !element.checked;
-	}
   else {
     ocForm.previousValues[id] = element.value;
   }
@@ -219,6 +222,9 @@ ocForm.restorePreviousValue = function(id) {
         ocForm.previousValues[element.name] = prevId;
       }
     }
+  }
+	else if (element.type === "checkbox") {
+    element.checked = !element.checked;
   }
   else {
     if (ocForm.previousValues[id] !== undefined) {

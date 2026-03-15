@@ -15,13 +15,13 @@
       <ul class="nav flex-column px-3 py-2">
         <li class="nav-item"><a href="#install" class="nav-link">1. Installation</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. Setting</a></li>
-	<li class="nav-item ms-3"><a href="#clusters" class="nav-link">2.1. clusters</a></li>
-	<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
-	<li class="nav-item ms-3"><a href="#history" class="nav-link">2.3. history</a></li>
-	<li class="nav-item"><a href="#registor" class="nav-link">3. Registration for Open OnDemand</a></li>
-	<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. By administrator</a></li>
+				<li class="nav-item ms-3"><a href="#clusters" class="nav-link">2.1. clusters</a></li>
+				<li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
+				<li class="nav-item ms-3"><a href="#history" class="nav-link">2.3. history</a></li>
+				<li class="nav-item"><a href="#registor" class="nav-link">3. Registration for Open OnDemand</a></li>
+				<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. By administrator</a></li>
         <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. By general user</a></li>
-	<li class="nav-item"><a href="#jobscheduler" class="nav-link">4. Adding job scheduler</a></li>
+				<li class="nav-item"><a href="#jobscheduler" class="nav-link">4. Adding job scheduler</a></li>
       </ul>
     </nav>
 
@@ -29,40 +29,43 @@
       <h1>How to install Open Composer</h1>
       <h2 id="install">1. Installation</h2>
       <p>
-	Open Composer runs on <a target="_blank" href="https://openondemand.org/">Open OnDemand</a>. Save Open Composer in your Open OnDemand application directory: <code>/var/www/ood/apps/sys/</code>.
+				Open Composer runs on <a target="_blank" href="https://openondemand.org/">Open OnDemand</a>. Save Open Composer in your Open OnDemand application directory: <code>/var/www/ood/apps/sys/</code>.
       </p>
       <pre>
 # cd /var/www/ood/apps/sys/
-# git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git
-</pre>
+# git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git</pre>
 
       <h2 id="setting">2. Setting</h2>
       <p>
-	Create <code>./conf.yml.erb</code> with reference to <code>./conf.yml.erb.sample</code>.
+				Create <code>./conf.yml.erb</code> with reference to <code>./conf.yml.erb.sample</code>.
       </p>
       <pre># cd OpenComposer
-# cp conf.yml.erb.sample conf.yml.erb
-</pre>
-      <table class="table">
-	<tr><th>Item name</th><th>Setting</th></tr>
-	<tr><td>apps_dir</td><td>Application directory</td></tr>
-	<tr><td>scheduler</td><td>Job scheduler (<code>slurm</code>, <code>pbspro</code>, <code>sge</code>, <code>fujitsu_tcs</code>)</td></tr>
-	<tr><td>clusters</td><td>Cluster properties</td></tr>
-	<tr><td>data_dir</td><td>Directory where submitted job information is stored (Default is <code>${HOME}/composer</code>)</td></tr>
-	<tr><td>login_node</td><td>Login node when you launch the Open OnDemand web terminal</td></tr>
-	<tr><td>ssh_wrapper</td><td>Command for using the job scheduler of another node using SSH</td></tr>
-	<tr><td>bin</td><td>PATH of commands of job scheduler</td></tr>
-	<tr><td>bin_overrides</td><td>PATH of each command of job scheduler</td></tr>
-	<tr><td>sge_root</td><td>Directory for the Grid Engine root (<code>SGE_ROOT</code>)</td></tr>
-	<tr><td>history</td><td>Additional display fields on the history page</td></tr>
-	<tr><td>footer</td><td>Text in the footer</td></tr>
-	<tr><td>thumbnail_width</td><td>Width of thumbnails for each application on the home page</td></tr>
-	<tr><td>navbar_color</td><td>Color of navigation bar</td></tr>
-	<tr><td>dropdown_color</td><td>Color of dropdown menu</td></tr>
-	<tr><td>footer_color</td><td>Color of footer</td></tr>
-	<tr><td>category_color</td><td>Background color of the home page category</td></tr>
-	<tr><td>description_color</td><td>Background color of the application description in the application page</td></tr>
-	<tr><td>form_color</td><td>Background color of the text area in the application page</td></tr>
+# cp conf.yml.erb.sample conf.yml.erb</pre>
+
+			<table class="table">
+				<tr><th>Item name</th><th>Setting</th></tr>
+				<tr><td>apps_dir</td><td>Application directory</td></tr>
+				<tr><td>scheduler</td><td>Job scheduler (<code>slurm</code>, <code>pbspro</code>, <code>sge</code>, <code>fujitsu_tcs</code>)</td></tr>
+				<tr><td>clusters</td><td>Cluster properties</td></tr>
+				<tr><td>data_dir</td><td>Directory where submitted job information is stored (Default is <code>${HOME}/composer</code>)</td></tr>
+				<tr><td>login_node</td><td>Login node when you launch the Open OnDemand web terminal</td></tr>
+				<tr><td>ssh_wrapper</td><td>Command for using the job scheduler of another node using SSH</td></tr>
+				<tr><td>bin</td><td>PATH of commands of job scheduler</td></tr>
+				<tr><td>bin_overrides</td><td>PATH of each command of job scheduler</td></tr>
+				<tr><td>sge_root</td><td>Directory for the Grid Engine root (<code>SGE_ROOT</code>)</td></tr>
+				<tr><td>history</td><td>Additional display fields on the history page</td></tr>
+				<tr><td>footer</td><td>Text in the footer</td></tr>
+				<tr><td>thumbnail_width</td><td>Width of thumbnails for each application on the home page</td></tr>
+				<tr><td>navbar_color</td><td>Color of navigation bar</td></tr>
+				<tr><td>dropdown_color</td><td>Color of dropdown menu</td></tr>
+				<tr><td>footer_color</td><td>Color of footer</td></tr>
+				<tr><td>category_color</td><td>Background color of the home page category</td></tr>
+				<tr><td>description_color</td><td>Background color of the application description in the application page</td></tr>
+				<tr><td>form_color</td><td>Background color of the text area in the application page</td></tr>
+				<tr><td>non_script_color</td><td>Background color of the form that does not affect the <code>script</code> section</td></tr>
+				<tr><td>non_script_button_color</td><td>Background color of buttons that do not affect the <code>script</code> section</td></tr>
+				<tr><td>submit_color</td><td>Background color of the form that affects only the <code>submit</code> section</td></tr>
+				<tr><td>submit_button_color</td><td>Background color of buttons that affect only the <code>submit</code> section</td></tr>
       </table>
       <p>
 	The <code>apps_dir</code> and <code>scheduler</code> are required. However, the <code>scheduler</code> may be defined inside <code>clusters</code>.
