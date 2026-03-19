@@ -10,6 +10,7 @@ require "./lib/history"
 require "./lib/scheduler"
 
 set :environment, ENV.fetch("RACK_ENV", "production").to_sym
+set :host_authorization, { permitted_hosts: [] } if ENV.fetch("RACK_ENV", "production") == "development"
 set :erb, trim: "-"
 
 configure :development do
