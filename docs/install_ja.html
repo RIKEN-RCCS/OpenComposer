@@ -21,7 +21,8 @@
 				<li class="nav-item"><a href="#registor" class="nav-link">3. Open OnDemandへの登録</a></li>
 				<li class="nav-item ms-3"><a href="#admin" class="nav-link">3.1. 管理者による登録</a></li>
         <li class="nav-item ms-3"><a href="#general" class="nav-link">3.2. 一般ユーザによる登録</a></li>
-				<li class="nav-item"><a href="#jobscheduler" class="nav-link">4. ジョブスケジューラの追加</a></li>
+				<li class="nav-item"><a href="#local" class="nav-link">4. ローカルにおける開発方法</a></li>
+				<li class="nav-item"><a href="#jobscheduler" class="nav-link">5. ジョブスケジューラの追加</a></li>
       </ul>
     </nav>
 
@@ -198,26 +199,39 @@ url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
       </p>
       <img src="img/new_repo.png" width="800" alt="New repository">
       <p>
-	「Launch Open Composer」をクリックします。
+				「Files」をクリックし、<code>conf.yml.erb.sample</code>を<code>conf.yml.erb</code>にリネームしください。その後、「Launch Open Composer」をクリックします。
       </p>
       <img src="img/bundle.png" width="800" alt="Bundle Install">
 
-      <h2 id="jobscheduler">4. ジョブスケジューラの追加</h2>
+			<h2 id="local">4. ローカルにおける開発方法</h2>
+			<p>
+				ローカルでOpen Composerを起動させる手順は下記の通りです。
+			</p>
+			<pre>$ git clone https://github.com/RIKEN-RCCS/OpenComposer.git
+$ cd OpenComposer
+$ cp misc/Gemfile .
+$ bundle install
+$ RACK_ENV=development bundle exec rackup</pre>
+			<p>
+				Webブラウザで<code>http://localhost:9292</code>にアクセスしてください。
+			</p>
+
+			<h2 id="jobscheduler">5. ジョブスケジューラの追加</h2>
       <p>
-	ジョブスケジューラを追加したい場合、スーパークラスSchedulerが定義された<code>lib/scheduler.rb</code>を参考にして、<code>lib/schedulers/</code>以下にジョブスケジューラのためのRubyスクリプトを作成してください。下記のPBS Pro（<code>lib/schedulers/pbspro.rb</code>）のようにSchedulerクラスを継承してください。ジョブを投入する<code>submit()</code>メソッド、ジョブをキャンセルする<code>cancel()</code>メソッド、ジョブの情報を問い合わせる<code>query()</code>メソッドを定義する必要があります。
+				ジョブスケジューラを追加したい場合、スーパークラスSchedulerが定義された<code>lib/scheduler.rb</code>を参考にして、<code>lib/schedulers/</code>以下にジョブスケジューラのためのRubyスクリプトを作成してください。下記のPBS Pro（<code>lib/schedulers/pbspro.rb</code>）のようにSchedulerクラスを継承してください。ジョブを投入する<code>submit()</code>メソッド、ジョブをキャンセルする<code>cancel()</code>メソッド、ジョブの情報を問い合わせる<code>query()</code>メソッドを定義する必要があります。
       </p>
       <pre>class Pbspro &lt; Scheduler</pre>
       <p>
-	また、いくつかのクラスタでは、ジョブスケジューラのコマンド（例：<code>qstat</code>）がラッパースクリプトになっていて、オリジナルのコマンドをユーザが実行できない場合があります。そのような場合、既存のスケジューラのスクリプトを少し変更することで対応できることがあります。例えば、<code>lib/schedulers/miyabi.rb</code>では、下記のようにPBS Proのスケジューラを継承して新しいクラスMiyabiを定義しています。Miyabiクラスでは<code>query()</code>メソッドだけが定義されており、他のメソッドは<code>lib/schedulers/pbspro.rb</code>で定義されたものを利用しています。	
+        また、いくつかのクラスタでは、ジョブスケジューラのコマンド（例：<code>qstat</code>）がラッパースクリプトになっていて、オリジナルのコマンドをユーザが実行できない場合があります。そのような場合、既存のスケジューラのスクリプトを少し変更することで対応できることがあります。例えば、<code>lib/schedulers/miyabi.rb</code>では、下記のようにPBS Proのスケジューラを継承して新しいクラスMiyabiを定義しています。Miyabiクラスでは<code>query()</code>メソッドだけが定義されており、他のメソッドは<code>lib/schedulers/pbspro.rb</code>で定義されたものを利用しています。
       </p>
       <pre>class Miyabi &lt; Pbspro</pre>
       <p>
-	ジョブスケジューラのスクリプトの作成後、<code>./conf.yml.erb</code>で下記のようにスケジューラを指定します。
+				ジョブスケジューラのスクリプトの作成後、<code>./conf.yml.erb</code>で下記のようにスケジューラを指定します。
       </p>
       <pre>scheduler: miyabi</pre>
-    </main>
-  </div>
-
+		</main>
+	</div>
+	
   <footer class="d-flex justify-content-center">
     <p class="mb-0 text-white">&copy; RIKEN Center for Computational Science</p>
   </footer>

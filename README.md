@@ -8,7 +8,7 @@ interface for creating, previewing, editing, and submitting batch job scripts. I
 supports multiple job schedulers and can be configured for different HPC applications.
 
 - **App type:** Workflow Composer (Jobs category)
-- **Latest release:** [`v1.8.0`](https://github.com/RIKEN-RCCS/OpenComposer/releases/tag/v1.8.0) (see [Changelog](https://github.com/RIKEN-RCCS/OpenComposer/blob/main/CHANGELOG.md))
+- **Latest release:** [`v1.9.0`](https://github.com/RIKEN-RCCS/OpenComposer/releases/tag/v1.9.0) (see [Changelog](https://github.com/RIKEN-RCCS/OpenComposer/blob/main/CHANGELOG.md))
 - **License:** MIT (see [LICENSE file](https://github.com/RIKEN-RCCS/OpenComposer/blob/main/LICENSE))
 - **Requirements:** Open OnDemand 3.0 or later.
 - **Supported job schedulers:** Slurm, PBS Pro, Grid Engine, Fujitsu TCS
@@ -41,36 +41,61 @@ https://github.com/user-attachments/assets/0eee0b62-9364-465a-ae1e-7d412c1c9de9
 ## Documents
 
 You can access the full documentation below:
+<style>
+  .doc-link {
+    display: inline-block;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    border-radius: 99px;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .doc-link.en:hover {
+    background: #1a4fa3;
+    color: white;
+  }
+  .doc-link.ja:hover {
+    background: #1f6f70;
+    color: white;
+  }
+  .doc-link.en {
+    background: #c7dbff;
+    color: #1a3f8b;
+  }
+  .doc-link.ja {
+    background: #bff0e8;
+    color: #1c5f60;
+  }
+</style>
+
 <table>
   <tr>
     <td>Installation</td>
-    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/install.html" target="_blank" rel="noopener noreferrer">EN</a></td>
-    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/install_ja.html" target="_blank" rel="noopener noreferrer">JA</a></td>
+    <td><a class="doc-link en" href="https://riken-rccs.github.io/OpenComposer/docs/install.html" target="_blank">EN</a>&nbsp;
+    <a class="doc-link ja" href="https://riken-rccs.github.io/OpenComposer/docs/install_ja.html" target="_blank">JA</a>
+    </td>
   </tr>
   <tr>
     <td>Application Settings</td>
-    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/application.html" target="_blank" rel="noopener noreferrer">EN</a></td>
-    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/application_ja.html" target="_blank" rel="noopener noreferrer">JA</a></td>
+    <td><a class="doc-link en" href="https://riken-rccs.github.io/OpenComposer/docs/application.html" target="_blank">EN</a>&nbsp;
+    <a class="doc-link ja" href="https://riken-rccs.github.io/OpenComposer/docs/application_ja.html" target="_blank">JA</a></td>
   </tr>
   <tr>
-    <td>User manual</td>
-    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/manual.html" target="_blank" rel="noopener noreferrer">EN</a></td>
-    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/manual_ja.html" target="_blank" rel="noopener noreferrer">JA</a></td>
+    <td>User Manual</td>
+    <td><a class="doc-link en" href="https://riken-rccs.github.io/OpenComposer/docs/manual.html" target="_blank">EN</a>&nbsp;
+    <a class="doc-link ja" href="https://riken-rccs.github.io/OpenComposer/docs/manual_ja.html" target="_blank">JA</a></td>
   </tr>
 </table>
 
 ### Quick start
 
 ```sh
-cd /var/www/ood/apps/sys
-git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git
-cd OpenComposer
-
-# Pin to a release (recommended)
-git checkout v1.8.0
+$ cd /var/www/ood/apps/sys
+$ sudo git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git
+$ sudo cp OpenComposer/conf.yml.erb.sample OpenComposer/conf.yml.erb
 ```
 
-Open Composer uses `conf.yml` for cluster and scheduler configuration and
+Open Composer uses `conf.yml.erb` for cluster and scheduler configuration and
 per-application `form.yml` files to define job submission forms.
 
 ## Testing

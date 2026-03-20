@@ -1,11 +1,14 @@
 # Changelog
 
-## [1.9.0] - 2026-??
+## [1.9.0] - 2026-03-20
 ### Add
-### Changed
-- Allow calc() to specify OC_ROUNDING_ROUND, OC_ROUNDING_FLOOR, and OC_ROUNDING_CEIL.
+- A warning will be displayed before manual changes to the script and submit sections are deleted.
+- Support OC_ROUNDING_ROUND, OC_ROUNDING_FLOOR, and OC_ROUNDING_CEIL in calc().
+- Local Development is added in install manual.
 
-### Fixed
+### Changed
+- RACK is used for development.
+- Improve README to match Appverse documentation standard in [18](https://github.com/RIKEN-RCCS/OpenComposer/issues/28).
 
 ## [1.8.0] - 2025-12-26
 ### Add
