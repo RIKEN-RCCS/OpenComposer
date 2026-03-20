@@ -63,9 +63,10 @@ You can access the full documentation below:
 ### Quick start
 
 ```sh
-$ cd /var/www/ood/apps/sys
-$ sudo git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git
-$ sudo cp OpenComposer/conf.yml.erb.sample OpenComposer/conf.yml.erb
+$ cd /var/www/ood/apps/sys/
+$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git
+$ cd OpenComposer
+$ sudo cp conf.yml.erb.sample conf.yml.erb
 ```
 
 Open Composer uses `conf.yml.erb` for cluster and scheduler configuration and

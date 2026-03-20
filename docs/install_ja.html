@@ -33,16 +33,15 @@
 				Open Composerは<a target="_blank" href="https://openondemand.org/">Open OnDemand</a>上で動作します。Open OnDemandのアプリケーションディレクトリ<code>/var/www/ood/apps/sys/</code>にOpen Composerを保存してください。
       </p>
       <pre>
-# cd /var/www/ood/apps/sys/
-# git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git
-</pre>
+$ cd /var/www/ood/apps/sys/
+$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git</pre>
 
       <h2 id="setting">2. 設定</h2>
       <p>
         <code>./conf.yml.erb.sample</code>を参考にして<code>./conf.yml.erb</code>を作成してください。
       </p>
-      <pre># cd OpenComposer
-# cp conf.yml.erb.sample conf.yml.erb</pre>
+      <pre>$ cd OpenComposer
+$ sudo cp conf.yml.erb.sample conf.yml.erb</pre>
 
       <table class="table">
 				<tr><th>項目名</th><th>設定内容</th></tr>
@@ -213,7 +212,7 @@ $ cp misc/Gemfile .
 $ bundle install
 $ RACK_ENV=development bundle exec rackup</pre>
 			<p>
-				Webブラウザで<code>http://localhost:9292</code>にアクセスしてください。
+				Webブラウザで<code>http://localhost:9292</code>にアクセスしてください。なお、ジョブ投入が行えないなどの制限があります。
 			</p>
 
 			<h2 id="jobscheduler">5. ジョブスケジューラの追加</h2>

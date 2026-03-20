@@ -33,15 +33,15 @@
 				Open Composer runs on <a target="_blank" href="https://openondemand.org/">Open OnDemand</a>. Save Open Composer in your Open OnDemand application directory: <code>/var/www/ood/apps/sys/</code>.
       </p>
       <pre>
-# cd /var/www/ood/apps/sys/
-# git clone --depth 1 https://github.com/RIKEN-RCCS/OpenComposer.git</pre>
+$ cd /var/www/ood/apps/sys/
+$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git</pre>
 
       <h2 id="setting">2. Setting</h2>
       <p>
 				Create <code>./conf.yml.erb</code> with reference to <code>./conf.yml.erb.sample</code>.
       </p>
-      <pre># cd OpenComposer
-# cp conf.yml.erb.sample conf.yml.erb</pre>
+      <pre>$ cd OpenComposer
+$ sudo cp conf.yml.erb.sample conf.yml.erb</pre>
 
 			<table class="table">
 				<tr><th>Item name</th><th>Setting</th></tr>
@@ -226,7 +226,8 @@ $ cp misc/Gemfile .
 $ bundle install
 $ RACK_ENV=development bundle exec rackup</pre>
       <p>
-        Please access <code>http://localhost:9292</code> in your web browser.
+        Please access <code>http://localhost:9292</code> using your web browser.
+				Note that there are restrictions, such as the inability to submit jobs.
       </p>
 			
       <h2 id="jobscheduler">5. Adding a Job Scheduler</h2>
