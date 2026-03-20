@@ -41,49 +41,22 @@ https://github.com/user-attachments/assets/0eee0b62-9364-465a-ae1e-7d412c1c9de9
 ## Documents
 
 You can access the full documentation below:
-<style>
-  .doc-link {
-    display: inline-block;
-    padding: 6px 12px;
-    font-size: 0.9rem;
-    border-radius: 99px;
-    text-decoration: none;
-    font-weight: 500;
-  }
-  .doc-link.en:hover {
-    background: #1a4fa3;
-    color: white;
-  }
-  .doc-link.ja:hover {
-    background: #1f6f70;
-    color: white;
-  }
-  .doc-link.en {
-    background: #c7dbff;
-    color: #1a3f8b;
-  }
-  .doc-link.ja {
-    background: #bff0e8;
-    color: #1c5f60;
-  }
-</style>
 
 <table>
   <tr>
     <td>Installation</td>
-    <td><a class="doc-link en" href="https://riken-rccs.github.io/OpenComposer/docs/install.html" target="_blank">EN</a>&nbsp;
-    <a class="doc-link ja" href="https://riken-rccs.github.io/OpenComposer/docs/install_ja.html" target="_blank">JA</a>
-    </td>
+    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/install.html" target="_blank">EN</a></td>
+    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/install_ja.html" target="_blank">JA</a>
   </tr>
   <tr>
     <td>Application Settings</td>
-    <td><a class="doc-link en" href="https://riken-rccs.github.io/OpenComposer/docs/application.html" target="_blank">EN</a>&nbsp;
-    <a class="doc-link ja" href="https://riken-rccs.github.io/OpenComposer/docs/application_ja.html" target="_blank">JA</a></td>
+    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/application.html" target="_blank">EN</a></td>
+    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/application_ja.html" target="_blank">JA</a></td>
   </tr>
   <tr>
     <td>User Manual</td>
-    <td><a class="doc-link en" href="https://riken-rccs.github.io/OpenComposer/docs/manual.html" target="_blank">EN</a>&nbsp;
-    <a class="doc-link ja" href="https://riken-rccs.github.io/OpenComposer/docs/manual_ja.html" target="_blank">JA</a></td>
+    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/manual.html" target="_blank">EN</a></td>
+    <td><a href="https://riken-rccs.github.io/OpenComposer/docs/manual_ja.html" target="_blank">JA</a></td>
   </tr>
 </table>
 
