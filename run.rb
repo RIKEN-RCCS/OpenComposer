@@ -715,21 +715,21 @@ post "/*" do
     db = open_history_db(conf, conf.key?("clusters") ? cluster_name : nil)
     submission_time = params[JOB_SUBMISSION_TIME]
     submit_data = params.to_h.merge(
-      "app_name" => params[JOB_APP_NAME],
-      "app_dir_name" => params[JOB_DIR_NAME],
-      "script_location" => params[HEADER_SCRIPT_LOCATION],
-      "script_name" => params[HEADER_SCRIPT_NAME],
-      "job_name" => params[HEADER_JOB_NAME].to_s,
-      "partition" => params[JOB_PARTITION].to_s,
-      "submission_time" => submission_time,
-      "updated_time" => submission_time,
-      "status" => JOB_STATUS["queued"]
+      "_app_name" => params[JOB_APP_NAME],
+      "_app_dir_name" => params[JOB_DIR_NAME],
+      "_script_location" => params[HEADER_SCRIPT_LOCATION],
+      "_script_name" => params[HEADER_SCRIPT_NAME],
+      "_job_name" => params[HEADER_JOB_NAME].to_s,
+      "_partition" => params[JOB_PARTITION].to_s,
+      "_submission_time" => submission_time,
+      "_updated_time" => submission_time,
+      "_status" => JOB_STATUS["queued"]
     )
     db.transaction do
       Array(job_id).each do |id|
         record = build_job_record(
           existing: nil,
-          submit_data: submit_data.merge("job_id" => id.to_s),
+          submit_data: submit_data.merge("_job_id" => id.to_s),
           scheduler_data: nil
         )
         upsert_job(db, record)
