@@ -187,7 +187,11 @@
               <input class="form-check-input" type="checkbox" id="ocJobId-<%= job[JOB_ID] %>" value="-1">
             </td>
             <td class="text-wrap text-break text-end history-modal-match-cell <%= 'history-modal-match-active' if job_details_modal_match %>">
+              <% if job[JOB_KEYS].nil? %>
+              <%= output_text(job[JOB_ID], job_id_filter) %>
+              <% else %>
               <a href="#" data-bs-toggle="modal" data-bs-target="#_historyJobId<%= job[JOB_ID] %>"><%= output_text(job[JOB_ID], job_id_filter) %></a>
+              <% end %>
             </td>
             <td class="text-wrap text-break">
               <a href="<%= File.join(@script_name.to_s, job[JOB_DIR_NAME].to_s) %>"><%= output_text(job[JOB_APP_NAME], app_name_filter) %></a>
