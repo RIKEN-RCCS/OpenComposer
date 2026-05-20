@@ -1030,6 +1030,29 @@ helpers do
     )
   end
 
+  # Mark jobs canceled from the History page as completed in the local history.
+  def mark_jobs_as_canceled(db, job_ids)
+    Array(job_ids).each do |job_id|
+      record = find_job(db, job_id)
+      next unless record
+
+      existing = job_record_to_internal_hash(record)
+      scheduler_data = {
+        "_status" => JOB_STATUS["completed"],
+        "_updated_time" => Time.now.iso8601
+      }
+
+      upsert_job(
+        db,
+        build_job_record(
+          existing: existing,
+          submit_data: nil,
+          scheduler_data: scheduler_data
+        )
+      )
+    end
+  end
+
   # Update the status of all jobs that are not completed
   def update_status(conf, scheduler, bin, bin_overrides, ssh_wrapper, cluster_name)
     db = open_history_db(conf, cluster_name)

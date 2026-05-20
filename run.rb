@@ -567,6 +567,12 @@ post "/*" do
     case params["action"]
     when "CancelJob"
       error_msg = scheduler.cancel(job_ids, bin, bin_overrides, ssh_wrapper)
+      if error_msg.nil? && File.exist?(history_db)
+        db = open_history_db(conf, conf.key?("clusters") ? cluster_name : nil)
+        db.transaction do
+          mark_jobs_as_canceled(db, job_ids)
+        end
+      end
       output_log("Cancel job", scheduler, cluster: cluster_name, job_ids: job_ids)
     when "DeleteInfo"
       if File.exist?(history_db)
