@@ -439,17 +439,17 @@ helpers do
       clauses << "1 = 0"
     else
       placeholders = (["?"] * selected_statuses.length).join(", ")
-      clauses << "status IN (#{placeholders})"
+      clauses << "_status IN (#{placeholders})"
       params.concat(selected_statuses)
     end
 
     unless date_from.to_s.empty?
-      clauses << "submission_time >= ?"
+      clauses << "_submission_time >= ?"
       params << Time.parse(date_from.to_s).iso8601
     end
 
     unless date_to.to_s.empty?
-      clauses << "submission_time < ?"
+      clauses << "_submission_time < ?"
       params << (Time.parse(date_to.to_s) + 86400).iso8601
     end
 
@@ -466,29 +466,29 @@ helpers do
     when JOB_ID
       # Approximate the existing natural job-id order inside SQLite.
       <<~SQL.gsub(/\s+/, " ").strip
-        CAST(job_id AS INTEGER) #{direction},
+        CAST(_job_id AS INTEGER) #{direction},
         CASE
-          WHEN instr(job_id, '_') > 0 THEN CAST(substr(job_id, instr(job_id, '_') + 1) AS INTEGER)
-          WHEN instr(job_id, '.') > 0 THEN CAST(substr(job_id, instr(job_id, '.') + 1) AS INTEGER)
-          WHEN instr(job_id, '[') > 0 AND instr(job_id, ']') > instr(job_id, '[')
-            THEN CAST(substr(job_id, instr(job_id, '[') + 1, instr(job_id, ']') - instr(job_id, '[') - 1) AS INTEGER)
+          WHEN instr(_job_id, '_') > 0 THEN CAST(substr(_job_id, instr(_job_id, '_') + 1) AS INTEGER)
+          WHEN instr(_job_id, '.') > 0 THEN CAST(substr(_job_id, instr(_job_id, '.') + 1) AS INTEGER)
+          WHEN instr(_job_id, '[') > 0 AND instr(_job_id, ']') > instr(_job_id, '[')
+            THEN CAST(substr(_job_id, instr(_job_id, '[') + 1, instr(_job_id, ']') - instr(_job_id, '[') - 1) AS INTEGER)
           ELSE -1
         END #{direction},
-        job_id #{direction}
+        _job_id #{direction}
       SQL
     when JOB_APP_NAME
-      "app_name #{direction}, job_id #{direction}"
+      "_app_name #{direction}, _job_id #{direction}"
     when HEADER_SCRIPT_LOCATION
-      "script_location #{direction}, job_id #{direction}"
+      "_script_location #{direction}, _job_id #{direction}"
     when HEADER_SCRIPT_NAME
-      "script_name #{direction}, job_id #{direction}"
+      "_script_name #{direction}, _job_id #{direction}"
     when JOB_NAME
-      "job_name #{direction}, job_id #{direction}"
+      "_job_name #{direction}, _job_id #{direction}"
     when JOB_PARTITION
-      "partition #{direction}, job_id #{direction}"
+      "_partition #{direction}, _job_id #{direction}"
     when JOB_STATUS_ID
       status_case = <<~SQL.gsub(/\s+/, " ").strip
-        CASE status
+        CASE _status
           WHEN '#{JOB_STATUS["queued"]}' THEN 0
           WHEN '#{JOB_STATUS["running"]}' THEN 1
           WHEN '#{JOB_STATUS["completed"]}' THEN 2
@@ -496,11 +496,11 @@ helpers do
           ELSE 99
         END
       SQL
-      "#{status_case} #{direction}, job_id #{direction}"
+      "#{status_case} #{direction}, _job_id #{direction}"
     when JOB_SUBMISSION_TIME
-      "submission_time #{direction}, job_id #{direction}"
+      "_submission_time #{direction}, _job_id #{direction}"
     else
-      "job_id #{direction}"
+      "_job_id #{direction}"
     end
   end
 
@@ -582,78 +582,107 @@ helpers do
   def setup_history_db(db)
     db.execute_batch(<<~SQL)
       CREATE TABLE IF NOT EXISTS jobs (
-        job_id TEXT PRIMARY KEY,
-        app_name TEXT,
-        app_dir_name TEXT,
-        script_location TEXT,
-        script_name TEXT,
-        job_name TEXT,
-        partition TEXT,
-        submission_time TEXT,
-        updated_time TEXT,
-        status TEXT,
+        _job_id TEXT PRIMARY KEY,
+        _app_name TEXT,
+        _app_dir_name TEXT,
+        _script_location TEXT,
+        _script_name TEXT,
+        _job_name TEXT,
+        _partition TEXT,
+        _submission_time TEXT,
+        _updated_time TEXT,
+        _status TEXT,
         payload_json TEXT NOT NULL DEFAULT '{}'
       );
-
-      CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
-      CREATE INDEX IF NOT EXISTS idx_jobs_submission_time ON jobs(submission_time);
-      CREATE INDEX IF NOT EXISTS idx_jobs_updated_time ON jobs(updated_time);
     SQL
+
+    migrate_history_db_internal_columns(db)
+
+    db.execute_batch(<<~SQL)
+      CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(_status);
+      CREATE INDEX IF NOT EXISTS idx_jobs_submission_time ON jobs(_submission_time);
+      CREATE INDEX IF NOT EXISTS idx_jobs_updated_time ON jobs(_updated_time);
+    SQL
+  end
+
+  # Rename legacy History DB columns to the internal-name convention.
+  def migrate_history_db_internal_columns(db)
+    columns = db.table_info("jobs").map { |column| column["name"] }
+    legacy_to_internal = {
+      "job_id" => "_job_id",
+      "app_name" => "_app_name",
+      "app_dir_name" => "_app_dir_name",
+      "script_location" => "_script_location",
+      "script_name" => "_script_name",
+      "job_name" => "_job_name",
+      "partition" => "_partition",
+      "submission_time" => "_submission_time",
+      "updated_time" => "_updated_time",
+      "status" => "_status"
+    }
+
+    legacy_to_internal.each do |legacy, internal|
+      next unless columns.include?(legacy)
+      next if columns.include?(internal)
+
+      db.execute("ALTER TABLE jobs RENAME COLUMN #{legacy} TO #{internal}")
+      columns[columns.index(legacy)] = internal
+    end
   end
 
   # Return one job record by ID.
   def find_job(db, job_id)
-    db.get_first_row("SELECT * FROM jobs WHERE job_id = ?", [job_id])
+    db.get_first_row("SELECT * FROM jobs WHERE _job_id = ?", [job_id])
   end
 
   # Insert or update a job record.
   def upsert_job(db, record)
     params = [
-      record["job_id"],
-      record["app_name"],
-      record["app_dir_name"],
-      record["script_location"],
-      record["script_name"],
-      record["job_name"],
-      record["partition"],
-      record["submission_time"],
-      record["updated_time"],
-      record["status"],
+      record["_job_id"],
+      record["_app_name"],
+      record["_app_dir_name"],
+      record["_script_location"],
+      record["_script_name"],
+      record["_job_name"],
+      record["_partition"],
+      record["_submission_time"],
+      record["_updated_time"],
+      record["_status"],
       record["payload_json"]
     ]
 
     db.execute(<<~SQL, params)
       INSERT INTO jobs (
-        job_id,
-        app_name,
-        app_dir_name,
-        script_location,
-        script_name,
-        job_name,
-        partition,
-        submission_time,
-        updated_time,
-        status,
+        _job_id,
+        _app_name,
+        _app_dir_name,
+        _script_location,
+        _script_name,
+        _job_name,
+        _partition,
+        _submission_time,
+        _updated_time,
+        _status,
         payload_json
       )
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(job_id) DO UPDATE SET
-        app_name = excluded.app_name,
-        app_dir_name = excluded.app_dir_name,
-        script_location = excluded.script_location,
-        script_name = excluded.script_name,
-        job_name = excluded.job_name,
-        partition = excluded.partition,
-        submission_time = excluded.submission_time,
-        updated_time = excluded.updated_time,
-        status = excluded.status,
+      ON CONFLICT(_job_id) DO UPDATE SET
+        _app_name = excluded._app_name,
+        _app_dir_name = excluded._app_dir_name,
+        _script_location = excluded._script_location,
+        _script_name = excluded._script_name,
+        _job_name = excluded._job_name,
+        _partition = excluded._partition,
+        _submission_time = excluded._submission_time,
+        _updated_time = excluded._updated_time,
+        _status = excluded._status,
         payload_json = excluded.payload_json
     SQL
   end
 
   # Delete one job record.
   def delete_job(db, job_id)
-    db.execute("DELETE FROM jobs WHERE job_id = ?", [job_id])
+    db.execute("DELETE FROM jobs WHERE _job_id = ?", [job_id])
   end
 
   # Yield each job record.
@@ -663,11 +692,11 @@ helpers do
 
   # Return all unfinished job IDs.
   def get_unfinished_job_ids(db)
-    db.execute(<<~SQL, [JOB_STATUS["completed"], JOB_STATUS["failed"]]).map { |row| row["job_id"] }
-      SELECT job_id
+    db.execute(<<~SQL, [JOB_STATUS["completed"], JOB_STATUS["failed"]]).map { |row| row["_job_id"] }
+      SELECT _job_id
       FROM jobs
-      WHERE status IS NULL OR (status != ? AND status != ?)
-      ORDER BY submission_time DESC, job_id DESC
+      WHERE _status IS NULL OR (_status != ? AND _status != ?)
+      ORDER BY _submission_time DESC, _job_id DESC
     SQL
   end
 
@@ -686,16 +715,16 @@ helpers do
   # Return the keys that are stored as dedicated columns instead of payload_json.
   def job_record_column_keys
     %w[
-      job_id
-      app_name
-      app_dir_name
-      script_location
-      script_name
-      job_name
-      partition
-      submission_time
-      updated_time
-      status
+      _job_id
+      _app_name
+      _app_dir_name
+      _script_location
+      _script_name
+      _job_name
+      _partition
+      _submission_time
+      _updated_time
+      _status
     ]
   end
 
@@ -747,7 +776,7 @@ helpers do
 
   # Return dedicated columns that should be included in all-column search text.
   def search_column_keys
-    job_record_column_keys - %w[status]
+    job_record_column_keys - %w[_status]
   end
 
   # Return configured history fields as [key, label] pairs.
@@ -828,7 +857,7 @@ helpers do
   def history_filter_target_text(row, filter_column)
     return build_search_text_from_row(row) if filter_column == "all"
 
-    job = { JOB_ID => row["job_id"] }.merge(job_record_to_legacy_hash(row))
+    job = { JOB_ID => row["_job_id"] }.merge(job_record_to_legacy_hash(row))
     if filter_column == JOB_ID
       detail_values = Array(job[JOB_KEYS]).flat_map do |key|
         [key, job[key]]
@@ -883,16 +912,16 @@ helpers do
     merged = merge_job_data(merged, scheduler_data)
 
     record = {
-      "job_id" => merged["job_id"],
-      "app_name" => merged["app_name"],
-      "app_dir_name" => merged["app_dir_name"],
-      "script_location" => merged["script_location"],
-      "script_name" => merged["script_name"],
-      "job_name" => merged["job_name"] || "",
-      "partition" => merged["partition"] || "",
-      "submission_time" => merged["submission_time"],
-      "updated_time" => merged["updated_time"],
-      "status" => merged["status"]
+      "_job_id" => merged["_job_id"],
+      "_app_name" => merged["_app_name"],
+      "_app_dir_name" => merged["_app_dir_name"],
+      "_script_location" => merged["_script_location"],
+      "_script_name" => merged["_script_name"],
+      "_job_name" => merged["_job_name"] || "",
+      "_partition" => merged["_partition"] || "",
+      "_submission_time" => merged["_submission_time"],
+      "_updated_time" => merged["_updated_time"],
+      "_status" => merged["_status"]
     }
 
     payload_hash = build_payload_hash(merged)
@@ -948,16 +977,16 @@ helpers do
 
     submission_time = normalize_time_for_db(legacy[JOB_SUBMISSION_TIME.to_s])
     merged = legacy.merge(
-      "job_id" => job_id,
-      "app_name" => legacy[JOB_APP_NAME.to_s],
-      "app_dir_name" => legacy[JOB_DIR_NAME.to_s],
-      "script_location" => legacy[HEADER_SCRIPT_LOCATION.to_s],
-      "script_name" => legacy[HEADER_SCRIPT_NAME.to_s],
-      "job_name" => legacy[JOB_NAME.to_s] || legacy[HEADER_JOB_NAME.to_s] || "",
-      "partition" => legacy[JOB_PARTITION.to_s] || legacy["partition"] || "",
-      "submission_time" => submission_time,
-      "updated_time" => submission_time,
-      "status" => legacy[JOB_STATUS_ID.to_s]
+      "_job_id" => job_id,
+      "_app_name" => legacy[JOB_APP_NAME.to_s],
+      "_app_dir_name" => legacy[JOB_DIR_NAME.to_s],
+      "_script_location" => legacy[HEADER_SCRIPT_LOCATION.to_s],
+      "_script_name" => legacy[HEADER_SCRIPT_NAME.to_s],
+      "_job_name" => legacy[JOB_NAME.to_s] || legacy[HEADER_JOB_NAME.to_s] || "",
+      "_partition" => legacy[JOB_PARTITION.to_s] || legacy["partition"] || "",
+      "_submission_time" => submission_time,
+      "_updated_time" => submission_time,
+      "_status" => legacy[JOB_STATUS_ID.to_s]
     )
 
     build_job_record(existing: nil, submit_data: merged, scheduler_data: nil)
@@ -969,16 +998,16 @@ helpers do
 
     payload_hash = JSON.parse(record["payload_json"] || "{}")
     payload_hash.merge(
-      JOB_APP_NAME => record["app_name"],
-      JOB_DIR_NAME => record["app_dir_name"],
-      HEADER_SCRIPT_LOCATION => record["script_location"],
-      HEADER_SCRIPT_NAME => record["script_name"],
+      JOB_APP_NAME => record["_app_name"],
+      JOB_DIR_NAME => record["_app_dir_name"],
+      HEADER_SCRIPT_LOCATION => record["_script_location"],
+      HEADER_SCRIPT_NAME => record["_script_name"],
       # Keep this legacy fallback because some jobs may not have a resolved
       # scheduler-side job name yet when the record is first created.
-      JOB_NAME => record["job_name"].to_s.empty? ? payload_hash[HEADER_JOB_NAME] : record["job_name"],
-      JOB_PARTITION => record["partition"],
-      JOB_SUBMISSION_TIME => record["submission_time"],
-      JOB_STATUS_ID => record["status"]
+      JOB_NAME => record["_job_name"].to_s.empty? ? payload_hash[HEADER_JOB_NAME] : record["_job_name"],
+      JOB_PARTITION => record["_partition"],
+      JOB_SUBMISSION_TIME => record["_submission_time"],
+      JOB_STATUS_ID => record["_status"]
     )
   end
 
@@ -988,16 +1017,16 @@ helpers do
 
     payload_hash = JSON.parse(record["payload_json"] || "{}")
     payload_hash.merge(
-      "job_id" => record["job_id"],
-      "app_name" => record["app_name"],
-      "app_dir_name" => record["app_dir_name"],
-      "script_location" => record["script_location"],
-      "script_name" => record["script_name"],
-      "job_name" => record["job_name"],
-      "partition" => record["partition"],
-      "submission_time" => record["submission_time"],
-      "updated_time" => record["updated_time"],
-      "status" => record["status"]
+      "_job_id" => record["_job_id"],
+      "_app_name" => record["_app_name"],
+      "_app_dir_name" => record["_app_dir_name"],
+      "_script_location" => record["_script_location"],
+      "_script_name" => record["_script_name"],
+      "_job_name" => record["_job_name"],
+      "_partition" => record["_partition"],
+      "_submission_time" => record["_submission_time"],
+      "_updated_time" => record["_updated_time"],
+      "_status" => record["_status"]
     )
   end
 
@@ -1046,12 +1075,12 @@ helpers do
 
         existing = job_record_to_internal_hash(record)
         scheduler_data = (info || {}).transform_keys(&:to_s)
-        scheduler_data["status"] = scheduler_data[JOB_STATUS_ID.to_s]
-        scheduler_data["script_location"] = scheduler_data[HEADER_SCRIPT_LOCATION.to_s]
-        scheduler_data["script_name"] = scheduler_data[HEADER_SCRIPT_NAME.to_s]
-        scheduler_data["job_name"] = scheduler_data[JOB_NAME.to_s]
-        scheduler_data["partition"] = scheduler_data[JOB_PARTITION.to_s]
-        scheduler_data["updated_time"] = Time.now.iso8601
+        scheduler_data["_status"] = scheduler_data[JOB_STATUS_ID.to_s]
+        scheduler_data["_script_location"] = scheduler_data[HEADER_SCRIPT_LOCATION.to_s]
+        scheduler_data["_script_name"] = scheduler_data[HEADER_SCRIPT_NAME.to_s]
+        scheduler_data["_job_name"] = scheduler_data[JOB_NAME.to_s]
+        scheduler_data["_partition"] = scheduler_data[JOB_PARTITION.to_s]
+        scheduler_data["_updated_time"] = Time.now.iso8601
         scheduler_data[JOB_KEYS.to_s] = info.keys
 
         upsert_job(
@@ -1077,11 +1106,11 @@ helpers do
     filter_text = CGI.unescapeHTML(filter.to_s).downcase
     each_job(db) do |row|
       next if selected_statuses.empty?
-      next unless selected_statuses.any? { |status| row["status"] == JOB_STATUS[status] }
-      next unless history_date_range_matches?(row["submission_time"], date_from, date_to)
+      next unless selected_statuses.any? { |status| row["_status"] == JOB_STATUS[status] }
+      next unless history_date_range_matches?(row["_submission_time"], date_from, date_to)
       next unless history_filter_mode_matches?(history_filter_target_text(row, filter_column), filter_text, filter_mode)
 
-      info = { JOB_ID => row["job_id"] }.merge(job_record_to_legacy_hash(row))
+      info = { JOB_ID => row["_job_id"] }.merge(job_record_to_legacy_hash(row))
       jobs << info
     end
 
@@ -1098,7 +1127,7 @@ helpers do
     if history_use_sql_fast_path?(filter, sort)
       total_count = count_history_jobs(db, statuses, date_from, date_to)
       rows = total_count.zero? ? [] : fetch_history_jobs_page(db, statuses, date_from, date_to, sort, order, limit, offset)
-      jobs = rows.map { |row| { JOB_ID => row["job_id"] }.merge(job_record_to_legacy_hash(row)) }
+      jobs = rows.map { |row| { JOB_ID => row["_job_id"] }.merge(job_record_to_legacy_hash(row)) }
       return [jobs, total_count]
     end
 
