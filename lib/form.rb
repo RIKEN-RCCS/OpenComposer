@@ -146,7 +146,7 @@ helpers do
              end
       if type
         html << "onfocus=\"ocForm.storePreviousValue('#{id}')\" " \
-                "oninput=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}');})\""
+                "oninput=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
       else
         html << "style=\"background-color: #{@conf["non_script_color"]};\""
@@ -231,10 +231,18 @@ helpers do
   def output_script_js(form, line, app_name, dir_name)
     line = normalize_interpolation(line)
     line = substitute_oc_constants(line, app_name, dir_name)
+    raw_line = line.dup
     line = escape_js_string(line)
 
     matches = line.scan(/\#\{.+?\}/)
-    return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
+    if matches.empty?
+      pattern_js = ""
+      unless raw_line.empty?
+        prefix_js  = escape_js_string(raw_line)
+        pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:null, keys:[], widgets:[], separators:[], canHide:[]});\n"
+      end
+      return ["  selectedValues.push(\'#{line}\');\n", pattern_js]
+    end
 
     keys = matches.flat_map do |str|
       inner = str[2..-2] # "#{time_1}" -> "time_1"
@@ -312,14 +320,42 @@ helpers do
 
     if exist_keys.length > 0
       # Convert to JavaScript array
-      keys_array          = "['" + exist_keys.join("', '") + "']"
-      widgets_array       = "['" + widgets.join("', '") + "']"
-      can_hide_array      = "["  + can_hide.map { |r| r }.join(", ") + "]"
-      separators_array    = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
+      keys_array       = "['" + exist_keys.join("', '") + "']"
+      widgets_array    = "['" + widgets.join("', '") + "']"
+      can_hide_array   = "["  + can_hide.join(", ") + "]"
+      separators_array = "["  + separators.map { |s| s.nil? ? 'null' : "'#{s}'" }.join(", ") + "]"
 
-      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
+      show_js = "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
+
+      has_complex = raw_line.match?(/\#\{(calc|zeropadding|dirname|basename)\(/)
+      raw_parts   = raw_line.split(/\#\{[^}]+\}/, -1)
+      prefix      = raw_parts[0]
+      pattern_js  = ""
+      if has_complex
+        unless prefix.empty?
+          prefix_js  = escape_js_string(prefix)
+          if raw_line.lstrip.start_with?("#SBATCH --time=")
+            pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:null, keys:#{keys_array}, widgets:#{widgets_array}, separators:#{separators_array}, canHide:#{can_hide_array}, parseType:'slurm_time'});\n"
+          else
+            pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:null, keys:[], widgets:[], separators:[], canHide:[]});\n"
+          end
+        end
+      else
+        unless prefix.empty?
+          regex_parts = []
+          raw_parts.each_with_index do |part, i|
+            regex_parts << Regexp.escape(part)
+            regex_parts << (i < raw_parts.length - 2 ? "(.*?)" : "(.*)") if i < raw_parts.length - 1
+          end
+          regex_str  = ("^" + regex_parts.join("") + "$").gsub("/", "\\/")
+          prefix_js  = escape_js_string(prefix)
+          pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:/#{regex_str}/, keys:#{keys_array}, widgets:#{widgets_array}, separators:#{separators_array}, canHide:#{can_hide_array}});\n"
+        end
+      end
+
+      return [show_js, pattern_js]
     else
-      return "  selectedValues.push('#{line}');\n"
+      return ["  selectedValues.push('#{line}');\n", ""]
     end
   end
 
@@ -329,6 +365,7 @@ helpers do
 
     html = output_label_with_span_tag(key, value)
     html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" "
+    html << "data-remember-last=\"true\" " if value['remember_last']
     script_flag = references_key_or_has_flag?(key, value['options'], script_content, app_name, dir_name)
     submit_flag = references_key_or_has_flag?(key, value['options'], submit_content, app_name, dir_name)
     type = if script_flag && submit_flag
@@ -340,7 +377,7 @@ helpers do
            end
     if type
       html << "onfocus=\"ocForm.storePreviousValue('#{key}')\" " \
-              "onchange=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}');})\""
+              "onchange=\"ocForm.updateArea('#{type}', '#{key}')\""
       html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html << "onchange=\"ocForm.execDynamicWidget('#{key}')\" " \
@@ -361,6 +398,70 @@ helpers do
     end
 
     html + "</select>\n" + output_help(key, value)
+  end
+
+  # Output a module_load widget: a <select> asynchronously populated via /_module_avail.
+  def output_module_load_html(key, value, script_content, submit_content, app_name, dir_name)
+    mod  = value['module'].to_s
+    html = output_label_with_span_tag(key, value)
+    html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" "
+
+    script_flag = references_key_or_has_flag?(key, nil, script_content, app_name, dir_name)
+    submit_flag = references_key_or_has_flag?(key, nil, submit_content, app_name, dir_name)
+    type = if script_flag && submit_flag then 'both'
+           elsif script_flag             then 'script'
+           elsif submit_flag             then 'submit'
+           end
+
+    if type
+      html += "onchange=\"ocForm.patchModuleLoadLine('#{type}', '#{key}')\""
+      html += " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
+    else
+      html += "onchange=\"ocForm.execDynamicWidget('#{key}')\" "
+      html += "style=\"background-color: #{@conf["non_script_color"]};\""
+    end
+    html += " data-module-avail=\"#{ERB::Util.h(mod)}\">\n"
+    html += "<option value=\"\" data-value=\"\">Loading\xe2\x80\xa6</option>\n"
+    html += "</select>\n"
+    @table_index += 1
+    html + output_help(key, value)
+  end
+
+  # JavaScript to asynchronously populate a module_load select via /_module_avail.
+  def output_module_load_js(key, value)
+    mod  = value['module'].to_s
+    defv = value['value'].to_s
+    sn   = @script_name.to_s
+    <<~JS
+      (function() {
+        var sel = document.getElementById(#{key.to_json});
+        if (!sel) return;
+        var urlParams = new URLSearchParams(window.location.search);
+        var cluster = urlParams.get('_cluster_name') || '';
+        fetch(#{sn.to_json} + '/_module_avail?module=' + encodeURIComponent(#{mod.to_json}) + '&cluster=' + encodeURIComponent(cluster))
+          .then(function(r) { return r.json(); })
+          .then(function(modules) {
+            sel.innerHTML = '';
+            if (!modules.length) {
+              var opt = document.createElement('option');
+              opt.value = ''; opt.dataset.value = ''; opt.textContent = 'No modules found';
+              sel.appendChild(opt); return;
+            }
+            var defaultVal = #{defv.to_json};
+            modules.forEach(function(m) {
+              var opt = document.createElement('option');
+              opt.value = m; opt.dataset.value = m; opt.textContent = m;
+              if (defaultVal && m === defaultVal) opt.selected = true;
+              sel.appendChild(opt);
+            });
+            if (sel.selectedIndex === -1) sel.selectedIndex = 0;
+            sel.dispatchEvent(new Event('change'));
+          })
+          .catch(function() {
+            sel.innerHTML = '<option value="" data-value="">Error loading modules</option>';
+          });
+      })();
+    JS
   end
 
   # Output a multi-select widget.
@@ -460,7 +561,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\" oninput=\"ocForm.storePreviousValue('#{id}')\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\" oninput=\"ocForm.storePreviousValue('#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -510,7 +611,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -530,6 +631,126 @@ helpers do
   # If "required: true", the submit button cannot be pressed.
   def output_checkbox_js(key, value)
     return !value['required'].is_a?(Array) && value['required'].to_s == "true" ? "  ocForm.validateCheckboxForSubmit('#{key}');" : ""
+  end
+
+  # Generate JS that populates ocForm.enabledBy: maps each field key to the checkbox
+  # option IDs that enable it.  Used by parseScriptToWidgets to auto-open parent
+  # toggle sections (e.g. "Show advanced options") when populating fields from a script.
+  def output_enabled_by_js(key, options)
+    js = ""
+    return js if options.nil?
+    options.each_with_index do |option, i|
+      next unless option.is_a?(Array)
+      (option[2..-1] || []).each do |action|
+        next unless action.is_a?(String) && action.start_with?("enable-")
+        target     = action.sub(/^enable-/, '')
+        enabler_id = "#{key}_#{i + 1}"
+        js += "  (ocForm.enabledBy[#{target.to_json}] = ocForm.enabledBy[#{target.to_json}] || []).push(#{enabler_id.to_json});\n"
+      end
+    end
+    js
+  end
+
+  # Output a dependent_module_select: a single <select> that switches its module list based on a driver widget.
+  def output_dependent_module_select_html(key, value, script_content, submit_content, app_name, dir_name)
+    html  = output_label_with_span_tag(key, value)
+    html += "<select tabindex=\"#{@table_index}\" id=\"#{key}\" name=\"#{key}\" class=\"form-select\" "
+
+    script_flag = references_key_or_has_flag?(key, nil, script_content, app_name, dir_name)
+    submit_flag = references_key_or_has_flag?(key, nil, submit_content, app_name, dir_name)
+    type = if script_flag && submit_flag then 'both'
+           elsif script_flag             then 'script'
+           elsif submit_flag             then 'submit'
+           end
+
+    if type
+      html += "onfocus=\"ocForm.storePreviousValue('#{key}')\" " \
+              "onchange=\"ocForm.updateArea('#{type}', '#{key}')\""
+      html += " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
+    else
+      html += "onchange=\"ocForm.execDynamicWidget('#{key}')\" "
+      html += "style=\"background-color: #{@conf["non_script_color"]};\""
+    end
+    html += ">\n"
+    html += "<option value=\"\" data-value=\"\">Loading\xe2\x80\xa6</option>\n"
+    html += "</select>\n"
+    @table_index += 1
+    html + output_help(key, value)
+  end
+
+  # JavaScript to initialize a dependent_module_select: watches a driver widget and re-fetches
+  # the module version list whenever the driver's selected value changes prefix group.
+  def output_dependent_module_select_js(key, value)
+    driver  = value['driver'].to_s
+    modules = value['options'] || []
+    sn      = @script_name.to_s
+
+    mod_map_js = modules.map { |m|
+      parts = []
+      parts << "prefix: #{m['prefix'].to_s.to_json}"   if m['prefix']
+      parts << "contains: #{m['contains'].to_s.to_json}" if m['contains']
+      parts << "module: #{m['module'].to_s.to_json}"
+      "{#{parts.join(', ')}}"
+    }.join(", ")
+
+    <<~JS
+      (function() {
+        var sel    = document.getElementById(#{key.to_json});
+        var driver = document.getElementById(#{driver.to_json});
+        if (!sel) return;
+        var modMap = [#{mod_map_js}];
+        var sn     = #{sn.to_json};
+        var lastModule = null;
+
+        function moduleForValue(val) {
+          var s = String(val);
+          for (var i = 0; i < modMap.length; i++) {
+            if (modMap[i].prefix   && s.startsWith(modMap[i].prefix))   return modMap[i].module;
+            if (modMap[i].contains && s.includes(modMap[i].contains))   return modMap[i].module;
+          }
+          return modMap.length > 0 ? modMap[modMap.length - 1].module : '';
+        }
+
+        function loadModules(moduleName) {
+          if (!moduleName || moduleName === lastModule) return;
+          lastModule = moduleName;
+          var urlParams = new URLSearchParams(window.location.search);
+          var cluster = urlParams.get('_cluster_name') || '';
+          fetch(sn + '/_module_avail?module=' + encodeURIComponent(moduleName) + '&cluster=' + encodeURIComponent(cluster))
+            .then(function(r) { return r.json(); })
+            .then(function(mods) {
+              sel.innerHTML = '';
+              if (!mods.length) {
+                var opt = document.createElement('option');
+                opt.value = ''; opt.dataset.value = ''; opt.textContent = 'No modules found';
+                sel.appendChild(opt); return;
+              }
+              mods.forEach(function(m) {
+                var opt = document.createElement('option');
+                opt.value = m; opt.dataset.value = m; opt.textContent = m;
+                sel.appendChild(opt);
+              });
+              if (sel.selectedIndex === -1) sel.selectedIndex = 0;
+              sel.dispatchEvent(new Event('change'));
+            })
+            .catch(function() {
+              sel.innerHTML = '<option value="" data-value="">Error loading modules</option>';
+            });
+        }
+
+        function updateFromDriver() {
+          if (!driver) return;
+          var idx = driver.selectedIndex;
+          var driverVal = (idx >= 0 && driver.options[idx] && driver.options[idx].dataset.value)
+                          ? driver.options[idx].dataset.value
+                          : (driver.value || '');
+          loadModules(moduleForValue(driverVal));
+        }
+
+        updateFromDriver();
+        if (driver) driver.addEventListener('change', updateFromDriver);
+      })();
+    JS
   end
 
   # Output a path widget.
@@ -554,7 +775,7 @@ helpers do
              'submit'
            end
     if type
-      html += "oninput=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}')})\" "
+      html += "oninput=\"ocForm.updateArea('#{type}', '#{key}')\" "
       html += "onfocus=\"ocForm.storePreviousValue('#{key}')\""
       html += " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
@@ -638,7 +859,7 @@ helpers do
 HTML
     html += "<button type=\"button\" class=\"btn btn-primary\" data-bs-dismiss=\"modal\" tabindex=\"-1\" "
     onclick = if type
-                "ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')})"
+                "ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')"
               else
                 "ocForm.updatePath('#{key}')"
               end
@@ -681,6 +902,7 @@ HTML
       end
 
       form.each do |k, v|
+        next unless v.is_a?(Hash)
         if key =~ /^set-#{attr}-#{k}$/
           elements.push({"attr" => attr, "key" => k, "value" => value})
         elsif ["number", "text", "email"].include?(v["widget"]) && key =~ /^set-#{attr}-#{k}_\d+$/
@@ -709,6 +931,7 @@ HTML
       next if option.is_a?(Hash) # Skip if the option is a Hash
 
       form.each do |k, v|
+        next unless v.is_a?(Hash)
         if option =~ /^disable-#{k}$/
           disable_elements.push({"key" => k})
         elsif option =~ /^enable-#{k}$/
@@ -727,7 +950,7 @@ HTML
               else
                 disable_elements.push({"key" => k, "num" => i+1})
               end
-            elsif option =~ /^enable-#{k}-#{_option[0]}/
+            elsif option =~ /^enable-#{k}-#{_option[0]}$/
               if v["widget"] == "multi_select"
                 enable_elements.push({"key" => k, "num" => i+1, "value" => _option[0]})
               else
@@ -746,6 +969,7 @@ HTML
   # For radio or checkbox widgets, the size is determined by the number of options.
   # For other widgets, it checks for a 'size' attribute.
   def get_target_size(target_key, form)
+    return "null" unless form[target_key].is_a?(Hash)
     widget = form[target_key]["widget"]
 
     if ["radio", "checkbox"].include?(widget)
@@ -808,6 +1032,17 @@ HTML
             js += "    ocForm.hideWidget('#{k}', '#{action[:widget]}', #{action[:size]});\n"
           else
             js += "    ocForm.disableWidget('#{k.chomp(action[:num].to_s)}', #{action[:num]}, '#{action[:widget]}', \"#{action[:value]}\", #{action[:size]});\n"
+          end
+        end
+        unless is_disable
+          js += "  } else {\n"
+          actions_by_key[k].each do |action|
+            if action[:num] == "null"
+              js += "    ocForm.enableWidget('#{k}', #{action[:num]}, '#{action[:widget]}', #{action[:size]});\n"
+              js += "    ocForm.showWidget('#{k}', '#{action[:widget]}', #{action[:size]});\n"
+            else
+              js += "    ocForm.enableWidget('#{k.chomp(action[:num].to_s)}', #{action[:num]}, '#{action[:widget]}', #{action[:size]});\n"
+            end
           end
         end
         js += "  }\n"
@@ -989,14 +1224,14 @@ HTML
   def output_body(body, header, app_name, dir_name)
     return "" unless body&.key?("form")
 
-    @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "" }
-    form = body["form"].merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
+    @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "", "script_patterns" => "" }
+    form = (body["form"] || {}).merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
     obj = form.merge(header)
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
 
     html = ""
-    form.each_with_index do |(key, value), index|
+    form.each do |key, value|
       next if key == OC_SCRIPT_CONTENT
       indent = add_indent_style(value)
       html  += "<div class=\"mb-3 position-relative\" style=\"#{indent}\">\n"
@@ -1018,12 +1253,19 @@ HTML
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         html += output_radio_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'checkbox'
-        @js["init_dw"] += output_init_dw_js(value["options"], obj)
-        @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        @js["exec_dw"] += output_checkbox_js(key, value)
+        @js["init_dw"]         += output_init_dw_js(value["options"], obj)
+        @js["exec_dw"]         += output_exec_dw_js(key, value["options"], obj)
+        @js["exec_dw"]         += output_checkbox_js(key, value)
+        @js["script_patterns"] += output_enabled_by_js(key, value["options"])
         html += output_checkbox_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'path'
         html += output_path_html(key, value, script_content, submit_content, app_name, dir_name)
+      when 'module_load'
+        @js["once"] += output_module_load_js(key, value)
+        html += output_module_load_html(key, value, script_content, submit_content, app_name, dir_name)
+      when 'dependent_module_select'
+        @js["once"] += output_dependent_module_select_js(key, value)
+        html += output_dependent_module_select_html(key, value, script_content, submit_content, app_name, dir_name)
       end
 
       html += "</div>\n"
@@ -1032,13 +1274,16 @@ HTML
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     if !script_content.nil?
       script_content.split("\n").each do |line|
-        @js["script"] += output_script_js(obj, line, app_name, dir_name)
+        show_js, pat_js = output_script_js(obj, line, app_name, dir_name)
+        @js["script"]          += show_js
+        @js["script_patterns"] += pat_js
       end
     end
 
     if !submit_content.nil?
       submit_content.split("\n").each do |line|
-        @js["submit"] += output_script_js(obj, line, app_name, dir_name)
+        show_js, _pat_js = output_script_js(obj, line, app_name, dir_name)
+        @js["submit"] += show_js
       end
     end
 
@@ -1049,14 +1294,14 @@ HTML
   def output_header(body, header, app_name="A", dir_name="B")
     return "" if header.nil? || header.empty?
 
-    @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => ""}
+    @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "", "script_patterns" => ""}
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
 
     html = ""
     header = header.merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
-    obj    = header.merge(body["form"])
-    header.each_with_index do |(key, value), index|
+    obj    = header.merge(body["form"] || {})
+    header.each do |key, value|
       next if key == OC_SCRIPT_CONTENT
       indent = add_indent_style(value)
       html  += "<div class=\"mb-3 position-relative\" style=\"#{indent}\">\n"
@@ -1078,9 +1323,10 @@ HTML
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         html += output_radio_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'checkbox'
-        @js["init_dw"] += output_init_dw_js(value["options"], obj)
-        @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        @js["exec_dw"] += output_checkbox_js(key, value)
+        @js["init_dw"]         += output_init_dw_js(value["options"], obj)
+        @js["exec_dw"]         += output_exec_dw_js(key, value["options"], obj)
+        @js["exec_dw"]         += output_checkbox_js(key, value)
+        @js["script_patterns"] += output_enabled_by_js(key, value["options"])
         html += output_checkbox_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'path'
         html += output_path_html(key, value, script_content, submit_content, app_name, dir_name)

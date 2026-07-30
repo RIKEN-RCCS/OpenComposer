@@ -1,3 +1,27 @@
+<style>
+  /* Lay out the advanced toggle checkboxes two per row
+     (Testing | Profiling / SSD | Multithreading). Scoped with :has(#multithreading_1)
+     so only the Slurm forms are affected; every other app is untouched.
+     Flexbox is used (not display:inline-block) because show/hide toggles the
+     inline `display` on each field's .mb-3 wrapper — a display rule would fight it,
+     whereas a display:none flex item simply drops out of the flex layout. */
+  #<%= FORM_LAYOUT %> > .col.pt-3:has(#multithreading_1) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  #<%= FORM_LAYOUT %> > .col.pt-3:has(#multithreading_1) > div.mb-3 {
+    flex: 0 0 100%;
+  }
+  #<%= FORM_LAYOUT %> > .col.pt-3:has(#multithreading_1) > div.mb-3:has(#testing_1),
+  #<%= FORM_LAYOUT %> > .col.pt-3:has(#multithreading_1) > div.mb-3:has(#profiling_1),
+  #<%= FORM_LAYOUT %> > .col.pt-3:has(#multithreading_1) > div.mb-3:has(#ssd_1),
+  #<%= FORM_LAYOUT %> > .col.pt-3:has(#multithreading_1) > div.mb-3:has(#multithreading_1) {
+    flex: 0 0 49%;
+  }
+</style>
+
 <% if @script_path %>
   <% script_link = "<a target=\"_blank\" href=\"#{@my_ood_url}/pun/sys/dashboard/files/fs#{File.dirname(@script_path)}\">#{@script_path}</a>" %>
   <% if @login_node %>
@@ -11,9 +35,9 @@
     Job was successfully submitted (Job ID is <code><%= @job_id %></code>).
     <%= script_msg %>
     <% if @conf.key?("clusters") && @conf["clusters"].size > 1 %>
-      Go to the <a href="./history?cluster=<%= @cluster_name %>">History page</a>.
+      Go to the <a href="<%= @script_name %>/history?cluster=<%= @cluster_name %>">History page</a>.
     <% else %>
-      Go to the <a href="./history">History page</a>.
+      Go to the <a href="<%= @script_name %>/history">History page</a>.
     <% end %>
     <button class="btn-close" data-bs-dismiss="alert"></button>
   </div>
@@ -32,45 +56,76 @@
 <% end %>
 
 <form id="<%= SUBMIT_FORM %>" action="<%= @current_path %>" method="post" onsubmit="return ocForm.submitEffect('<%= @form_action %>');">
-  <div class="row px-3 text-white">
+  <div class="row px-3" style="color:<%= @conf['description_text_color'] %>;">
     <!-- Application Info Section -->
-    <div class="col pt-2 bg-gradient" style="background:<%= @conf['description_color'] %>; color: white;">
-      <h3>
-        <a href="<%= @script_name %>/<%= @manifest['dirname'] %>" class="fw-semibold" style="color: inherit; text-decoration: none;">
-          <%= @manifest['name'] %>
-        </a>
-      </h3>
-      <input type="hidden" name="<%= INTERNAL_APP_NAME %>" value="<%= @manifest['name'] %>">
-      <input type="hidden" name="<%= INTERNAL_DIR_NAME %>" value="<%= @dir_name %>">
-      <p><%= @manifest['description'] %></p>
+    <div class="col pt-2 pb-2 bg-gradient border-bottom" style="background:<%= @conf['description_color'] %>;">
+      <div class="d-flex gap-3">
+        <% if @manifest['icon'].to_s.strip != '' %>
+          <% _is_bi_fa, _icon_src = get_icon_path(@manifest['dirname'], @manifest['icon']) %>
+          <% _real_icon = _is_bi_fa || (_icon_src && !_icon_src.to_s.include?('app_default')) %>
+          <% if _real_icon %>
+            <div class="flex-shrink-0 d-flex align-items-center">
+              <% if _is_bi_fa %>
+                <i class="<%= ERB::Util.h(@manifest['icon']) %>" style="font-size:4rem; line-height:1;"></i>
+              <% else %>
+                <img src="<%= ERB::Util.h(_icon_src.to_s) %>" alt="" style="height:64px; width:auto; max-width:120px; object-fit:contain;">
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+        <div>
+          <%# Set the color on the heading itself: Bootstrap styles headings with
+              their own color, so an inherited value never reaches the link. %>
+          <h3 style="color:<%= @conf['app_title_color'] %>;">
+            <a href="<%= @script_name %>/<%= @manifest['dirname'] %>" class="fw-semibold" style="color: inherit; text-decoration: none;">
+              <%= @manifest['name'] %>
+            </a>
+          </h3>
+          <input type="hidden" name="<%= JOB_APP_NAME %>" value="<%= @manifest['name'] %>">
+          <input type="hidden" name="<%= JOB_DIR_NAME %>" value="<%= @dir_name %>">
+          <input type="hidden" name="_tmpl_icon" value="<%= ERB::Util.h(@manifest['icon'].to_s) %>">
+          <p class="mb-1" style="color:<%= @conf['app_description_text_color'] %>;"><%= @manifest['description'] %></p>
+          <% if @manifest['homepage'].to_s.strip != '' %>
+            <p class="mb-0 small"><a href="<%= ERB::Util.h(@manifest['homepage']) %>" target="_blank" rel="noopener" style="color: inherit; opacity: 0.75;"><%= ERB::Util.h(@manifest['homepage']) %></a></p>
+          <% end %>
+          <% if @manifest['documentation'].to_s.strip != '' %>
+            <p class="mb-0 small"><a href="<%= ERB::Util.h(@manifest['documentation']) %>" target="_blank" rel="noopener" style="color: inherit; opacity: 0.75;">Documentation</a></p>
+          <% end %>
+        </div>
+      </div>
     </div>
 
     <!-- Header -->
-    <div class="col pt-2 pb-0 bg-gradient" style="background: <%= @conf['description_color'] %>;">
+    <div class="col pt-2 pb-0 bg-gradient border-bottom" style="background: <%= @conf['description_color'] %>;">
       <%= output_header(@body, @header) %>
     </div>
   </div>
 
-  <div id="<%= FORM_LAYOUT %>" class="row row-cols-1 row-cols-lg-2 mx-1 bg-gradient" style="background: <%= @conf['form_color'] %>;">
+  <% _form_empty = @body["form"].nil? || @body["form"].empty? %>
+  <div id="<%= FORM_LAYOUT %>" class="row <%= _form_empty ? 'row-cols-1' : 'row-cols-1 row-cols-lg-2' %> mx-1 bg-gradient" style="background: <%= @conf['form_color'] %>;">
     <!-- Form Body -->
+    <% unless _form_empty %>
     <div class="col pt-3">
       <%= output_body(@body, @header, @manifest['name'], @manifest['dirname']) %>
     </div>
+    <% end %>
 
     <!-- Script Content Section -->
     <div class="col py-3 d-flex flex-column">
       <label id="label_<%= OC_SCRIPT_CONTENT %>" class="fw-semibold" for="<%= OC_SCRIPT_CONTENT %>"><%= @script_label %></label>
       <div id="<%= OC_SCRIPT_CONTENT %>_editor" class="position-relative mt-1 mb-3 flex-grow-1">
         <pre id="<%= OC_SCRIPT_CONTENT %>_highlight_container" class="form-control mb-0" aria-hidden="true"><code id="<%= OC_SCRIPT_CONTENT %>_highlight" class="d-block"></code></pre>
-        <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control position-relative mb-0" tabindex="<%= @table_index %>" accesskey="s" spellcheck="false" onchange="ocForm.markManuallyModified('script')" oninput="ocForm.updateHeight(ocForm.scriptArea); ocForm.storePreviousValue('<%= OC_SCRIPT_CONTENT %>'); ocForm.syncScriptHighlight()" required>(Something wrong)</textarea>
+        <textarea id="<%= OC_SCRIPT_CONTENT %>" name="<%= OC_SCRIPT_CONTENT %>" class="form-control position-relative mb-0" tabindex="<%= @table_index %>" accesskey="s" spellcheck="false" oninput="ocForm.updateHeight(ocForm.scriptArea); ocForm.storePreviousValue('<%= OC_SCRIPT_CONTENT %>'); ocForm.markScriptEdited(); ocForm.syncScriptHighlight()" required>(Something wrong)</textarea>
       </div>
       <!-- Submit Button -->
+      <% unless @new_template %>
       <% if @form_action == "confirm" || @form_action == "confirm-save" %>
       <button class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" type="button" data-bs-toggle="modal" data-bs-target="#modal-<%= SUBMIT_CONFIRM %>" tabindex="<%= @table_index + 1 %>">
         Confirm
       </button>
       <% else %>
       <input type="submit" class="btn btn-primary d-block w-100" id="<%= SUBMIT_BUTTON %>" value="<%= @form_action.capitalize %>" tabindex="<%= @table_index + 1 %>">
+      <% end %>
       <% end %>
       <div class="modal fade" id="modal-<%= SUBMIT_CONFIRM %>" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg" style="overflow-y: initial !important;">
@@ -81,7 +136,7 @@
                   <div class="col">
                     <div id="<%= SUBMIT_CONTENT %>_editor" class="position-relative w-100">
                       <pre id="<%= SUBMIT_CONTENT %>_highlight_container" class="form-control mb-0" aria-hidden="true"><code id="<%= SUBMIT_CONTENT %>_highlight" class="d-block"></code></pre>
-                      <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control position-relative mb-0 w-100" rows="6" spellcheck="false" onchange="ocForm.markManuallyModified('submit')" oninput="ocForm.updateHeight(ocForm.submitArea); ocForm.storePreviousValue('<%= SUBMIT_CONTENT %>'); ocForm.syncSubmitHighlight()">(Something Wrong)</textarea>
+                      <textarea id="<%= SUBMIT_CONTENT %>" name="<%= SUBMIT_CONTENT %>" class="form-control position-relative mb-0 w-100" rows="6" spellcheck="false" oninput="ocForm.updateHeight(ocForm.submitArea); ocForm.storePreviousValue('<%= SUBMIT_CONTENT %>'); ocForm.syncSubmitHighlight()">(Something Wrong)</textarea>
                     </div>
                   </div>
                 </div>
@@ -98,26 +153,94 @@
           </div>
         </div>
       </div>
+      <!-- Save / Save as Custom Template Button -->
+      <% if @template_slug %>
+      <button type="button" class="btn <%= @new_template ? 'btn-primary' : 'btn-outline-secondary mt-2' %> d-block w-100"
+              onclick="ocSaveTemplateOverwrite()">
+        Save
+      </button>
+      <% else %>
+      <button type="button" class="btn <%= @new_template ? 'btn-primary' : 'btn-outline-secondary mt-2' %> d-block w-100"
+              data-bs-toggle="modal" data-bs-target="#modal-save-template">
+        Save as Custom Template
+      </button>
+      <% end %>
     </div>
   </div>
 </form>
-<!-- Overwrite Warning Modal -->
-<div class="modal fade" id="<%= WARNING_MODAL %>" tabindex="-1">
+
+<!-- Save as Custom Template Modal -->
+<div class="modal fade" id="modal-save-template" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h4 class="modal-title">Warning</h4>
+        <h5 class="modal-title">Save as Custom Template</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body" id="<%= WARNING_MESSAGE %>">
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="tmpl-name-input">Template Name</label>
+          <input type="text" id="tmpl-name-input" class="form-control" placeholder="e.g. My GPU Job">
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="tmpl-desc-input">Description <span class="text-muted fw-normal">(optional)</span></label>
+          <input type="text" id="tmpl-desc-input" class="form-control" placeholder="Brief description">
+        </div>
       </div>
       <div class="modal-footer">
-        <button id="<%= WARNING_MODAL_CANCEL %>" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button id="<%= WARNING_MODAL_DISCARD %>" type="button" class="btn btn-danger" data-bs-dismiss="modal">Discard and continue</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="ocSaveTemplate()">Save</button>
       </div>
     </div>
   </div>
 </div>
+<form id="save-template-form" method="post" action="<%= @script_name %>/templates"></form>
+<% if @template_slug %>
+<form id="save-template-overwrite-form" method="post" action="<%= @script_name %>/templates/<%= ERB::Util.u(@template_slug) %>/overwrite"></form>
+<% end %>
+<script>
+<% if @template_slug %>
+function ocSaveTemplateOverwrite() {
+  var form = document.getElementById('save-template-overwrite-form');
+  form.innerHTML = '';
+  function addHidden(n, v) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = n; inp.value = v;
+    form.appendChild(inp);
+  }
+  var mainForm = document.getElementById('<%= SUBMIT_FORM %>');
+  var data = new FormData(mainForm);
+  data.forEach(function(val, key) {
+    if (key !== 'splat') addHidden(key, val);
+  });
+  form.submit();
+}
+<% end %>
+function ocSaveTemplate() {
+  var name = document.getElementById('tmpl-name-input').value.trim();
+  if (!name) { document.getElementById('tmpl-name-input').focus(); return; }
+
+  var form = document.getElementById('save-template-form');
+  form.innerHTML = '';
+
+  function addHidden(n, v) {
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = n; inp.value = v;
+    form.appendChild(inp);
+  }
+
+  addHidden('template_name', name);
+  addHidden('template_description', document.getElementById('tmpl-desc-input').value.trim());
+
+  var mainForm = document.getElementById('<%= SUBMIT_FORM %>');
+  var data = new FormData(mainForm);
+  data.forEach(function(val, key) {
+    if (key !== 'splat') addHidden(key, val);
+  });
+
+  form.submit();
+}
+</script>
 
 <script>
 var ocForm = ocForm || {};
@@ -128,7 +251,12 @@ ocForm.submitArea = document.getElementById('<%= SUBMIT_CONTENT %>');
 ocForm.submitHighlightContainer = document.getElementById('<%= SUBMIT_CONTENT %>_highlight_container');
 ocForm.submitHighlight = document.getElementById('<%= SUBMIT_CONTENT %>_highlight');
 </script>
-<script src="form.js"></script>
+<script src="<%= @script_name %>/form.js"></script>
+<script>
+ocForm.scriptLinePatterns = [];
+ocForm.enabledBy = {};
+<%= @js["script_patterns"].chomp %>
+</script>
 <script>
 // Executes functions that should run once.
 ocForm.onceExec = function() {
@@ -188,9 +316,20 @@ ocForm.syncHighlight = function(area, highlight) {
   ocForm.syncCaretColor(area, highlight);
 };
 
+// Mark that the user has started editing the script (hides the write-here hint).
+ocForm.markScriptEdited = function() {
+  ocForm.scriptEdited = true;
+};
+
 // Sync the script textarea content to the highlight area.
 ocForm.syncScriptHighlight = function() {
   ocForm.syncHighlight(ocForm.scriptArea, ocForm.scriptHighlight);
+  if (!ocForm.scriptEdited && ocForm.scriptHighlight) {
+    const hint = document.createElement('span');
+    hint.className = 'oc-script-placeholder-hint';
+    hint.textContent = '\n\n(write your slurm script here)';
+    ocForm.scriptHighlight.appendChild(hint);
+  }
 };
 
 // Sync the submit textarea content to the highlight area.
@@ -246,8 +385,7 @@ document.addEventListener('keydown', function(event) {
   }
 });
 
-ocForm["scriptManuallyModified"] = false;
-ocForm["submitManuallyModified"] = false;
+ocForm.emptyScriptWarning = <%= @conf.fetch('empty_script_warning', true) ? 'true' : 'false' %>;
 ocForm.previousScript = ""
 ocForm.multiSelectDisabledIndexes = {};
 ocForm.previousValues = {};
@@ -275,106 +413,20 @@ ocForm.storePreviousValue = function(id) {
   }
 };
 
-// Save the current value of a form element before modification.
-ocForm.restorePreviousValue = function(id) {
-  const element = document.getElementById(id);
-  if (!element) return;
-
-  if (element.type === "radio") {
-    const prevId = ocForm.previousRadioValues[element.name];
-
-    if (prevId) {
-      const prev = document.getElementById(prevId);
-      if (prev) {
-        prev.checked = true;
-        ocForm.previousValues[element.name] = prevId;
-      }
-    }
-  }
-  else if (element.type === "checkbox") {
-    element.checked = !element.checked;
-  }
-  else {
-    if (ocForm.previousValues[id] !== undefined) {
-      element.value = ocForm.previousValues[id];
-    }
-  }
-};
-
-// Mark that the script/submit section was manually edited by the user.
-ocForm.markManuallyModified = function(content_type) {
-  if (content_type === "script") {
-    ocForm["scriptManuallyModified"] = <%= @script_overwrite_warning_enabled ? "true" : "false" %>;
-  }
-  else { // content_type is "submit"
-    ocForm["submitManuallyModified"] = <%= @submit_overwrite_warning_enabled ? "true" : "false" %>;
-  }
-};
-
-// Show the overwrite warning modal if the script was manually modified.
-// If the user chooses "Discard and continue", execute the provided callback (onDiscard).
-// content_type is "both", "script" or "submit"
-ocForm.confirmOverwrite = function(content_type, id, onDiscard) {
-  const types = content_type === "both" ? ["script", "submit"] : [content_type];
-  const modifiedKeys = types.map(t => t === "script" ? "scriptManuallyModified" : "submitManuallyModified");
-  const contentAreas = types.map(t => t === "script" ? ocForm.scriptArea : ocForm.submitArea);
-  const area = content_type === "both"
-             ? (ocForm["scriptManuallyModified"] && ocForm["submitManuallyModified"] ? "script and submit areas" :
-                ocForm["scriptManuallyModified"] ? "script area" :
-                ocForm["submitManuallyModified"] ? "submit area" :
-                "script and submit areas")
-             : (content_type === "script" ? "script area" : "submit area");
-  const element = document.getElementById(id);
-
-  if (modifiedKeys.every(k => !ocForm[k])) {
-    onDiscard();
-    return;
-  }
-
-  if (!ocForm.overwriteModal) {
-    ocForm.overwriteModal = new bootstrap.Modal(document.getElementById('<%= WARNING_MODAL %>'));
-  }
-
-  document.getElementById('<%= WARNING_MESSAGE %>').textContent =
-    `Your manual changes in the ${area} will be discarded. Do you want to continue?`;
-
-  ocForm.overwriteModal.show();
-
-  document.getElementById('<%= WARNING_MODAL_CANCEL %>').onclick = () => {
-    ocForm.restorePreviousValue(id);
-
-    contentAreas.forEach(a => {
-      ocForm.restorePreviousValue(a.id);
-      ocForm.updateHeight(a);
-    });
-
-    ocForm.execDynamicWidget(id);
-    modifiedKeys.forEach(k => ocForm[k] = true);
-  };
-
-  document.getElementById('<%= WARNING_MODAL_DISCARD %>').onclick = () => {
-    modifiedKeys.forEach(k => ocForm[k] = false);
-    onDiscard();
-  };
-};
-
 // content_type is "both", "script" or "submit"
 ocForm.updateArea = function(content_type, id = null) {
-  let scriptValues = [];
   let submitValues = [];
 
   ocForm.execDynamicWidget(id);
 
   if (content_type === "both" || content_type === "script") {
-    ocForm.updateScriptContents(scriptValues);
-    ocForm.scriptArea.value = Object.values(scriptValues).join('\n');
-    ocForm.updateHeight(ocForm.scriptArea);
-    ocForm.syncScriptHighlight();
+    ocForm.patchScript();
   }
 
   if (content_type === "both" || content_type === "submit") {
     ocForm.updateSubmitContents(submitValues);
-    ocForm.submitArea.value = Object.values(submitValues).join('\n');
+    const newGeneratedSubmit = Object.values(submitValues).join('\n');
+    ocForm.submitArea.value = newGeneratedSubmit;
     ocForm.updateHeight(ocForm.submitArea);
     ocForm.syncSubmitHighlight();
   }
@@ -384,15 +436,91 @@ window.onload = function() {
   let scriptValues = [];
   let submitValues = [];
 
+  // Restore remembered last values from localStorage.
+  // Skip when the server already pre-selected values from a template or history load.
+  (function() {
+    var sp = new URLSearchParams(window.location.search);
+    if (!sp.has('template') && !sp.has('jobId')) {
+      document.querySelectorAll('select[data-remember-last]').forEach(function(el) {
+        var saved = localStorage.getItem('oc_last_' + el.id);
+        if (saved == null) return;
+        var idx = Array.from(el.options).findIndex(function(o) { return o.value === saved; });
+        if (idx >= 0) el.selectedIndex = idx;
+      });
+    }
+    document.addEventListener('change', function(e) {
+      var el = e.target;
+      if (el.tagName === 'SELECT' && el.dataset.rememberLast) {
+        localStorage.setItem('oc_last_' + el.id, el.options[el.selectedIndex].value);
+      }
+    });
+  })();
+
   // onceExec() must run first: it creates the multi_select badges, which
   // execDynamicWidget() reads when a multi_select is a Dynamic Form Widget source.
   ocForm.onceExec();
   ocForm.execDynamicWidget();
   ocForm.updateScriptContents(scriptValues);
   ocForm.updateSubmitContents(submitValues);
-  ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : Object.values(scriptValues).join('\n');
-  ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : Object.values(submitValues).join('\n');
+  const generatedScript = Object.values(scriptValues).join('\n');
+  const generatedSubmit = Object.values(submitValues).join('\n');
+  ocForm.scriptArea.value = ocForm.isScriptCache() ? ocForm.loadScriptCache() : generatedScript;
+  ocForm.scriptEdited = ocForm.isScriptCache();
+  ocForm.submitArea.value = ocForm.isSubmitCache() ? ocForm.loadSubmitCache() : generatedSubmit;
   ocForm.refreshEditorLayout();
+
+  // When loaded from history (?jobId=) with a pre-fetched script, parse the script
+  // directives into the left-panel widgets so they match the loaded script's inputs.
+  if (new URLSearchParams(window.location.search).has('jobId') && ocForm.isScriptCache()) {
+    ocForm.parseScriptToWidgets();
+    ocForm.refreshEditorLayout();
+  }
+
+  var _ocExtKey = new URLSearchParams(window.location.search).get('ocExtLoad');
+  if (_ocExtKey) {
+    var _ocExtRaw = sessionStorage.getItem(_ocExtKey);
+    // Keep the current key so browser Back/Forward (or a reload of this URL)
+    // can restore the loaded script; garbage-collect older payloads instead.
+    // (Previously the key was removed on first use, so Back→Forward lost the
+    // script whenever the page was not served from the back/forward cache.)
+    for (var _ocI = sessionStorage.length - 1; _ocI >= 0; _ocI--) {
+      var _ocK = sessionStorage.key(_ocI);
+      if (_ocK && _ocK.indexOf('_oc_ext_') === 0 && _ocK !== _ocExtKey) {
+        sessionStorage.removeItem(_ocK);
+      }
+    }
+    if (_ocExtRaw !== null && ocForm.scriptArea) {
+      var _ocExtPayload = null;
+      try { _ocExtPayload = JSON.parse(_ocExtRaw); } catch (e) { _ocExtPayload = null; }
+      var _ocSetField = function(id, val) {
+        if (val === undefined || val === null || val === '') return;
+        var el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+      if (_ocExtPayload && typeof _ocExtPayload === 'object' && !Array.isArray(_ocExtPayload)) {
+        // Payload from the History page: script content plus header fields.
+        ocForm.scriptArea.value = _ocExtPayload.script || '';
+        ocForm.scriptEdited = true;
+        _ocSetField('<%= HEADER_SCRIPT_LOCATION %>', _ocExtPayload.scriptLocation);
+        _ocSetField('<%= HEADER_SCRIPT_NAME %>', _ocExtPayload.scriptName);
+        _ocSetField('<%= HEADER_JOB_NAME %>', _ocExtPayload.jobName);
+        // A template saved from an externally loaded script should show the
+        // terminal default icon (app_default.svg), not the source app's logo.
+        var _ocTmplIcon = document.querySelector('input[name="_tmpl_icon"]');
+        if (_ocTmplIcon) _ocTmplIcon.value = '';
+      } else {
+        // Backward compatibility: payload is the raw script string.
+        ocForm.scriptArea.value = _ocExtRaw;
+      }
+      ocForm.parseScriptToWidgets();
+      ocForm.execDynamicWidget();
+      ocForm.refreshEditorLayout();
+    }
+  }
+
+  if (ocForm.scriptArea) {
+    ocForm.scriptArea.addEventListener('input', ocForm.debouncedParseScript);
+  }
 
   window.addEventListener('resize', () => {
     window.requestAnimationFrame(() => ocForm.refreshEditorLayout());

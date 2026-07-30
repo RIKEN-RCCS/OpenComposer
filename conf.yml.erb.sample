@@ -1,7 +1,40 @@
 ---
-# Required settings
+# ============================================================================
+# Open Composer configuration
+#
+# Every available setting is listed below with its DEFAULT value
+#
+# The site-specific connection settings (login_node, ssh_wrapper, bin,
+# bin_overrides, sge_root, scheduler_env, copy_environment) are left commented
+# out — they have no universal default. Uncomment and set them for your site.
+#
+# The sections below follow the order of section 2 ("Setting") of
+# docs/install.html, and run from what you must configure to make Open Composer
+# work, through what it stores and shows, to how it looks:
+#
+#    1. Required                  6. History
+#    2. Cluster & job scheduler   7. Form behavior
+#    3. SSH key provisioning      8. Navigation bar
+#    4. Data & modules            9. Appearance
+#    5. Templates & scripts      10. Footer
+# ============================================================================
+
+# ============================================================================
+# 1. REQUIRED
+# ============================================================================
+# Directory containing the application templates.
 apps_dir: "./sample_apps"
+
+# Scheduler type — controls job submission, history, cancellation, and which
+# generic script template appears under "New Template".
+# Valid values: slurm, pbspro, miyabi, sge, fujitsu_tcs
 scheduler: "slurm"
+
+# ============================================================================
+# 2. CLUSTER & JOB SCHEDULER
+# ============================================================================
+# Multi-cluster: instead of the single "scheduler:" above, define one block per
+# cluster. Each cluster may set its own scheduler / connection settings.
 #clusters:
 #  fugaku:
 #    scheduler: "fujitsu_tcs"
@@ -13,15 +46,19 @@ scheduler: "slurm"
 #    bin_overrides:
 #      sbatch: "/usr/local/bin/sbatch"
 
-# Optional settings
-## General
-#data_dir:  <%= ENV['HOME'] %>/composer
+# Site-specific connection settings. Leave commented to run against a local
+# scheduler; uncomment and set to submit over SSH to a login node.
 #login_node: "example.com"
 #ssh_wrapper: "ssh hoge@example.com"
 #bin: "/usr/local/bin"
+# Environment variables added when running job scheduler commands.
 #scheduler_env:
 #  SLURM_CONF_SERVER: "slurmctld.example.com"
+# Slurm only: submit jobs with the PUN environment copied (--export=ALL) or not (--export=NONE).
 #copy_environment: false
+# Per-command PATH overrides for the scheduler binaries. Unlike "bin:" these are
+# applied unconditionally, with no local existence check, so use them when the
+# commands run on a remote host via ssh_wrapper.
 #bin_overrides:
 #  sbatch:   "/usr/local/bin/sbatch"
 #  scontrol: "/usr/local/bin/scontrol"
@@ -34,26 +71,225 @@ scheduler: "slurm"
 #  qstat:    "/usr/local/bin/qstat"
 #  qdel:     "/usr/local/bin/qdel"
 #  qacct:    "/usr/local/bin/qacct"
+# Grid Engine only: exported as SGE_ROOT on every request, unless SGE_ROOT is
+# already set in the environment.
 #sge_root: "/apps/t4/rhel9/uge/latest"
 
-## History
-#history:
-#  OC_HISTORY_JOB_NAME:
-#  OC_HISTORY_PARTITION:
-#  OC_HISTORY_SUBMISSION_TIME:
+# ============================================================================
+# 3. SSH KEY PROVISIONING
+# ============================================================================
+# SSH key check on Submit. When true, clicking Submit first checks for an SSH
+# key in ~/.ssh; if none exists Open Composer generates a passphrase-less key
+# (named "<ssh_key_name>_<ssh_key_type>"), authorizes it, and adds an
+# IdentityFile line to ~/.ssh/config so the job can be submitted over SSH
+# without a password prompt. An existing key is never overwritten.
+ensure_ssh_key: false
+ssh_key_type:   "ed25519"        # ed25519 (recommended), rsa (4096-bit), or ecdsa; any other value falls back to ed25519
+ssh_key_name:   "opencomposer"   # Base name for the generated key files
 
-## Layout
-#footer:                  "RIKEN Center for Computational Science"
-#thumbnail_width:         "100"
-#highlight_theme:         "vs"
-#directive_color:         "#D73A49"
-#navbar_color:            "#3D3B40"
-#dropdown_color:          "#3D3B40"
-#footer_color:            "#3D3B40"
-#category_color:          "#5522BB"
-#description_color:       "#5522BB"
-#form_color:              "#BFCFE7"
-#non_script_color:        "#FFE28A"
-#non_script_button_color: "#FFBF00"
-#submit_color:            "#FFCCCC"
-#submit_button_color:     "#FFAAAA"
+# ============================================================================
+# 4. DATA & MODULES
+# ============================================================================
+# Where Open Composer stores its data (history DB, saved templates).
+data_dir: <%= ENV['HOME'] %>/composer
+
+# Catalog of the environment modules available on the cluster, used to fill the
+# module_load and dependent_module_select widgets and to auto-apply the GPU badge.
+# It must be a JSON document of the form
+#   {"GROMACS": {"versions": ["2023.2-gimkl-2022a"], "default": "...", "domains": ["chem"]}}
+# reachable over HTTP(S) from the web node. The result is cached for 24 hours in
+# <data_dir>/.module-list-cache.json. Empty (the default) disables the feature:
+# the module widgets then offer no versions and no GPU badge is auto-applied.
+modules_list_url:   ""
+
+# ============================================================================
+# 5. TEMPLATES & SCRIPTS
+# ============================================================================
+# Directory containing hidden generic apps (not shown in the main app listing).
+generic_apps_dir: "./generic_apps"
+
+# When loading an external/generic job (one not submitted through Open Composer)
+# from the History page, open this subfolder inside generic_apps_dir.
+external_reload_app: "Slurm"
+
+# Manifest category pinned to the top of the "All Templates" and "New Script"
+# pages. Matched case-insensitively; the remaining templates follow in
+# alphabetical order.
+new_script_featured_category: "Slurm Submit Templates"
+
+# "Load or Create a Script from Disk" button (opens the full-page file browser).
+show_load_script:   true
+load_script_label:  "Load or Create a Script from Disk"
+
+# ============================================================================
+# 6. HISTORY
+# ============================================================================
+# Set to false to never store the batch script in the DB. When false, "Load
+# script" always fetches the script live via sacct -B.
+history_store_script: true
+# Set to true to show the Job Efficiency section in the history job details
+# modal. Requires sacct --json support (Slurm 20.11+).
+history_efficiency:   false
+# Memory capacity in GB of each GPU model on the cluster, used only to work out
+# the "GPU Memory" percentage in the Job Efficiency section above. Model names
+# are matched case-insensitively against the job's "gpu:<model>" resources.
+#
+# Give a plain number, or a hash when cards of the same model differ in memory
+# and the scheduler reports them under one GRES name (an A100 is "gpu:a100"
+# whether it has 40 GB or 80 GB). The hash keys are partition names, plus
+# "default" for every other partition.
+#
+# Leave unset if you do not know the capacities: GPU memory used is then shown
+# without a percentage, which is better than a percentage against a wrong total.
+# May also be set per-cluster inside "clusters:".
+#gpu_memory:
+#  l4:   23
+#  h100: 94
+#  a100:
+#    default: 80
+#    genoa:   40
+# Columns shown on the History page. Supported keys: OC_HISTORY_JOB_NAME,
+# OC_HISTORY_PARTITION, OC_HISTORY_SUBMISSION_TIME, OC_HISTORY_START_TIME,
+# OC_HISTORY_END_TIME, OC_HISTORY_OUTPUT_FILE, OC_HISTORY_ERROR_FILE.
+# Give a key a "label:" to rename its column, or use "history: []" for no
+# extra columns. Omitting the block entirely shows all seven.
+history:
+  OC_HISTORY_JOB_NAME:
+  OC_HISTORY_PARTITION:
+  OC_HISTORY_SUBMISSION_TIME:
+  OC_HISTORY_START_TIME:
+  OC_HISTORY_END_TIME:
+  OC_HISTORY_OUTPUT_FILE:
+  OC_HISTORY_ERROR_FILE:
+
+# ============================================================================
+# 7. FORM BEHAVIOR
+# ============================================================================
+# Set to false to disable the warning shown when submitting a script that
+# contains no real commands (only blank lines, comments, scheduler directives
+# and module lines).
+empty_script_warning:    true
+
+# ============================================================================
+# 8. NAVIGATION BAR
+# ============================================================================
+# Navbar logo (top-left). Set navbar_logo to an image file in the public/ dir to
+# show it; show_navbar_logo toggles it without unsetting navbar_logo.
+show_navbar_logo:        true
+navbar_logo:             ""
+
+# Navbar links (set the matching show_* to false to hide). Each item's label and
+# icon can be customized. Icons accept either a Font Awesome class (e.g.
+# "fas fa-folder") or a Bootstrap Icons class (e.g. "bi bi-terminal-fill") —
+# both icon sets are loaded.
+show_home_directory:     true
+home_directory_label:    "Home Directory"
+home_directory_icon:     "fas fa-home"
+
+show_shell_access:       true
+shell_access_label:      "Shell Access"
+shell_access_icon:       "fas fa-terminal"
+
+# "Return to OnDemand" link. open_ondemand_url is left unset so the link and the
+# navbar logo auto-derive to <this host>/pun/sys/dashboard. Set open_ondemand_url
+# to override that with a fixed URL.
+show_open_ondemand:      true
+#open_ondemand_url:      "https://ondemand.example.com"
+open_ondemand_label:     "Open OnDemand"
+open_ondemand_icon:      "bi bi-grid-fill"    # grid icon
+open_ondemand_new_tab:   true                 # Set to false to open in the same tab
+
+# Search box, rendered on the right-hand side of the navbar. Set to false to hide.
+show_search:             true
+navbar_search_placeholder: "Search apps…"
+
+# Colors of the navbar itself.
+navbar_color:            "#3D3B40"
+navbar_text_color:       "#FFFFFF"
+
+# Horizontal separator line drawn directly under the top navbar:
+#   false             hide it (default)
+#   true / gradient   a soft 6px gradient rule that fades to transparent
+#   solid / line      a normal 1px solid rule
+#   accent            a thicker 3px colored accent bar
+show_navbar_separator:   false
+navbar_separator_color:  "#C3C8C8"   # Color of the solid / accent separator (ignored for gradient)
+
+# ============================================================================
+# 9. APPEARANCE
+# ============================================================================
+# Browser tab icon (file in the public/ dir). "" disables it.
+favicon:                 ""
+
+# Home page layout.
+home_format:             "big"       # Template thumbnail layout: "big" or "small"
+thumbnail_width:         "100"
+
+# Accent palette. Drives the Bootstrap overrides in views/layout.erb: links, the
+# primary buttons (Submit, Confirm, Save), input focus rings, ticked checkboxes
+# and radios, and the History sort links. accent_contrast_color is used for
+# headings and for the hover/active state of anything using accent_color. The
+# defaults below are Bootstrap's own values, so leaving them unset looks exactly
+# like stock Bootstrap.
+accent_color:            "#0D6EFD"
+accent_contrast_color:   "#0A58CA"
+body_text_color:         "#212529"
+
+# Code editor.
+highlight_theme:         "vs"        # Code-editor syntax highlight theme
+directive_color:         "#D73A49"   # Color of scheduler directives (#SBATCH etc.)
+
+# Home page category headers.
+category_color:          "#5522BB"
+category_text_color:     "#FFFFFF"
+# Background colors for category badges (optional). Add "Category: <#hex>"
+# pairs, e.g.:
+#  Chemistry: "#0097a7"
+#  Physics:   "#283593"
+category_badge_colors: {}
+
+# The band at the top of the application page. It holds the application title,
+# the application description and the header fields ("Script location", "Script
+# name", "Job name"). description_color defaults to category_color.
+description_color:       "#5522BB"
+description_text_color:  "#FFFFFF"
+# Color of the application title (the application name shown at the top of the
+# application page) and of its description text underneath. Both sit on the band
+# above and default to description_text_color when omitted, so set them only if
+# you want the title or the description to differ from it.
+app_title_color:            "#FFFFFF"
+app_description_text_color: "#FFFFFF"
+
+# Optional descriptive blurb shown above the template categories. HTML is
+# allowed. "" hides it.
+app_description:         ""
+
+# Optional message shown under the template list. "" hides it.
+all_templates_footer:    ""
+
+# Application page form and buttons.
+form_color:              "#BFCFE7"   # Background of the script text area
+non_script_color:        "#FFE28A"   # Fields that do not affect the script section
+non_script_button_color: "#FFBF00"
+submit_color:            "#FFCCCC"   # Fields that affect only the submit section
+submit_button_color:     "#FFAAAA"
+
+# History page "Cancel Job" / "Delete Info" buttons.
+history_action_color:    "#DC3545"
+
+# ============================================================================
+# 10. FOOTER
+# ============================================================================
+show_footer:             true
+footer:                  "&nbsp;"    # Footer text / HTML (shown when show_footer is true)
+footer_color:            "#3D3B40"   # Defaults to navbar_color
+footer_text_color:       "#FFFFFF"
+footer_padding:          "p-3"       # Bootstrap padding class: p-1, p-2, p-3, p-4, p-5
+footer_ood_logo:         true        # Set to false to hide the Open OnDemand logo
+footer_logo_height:      "24px"      # Height of the footer brand logo
+# Footer brand logo (the "Powered by …" image, bottom-left of the footer). Image
+# file lives in the public/ dir. Clicking it opens footer_brand_url. Leave
+# footer_brand_logo empty ("") to fall back to the Open OnDemand logo above.
+footer_brand_logo:       ""
+footer_brand_url:        "https://openondemand.org/"
+footer_brand_alt:        "Powered by Open OnDemand"

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+
+  <!-- Terminal window frame -->
+  <rect x="13" y="21" width="74" height="58" rx="7" fill="#12111A"/>
+
+  <!-- Title bar -->
+  <rect x="13" y="21" width="74" height="17" rx="7" fill="#1E1C27"/>
+  <rect x="13" y="30" width="74" height="8"  fill="#1E1C27"/>
+
+  <!-- Traffic lights -->
+  <circle cx="25" cy="29.5" r="4" fill="#FF5F57"/>
+  <circle cx="38" cy="29.5" r="4" fill="#FFBD2E"/>
+  <circle cx="51" cy="29.5" r="4" fill="#28C840"/>
+
+  <!-- Prompt symbol -->
+  <text x="19" y="58"
+        font-family="'Courier New', Courier, monospace"
+        font-size="15"
+        font-weight="bold"
+        fill="white" opacity="0.85">$</text>
+
+  <!-- Cursor / command text block -->
+  <rect x="31" y="50" width="28" height="5" rx="2.5" fill="white" opacity="0.85"/>
+  <rect x="62" y="50" width="10" height="5" rx="2.5" fill="white" opacity="0.55"/>
+
+  <!-- Output lines -->
+  <rect x="19" y="62" width="50" height="4" rx="2" fill="white" opacity="0.30"/>
+  <rect x="19" y="70" width="36" height="4" rx="2" fill="white" opacity="0.18"/>
+</svg>

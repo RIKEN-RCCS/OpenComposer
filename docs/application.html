@@ -25,7 +25,9 @@
         <li class="nav-item ms-3"><a href="#radio" class="nav-link">2.6. radio widget</a></li>
         <li class="nav-item ms-3"><a href="#checkbox" class="nav-link">2.7. checkbox widget</a></li>
         <li class="nav-item ms-3"><a href="#path" class="nav-link">2.8. path widget</a></li>
-        <li class="nav-item ms-3"><a href="#functions" class="nav-link">2.9. Functions</a></li>
+        <li class="nav-item ms-3"><a href="#module_load" class="nav-link">2.9. module_load widget</a></li>
+        <li class="nav-item ms-3"><a href="#dependent_module_select" class="nav-link">2.10. dependent_module_select widget</a></li>
+        <li class="nav-item ms-3"><a href="#functions" class="nav-link">2.11. Functions</a></li>
         <li class="nav-item"><a href="#dynamic" class="nav-link">3. Dynamic Form Widget</a></li>
         <li class="nav-item ms-3"><a href="#set" class="nav-link">3.1. Widget setting</a></li>
         <li class="nav-item ms-3"><a href="#disable" class="nav-link">3.2. Widget disabling</a></li>
@@ -36,11 +38,16 @@
         <li class="nav-item ms-3"><a href="#save" class="nav-link">5.2. Save file</a></li>
         <li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. Hide script</a></li>
         <li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. Special variables</a></li>
-        <li class="nav-item ms-3"><a href="#overwrite_warning" class="nav-link">5.5. Disable warning</a></li>
+        <li class="nav-item ms-3"><a href="#reverse-parse" class="nav-link">5.5. Loading a script back into the form</a></li>
         <li class="nav-item"><a href="#check" class="nav-link">6. Check section</a></li>
         <li class="nav-item"><a href="#submit" class="nav-link">7. Submit section</a></li>
+        <li class="nav-item ms-3"><a href="#empty-script-warning" class="nav-link">7.1. Empty script warning</a></li>
         <li class="nav-item"><a href="#header" class="nav-link">8. Header section</a></li>
-        <li class="nav-item"><a href="#supplement" class="nav-link">9. Supplement</a></li>
+        <li class="nav-item"><a href="#erb" class="nav-link">9. ERB and Dynamic Configuration</a></li>
+        <li class="nav-item ms-3"><a href="#erb-conf" class="nav-link">9.1. Accessing @conf</a></li>
+        <li class="nav-item ms-3"><a href="#erb-command" class="nav-link">9.2. Populating a dropdown from a shell command</a></li>
+        <li class="nav-item ms-3"><a href="#erb-read-yaml" class="nav-link">9.3. Inheriting a base form with read_yaml</a></li>
+        <li class="nav-item"><a href="#supplement" class="nav-link">10. Supplement</a></li>
       </ul>
     </nav>
 
@@ -51,7 +58,7 @@
         <li>Enter the directory name to store all applications in <code>apps_dir</code> in <code>./conf.yml.erb</code>. Here, set it to <code>apps_dir: ./apps</code>.</li>
         <li>Create an application directory in <code>./apps</code>. If the application name is <code>test</code>, create <code>./apps/test</code>.</li>
         <li>Create the application description file <code>manifest.yml</code> and the web form configuration file <code>form.yml</code> inside <code>./apps/test</code>.
-          If you want to create them in Embedded Ruby format, name the files <code>manifest.yml.erb</code> and <code>form.yml.erb</code> instead.
+          If you want to create them in Embedded Ruby format, name the files <code>manifest.yml.erb</code> and <code>form.yml.erb</code> instead.</li>
       </ol>
 
       <h3 id="manifest">1.1. manifest.yml</h3>
@@ -59,10 +66,14 @@
         Describes your application. Here is a sample:
       </p>
       <pre>name: Gaussian
-category: Quantum Chemistry
+category: Chemistry
+tags:
+  - gpu
 icon: icon.png
-description: |
-  [Gaussian](https://gaussian.com) is a general purpose computational chemistry software package.
+description: Gaussian is a general purpose computational chemistry software package.
+hidden: true
+homepage: https://gaussian.com/
+documentation: https://docs.example.org/applications/gaussian/
 related_apps:
   OVITO:
     icon: ovito.png
@@ -71,16 +82,24 @@ related_apps:
   ImageJ:</pre>
       <ul>
   <li>name: Application name (If this key is omitted, the directory name is used instead)</li>
-  <li>category：Category name</li>
-  <li>icon: Path to image file for icon. URL, <a target="_blank" href="https://icons.getbootstrap.com/">Bootstrap icon</a>, or <a target="_blank" href="https://fontawesome.com">Font Awesome icon</a> is also possible. For Bootstrap icons, write <code>icon: bi-airplane-fill</code>. For Font Awesome icons, write <code>icon: fa-solid fa-gear</code>.</li>
+  <li>category: Category name. Applications are grouped under this name on the home page and in the categorized list on the New Custom Template page. An application with no category is grouped under the heading <code>Application</code>, and a category of <code>Others</code> is sorted after all the others.
+    A list of categories is also accepted, but it only has an effect on the listings that treat the entries individually: the All Templates and New Script lists draw one badge per entry (colored from <code>category_badge_colors</code> in <code>conf.yml.erb</code>, gray when the category is not listed there), the navbar search box matches and badges each entry, and the application counts as featured if <em>any</em> entry matches <code>new_script_featured_category</code>. Sorting uses the first entry as the primary category.
+    A list places the application under <strong>each</strong> of its categories on the home page and on the New Custom Template page, so it appears once per category. Category headings follow the same order as for single-valued categories.</li>
+  <li>tags: List of free-form tags. The only tag currently acted on is <code>gpu</code> (matched case-insensitively): it adds a black <code>GPU</code> badge to the application's row in the All Templates and New Script lists and in the navbar search results. Other tags are read but have no effect. Applications whose name matches a GPU-domain module in the site module list are badged automatically and need no tag.</li>
+  <li>icon: Icon for the application. The value is resolved in this order: an <code>http://</code> or <code>https://</code> URL is used as it is; otherwise the value is treated as a path relative to the application's own directory and used if that file exists; otherwise, if it begins with <code>bi-</code> or <code>fa-</code>, it is rendered as an icon font class — the whole value becomes the class attribute, so <code>icon: bi-airplane-fill</code> (<a target="_blank" href="https://icons.getbootstrap.com/">Bootstrap icon</a>) and <code>icon: fa-solid fa-gear</code> (<a target="_blank" href="https://fontawesome.com">Font Awesome icon</a>) both work; otherwise the built-in <code>app_default.svg</code> placeholder is used silently, with no error message. <code>bi-</code> and <code>fa-</code> are the only prefixes recognized, so the <code>fas fa-gear</code> and <code>fas://name</code> spellings used in Open OnDemand's own manifests fall through to the placeholder here. Keep the file in the application directory itself rather than a sub-directory, and remember that a placeholder tile usually means a mistyped file name. If <code>icon</code> is omitted, <code>app_default.svg</code> is used.</li>
   <li>description: Description of the application</li>
+  <li>hidden: If set to <code>true</code>, the application is left out of the home page listing and out of the categorized list on the New Custom Template page. It is still listed on the All Templates and New Script pages, still appears in the New Custom Template page's search results, is still offered by the navbar search box, and is still reachable by a direct link or by inheritance. Use it to keep the home page focused while a large catalog stays searchable — not to restrict access. The default is <code>false</code>.</li>
+  <li>homepage: URL for the software's homepage. Displayed as a link on the application page.</li>
+  <li>documentation: URL for the software's documentation. Displayed as a link on the application page.</li>
   <li>related_apps: Specify an application registered in Open OnDemand. The specified application is displayed on the history page. As with <code>icon:</code>, you can specify icon images, etc. If no image is specified, the image registered in Open OnDemand is used.</li>
       </ul>
 
       <h3 id="form">1.2. form.yml</h3>
       <p>
         The <code>form.yml</code> is composed of five main sections: <code>form</code>, <code>script</code>, <code>header</code>, <code>check</code> and <code>submit</code>.
-        The <code>form</code> and <code>script</code> sections are required fields, but <code>header</code>, <code>check</code> and <code>submit</code> sections can be omitted.
+        Only <code>form</code> is required: if the parsed document has no top-level <code>form:</code> key, the page fails with <code>In ./&lt;file&gt;, "form:" must be defined.</code>
+        The body of <code>form</code> may be empty, however — a bare <code>form:</code> with no widgets below it is legal, and renders just the header fields and the script area (the generic applications under <code>generic_apps_dir</code> are written exactly this way).
+        The <code>script</code>, <code>header</code>, <code>check</code> and <code>submit</code> sections can all be omitted. With no <code>script</code> section nothing is generated for the script area, which simply starts empty for the user to type into or for a loaded script to fill.
       </p>
       <p>
   The following figure shows the scope of <code>form</code>, <code>script</code>, and <code>header</code> sections.
@@ -106,6 +125,8 @@ related_apps:
   <li>radio widget: Displays radio buttons.</li>
   <li>checkbox widget: Displays checkboxes.</li>
   <li>path widget: Displays an input field for path of a file or directory on the Open OnDemand server.</li>
+  <li>module_load widget: Displays a dropdown listing the installed versions of one named environment module.</li>
+  <li>dependent_module_select widget: Displays a dropdown whose options are loaded dynamically based on the value of a driver widget.</li>
       </ul>
 
       <h3 id="number">2.1. number widget</h3>
@@ -115,7 +136,7 @@ related_apps:
   The <code>label</code> is the displayed name,
   <code>value</code> is the default value,
   <code>min</code> and <code>max</code> set the range, and <code>step</code> determines the increment.
-  The <code>required</code> key specifies whether the input is mandatory, and <code>help</code> provides a tooltip below the input field.
+  The <code>required</code> key specifies whether the input is mandatory, and <code>help</code> is static help text rendered in small print underneath the input field. It is always visible; it is not a tooltip.
   The <code>script</code> section specifies how the input value will appear in the job script.
   The <code>#{nodes}</code> in the <code>script</code> section will be replaced with the input value.
       </p>
@@ -263,6 +284,28 @@ script: |
   module load #{package_1}
   mpiexec #{package_2}</pre>
       <img width="800" src="img/select2.png" alt="select">
+      <p>
+        Setting <code>remember_last: true</code> on a <code>select</code> widget causes the browser to remember the last value the user selected and restore it automatically the next time they visit the form.
+        This is useful for fields like a project or partition selector that users rarely change between job submissions.
+      </p>
+      <pre>form:
+  partition:
+    widget: select
+    label: Partition
+    remember_last: true
+    options:
+      - [ Small Queue, small ]
+      - [ Large Queue, large ]
+
+script: |
+  #SBATCH --partition=#{partition}</pre>
+      <p>
+        The remembered value is kept in the browser's local storage under a key made from the widget's name, and the string stored is the option's displayed text (the first element of the option array).
+        Because the key is the widget name alone, two applications that use the same widget name share a single remembered value — which is what lets a common <code>account</code> or <code>partition</code> selector follow the user across applications, but is surprising if it was not intended.
+        If an option's displayed text is later changed, the stored string no longer matches any option and nothing is restored.
+        Restoring is skipped entirely when a form is opened from a saved template or from the History page, so the values those pages pre-fill always win.
+        Only plain <code>select</code> widgets honor <code>remember_last</code>.
+      </p>
 
       <h3 id="multi_select">2.5. multi_select widget</h3>
       <p>
@@ -427,7 +470,123 @@ script: |
     </p>
     <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
 
-    <h3 id="functions">2.9. Functions</h3>
+      <h3 id="module_load">2.9. module_load widget</h3>
+      <p>
+        Displays a dropdown listing the installed versions of one named environment module.
+        The entries are not written in <code>form.yml</code>: the widget renders a single dropdown showing <code>Loading…</code>, and the browser fills it in after the page has loaded by asking the application's <code>/_module_avail</code> route for the versions of the module.
+      </p>
+      <p>
+        The <code>module</code> key is required and holds the module name to look up.
+        The name is matched case-insensitively against the module list, and the entries offered are the full <code>Name/version</code> strings built from the spelling used in that list.
+        The entries are sorted in descending <em>string</em> order — a plain text comparison, not a version-aware one, so <code>Python/3.9.5</code> is listed above <code>Python/3.11.6</code> — and the module's default version, if the list gives one and that version appears among the module's own versions, is then moved to the top.
+      </p>
+      <p>
+        Besides <code>module</code>, the keys honored are <code>label</code>, <code>value</code>, <code>help</code> and <code>indent</code>.
+        <code>value</code> pre-selects the entry that matches it exactly, written in full <code>Name/version</code> form; if it matches nothing, the first entry is selected.
+        An <code>options</code> key is ignored — the entries always come from the module list.
+        <code>required</code> is accepted, but its only effect is to append an asterisk to the label; it is not enforced when the form is submitted.
+      </p>
+      <pre>form:
+  gromacs_module:
+    widget: module_load
+    label:  GROMACS module
+    module: GROMACS
+    help:   Only versions installed on the cluster are listed.
+
+script: |
+  module load #{gromacs_module}
+  gmx mdrun -s topol.tpr</pre>
+      <p>
+        If the module name is not in the list — or if the <code>module</code> key is missing — the dropdown holds a single empty entry labeled <code>No modules found</code>; if the request itself fails, it shows <code>Error loading modules</code>.
+        In both cases the widget's value is empty, so a script line that refers to it is left out of the job script, unless the reference is written <code>#{:gromacs_module}</code> (see <a href="#supplement">section 10</a>).
+      </p>
+      <p>
+        When the widget is referenced in the <code>script</code> and/or <code>submit</code> section, changing the selection rewrites the existing <code>module load</code> line in place instead of regenerating the script.
+        Every line that consists of <code>module load</code> on its own, or of <code>module load</code> followed by this widget's own module name with or without a version, is replaced by <code>module load</code> plus the new selection, keeping the line's original indentation; nothing else in the text area is touched, including lines the user has typed.
+        If no such line is present yet, the widget falls back to the normal script update, which inserts the line from the template.
+      </p>
+      <p>
+        The module list itself is a JSON file cached under <code>data_dir</code> as <code>.module-list-cache.json</code> and refreshed at most once every 24 hours; the same list is used for every cluster. See <a target="_blank" href="install.html#network-dependencies">Network and external dependencies</a> in the installation document for where it is downloaded from.
+        Because the widget has no <code>options</code> of its own it cannot drive the actions described in <a href="#dynamic">section 3</a>, but it can be their target (for example <code>hide-gromacs_module</code> or <code>disable-gromacs_module</code>).
+      </p>
+
+      <h3 id="dependent_module_select">2.10. dependent_module_select widget</h3>
+      <p>
+        Displays a dropdown whose options are loaded dynamically according to the currently-selected value of a <strong>driver</strong> widget.
+        Use it when one select widget (e.g. an application version) determines which set of modules should be offered in a second select.
+        As with the <code>module_load</code> widget (<a href="#module_load">section 2.9</a>), the entries come from <code>/_module_avail</code> after the page has loaded, and the dropdown shows <code>Loading…</code> until they arrive.
+      </p>
+      <p>
+        The <code>driver</code> key names the field whose value is watched. It must name a widget that is rendered on the same page; if it does not, the dropdown stays on <code>Loading…</code>.
+        The string tested is the driver option's <em>value</em> — the second element of its <code>options</code> array — not the text displayed in the dropdown. (As elsewhere, an option with no second element falls back to its first element.)
+      </p>
+      <p>
+        The <code>options</code> key is a list of matcher entries. Each entry names a <code>module</code> and, optionally, one of two matchers:
+      </p>
+      <ul>
+  <li><code>prefix:</code> matches when the driver's value <em>starts with</em> the given string.</li>
+  <li><code>contains:</code> matches when the driver's value contains the given string anywhere.</li>
+      </ul>
+      <p>
+        The entries are tried in the order they are written and the first match wins, so list more specific matchers before more general ones. Within a single entry, <code>prefix:</code> is tested before <code>contains:</code>.
+        If no entry matches, the <code>module</code> of the <strong>last</strong> entry in the list is used as a fallback, which makes it natural to put the general case last (an entry with a <code>module</code> and no matcher can never match on its own, so as the last entry it acts purely as a default).
+        Whenever the resolved module name changes the version list is re-fetched and the first entry of the new list is selected; if the resolved name does not change, the dropdown is left as it is.
+      </p>
+      <pre>form:
+  alphafold_module:
+    widget: select
+    label: AlphaFold Module
+    options:
+      - [AlphaFold 2.3.2, AlphaFold/2.3.2]
+      - [AlphaFold 3.0.0, AlphaFold/3.0.0]
+      - [AlphaFold 3.0.1, AlphaFold/3.0.1]
+      - [AlphaFold 3.0.2, AlphaFold/3.0.2]
+
+  alphafold_db_module:
+    widget: dependent_module_select
+    label: AlphaFold Database Module
+    driver: alphafold_module
+    options:
+      - prefix: AlphaFold/2.
+        module: AlphaFold2DB
+      - prefix: AlphaFold/3.
+        module: AlphaFold3DB
+
+script: |
+  module load #{alphafold_module}
+  module load #{alphafold_db_module}</pre>
+      <p>
+        In this example, selecting <code>AlphaFold/2.3.2</code> in the driver loads the available versions of <code>AlphaFold2DB</code>, while selecting <code>AlphaFold/3.0.0</code>, <code>AlphaFold/3.0.1</code>, or <code>AlphaFold/3.0.2</code> loads the versions of <code>AlphaFold3DB</code>.
+        Note that the prefixes are tested against the option values (<code>AlphaFold/2.3.2</code> and so on), not against the labels shown in the dropdown.
+      </p>
+      <img src="img/dependent_module_select.png" width="800" alt="dependent_module_select example">
+      <p class="mt-3">
+        The example below uses <code>contains:</code> instead, because the distinguishing part of the driver's value is not at the start of the string.
+        Any CUDA version whose value contains <code>-gpu</code> selects <code>cuDNN-GPU</code>; anything else falls through to the last entry, which has no matcher and therefore acts as the default.
+      </p>
+      <pre>form:
+  cuda_module:
+    widget: select
+    label: CUDA Module
+    options:
+      - [CUDA 11.8,        CUDA/11.8.0     ]
+      - [CUDA 12.0 (GPU),  CUDA/12.0.0-gpu ]
+      - [CUDA 12.3 (GPU),  CUDA/12.3.0-gpu ]
+
+  cudnn_module:
+    widget: dependent_module_select
+    label: cuDNN Module
+    driver: cuda_module
+    options:
+      - contains: -gpu
+        module: cuDNN-GPU
+      - module: cuDNN
+
+script: |
+  module load #{cuda_module}
+  module load #{cudnn_module}</pre>
+
+    <h3 id="functions">2.11. Functions</h3>
     <p>
       The <code>zeropadding(key, digit)</code> function pads a number with leading zeros.
       If the number of digits is less than the value specified in the second argument, <code>digit</code>, the missing digits are filled with '0'.
@@ -489,8 +648,16 @@ script: |
       </p>
       <h3 id="set">3.1. Widget setting</h3>
       <p>
-        Sets the <code>min</code>, <code>max</code>, <code>step</code>, <code>label</code>, <code>value</code>, <code>required</code>, and <code>help</code>.
-        Specifies <code>set-(min|max|step|label|value|required|help)-(KEY)[_(num|1st element in options)]:(VALUE)</code> from the third element and onward of each <code>options</code> array.
+        Sets the <code>min</code>, <code>max</code>, <code>step</code>, <code>label</code>, <code>value</code>, <code>required</code>, or <code>help</code> of another widget.
+        Each action is written as a YAML mapping entry from the third element onward of an <code>options</code> array, in one of the following shapes:
+      </p>
+      <ul>
+  <li><code>set-(min|max|step|label|value|required|help)-(KEY): (VALUE)</code> — targets the whole widget <code>KEY</code>.</li>
+  <li><code>set-(min|max|step|label|value|required|help)-(KEY)_(num): (VALUE)</code> — an <strong>underscore</strong> followed by a 1-based field number targets one input field of a multi-field widget, e.g. <code>set-max-time_1: 24</code>. This shape is recognized only for <code>number</code>, <code>text</code> and <code>email</code> widgets.</li>
+  <li><code>set-required-(KEY)-(1st element in options): (true|false)</code> — a <strong>hyphen</strong> followed by an option's first element targets one option of a <code>checkbox</code> widget. This shape is recognized only for <code>set-required-</code> on <code>checkbox</code> widgets; no other <code>set-</code> attribute accepts an option name.</li>
+      </ul>
+      <p>
+        The value is type-checked: <code>min</code>, <code>max</code> and <code>step</code> must be numbers, and <code>required</code> must be <code>true</code> or <code>false</code>.
       </p>
       <p>
         In the following example, if you select <code>Medium</code> for <code>node_type</code>, the label and maximum value for <code>cores</code> will be <code>Number of Cores (1-8)</code> and <code>8</code>.
@@ -546,8 +713,9 @@ script: |
   #SBATCH --time=#{time_1}:#{time_2}:00</pre>
       <img width="400" src="img/setting2.png" alt="setting">
       <p>
-  For <code>select</code>, <code>radio</code>, and <code>checkbox</code> widgets,
-  use <code>1st element in options</code> to specify the target option.
+  For <code>select</code>, <code>radio</code>, and <code>checkbox</code> widgets the option is not named in the action itself:
+  use <code>set-value-(KEY)</code> and give the option's first element as the <em>value</em>.
+  The option whose displayed text is exactly equal to that value is then selected or ticked; if no option matches, the widget is left unchanged.
   In the following example, when you select <code>GPU</code> for <code>node_type</code>, <code>Enable GPU</code> for <code>enable_gpu</code> is checked.
       </p>
       <pre>form:
@@ -566,16 +734,32 @@ script: |
 script:	|
   #SBATCH --partition=#{node_type}</pre>
       <img width="400" src="img/setting3.png" alt="setting">
+      <p>
+  <code>set-min-</code>, <code>set-max-</code>, <code>set-step-</code>, <code>set-label-</code>, <code>set-help-</code> and <code>set-required-</code> are re-evaluated whenever any driving widget changes, so when the option that set them is no longer selected the target returns to the value declared in its own <code>form</code> entry.
+  <code>set-value-</code> behaves differently: it is applied when its option is selected and is never undone, so the target keeps the last value written to it.
+  In the first example above, choosing <code>Medium</code> and then <code>Small</code> again restores <code>max</code> to 4, but a value written by <code>set-value-</code> would stay.
+  Give every option its own <code>set-value-</code> action when you need the value to change back.
+  On a <code>checkbox</code> or <code>radio</code> target, <code>set-value-</code> can only tick the option whose text matches; it never unticks one.
+      </p>
 
       <h3 id="disable">3.2. Widget disabling</h3>
       <p>
   Disables or enables the widget.
-  Specifies <code>[disable|enable]-(KEY)[-(1st element in options)][_num]</code> for the third element and onward of each <code>options</code> array.
+  Each action is written as a plain string (not a mapping entry) from the third element onward of an <code>options</code> array, in one of the following shapes:
+      </p>
+      <ul>
+  <li><code>[disable|enable]-(KEY)</code> — the whole widget <code>KEY</code>, whatever its widget type.</li>
+  <li><code>[disable|enable]-(KEY)-(num)</code> — a <strong>hyphen</strong> followed by a 1-based field number targets one input field of a multi-field <code>number</code>, <code>text</code> or <code>email</code> widget. Note that the separator here is a hyphen, unlike the underscore used by the <code>set-</code> actions in <a href="#set">section 3.1</a>.</li>
+  <li><code>[disable|enable]-(KEY)-(1st element in options)</code> — a hyphen followed by an option's first element targets one option of a <code>select</code>, <code>multi_select</code>, <code>radio</code> or <code>checkbox</code> widget.</li>
+      </ul>
+      <p>
+  Unrecognized action names are ignored silently, with no warning.
+  The widget name and the option text are placed directly into a regular expression when the action is matched, so avoid regular-expression metacharacters (for example <code>.</code>, <code>*</code>, <code>+</code>, <code>?</code>, <code>|</code>, <code>(</code>, <code>)</code>, <code>[</code>) in the first element of any option you intend to target this way.
       </p>
       <p>
   In the following example, when <code>Fugaku</code> is selected for <code>cluster</code>,
   the <code>GPU</code> option for <code>node_type</code> and the <code>cuda_ver</code> widget will be disabled.
-  If a key is disabled, its line in the <code>script</code> section will also be deleted.
+  If a key is disabled, its line in the <code>script</code> section will also be deleted, unless the reference is written with a leading colon (for example <code>#{:cuda_ver}</code>), in which case the line is still output with the value replaced by an empty string (see <a href="#supplement">section 10</a>).
       </p>
       <pre>form:
   cluster:
@@ -665,34 +849,45 @@ script: |
   <thead>
     <tr style="vertical-align:middle">
       <th>Widget</th><th>label, value, help,<br>required, indent</th><th>options</th><th>size</th><th>separator</th><th>direction</th><th>min, max,<br>step</th>
-      <th>show_files,<br>favorites</th>
+      <th>show_files,<br>favorites</th><th>remember_last</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td>number</td><td>OK</td><td></td><td>OK</td><td></td><td></td><td>OK</td><td></td>
+      <td>number</td><td>OK</td><td></td><td>OK</td><td></td><td></td><td>OK</td><td></td><td></td>
     </tr>
     <tr>
-      <td>text, email</td><td>OK</td><td></td><td>OK</td><td></td><td></td><td></td><td></td>
+      <td>text, email</td><td>OK</td><td></td><td>OK</td><td></td><td></td><td></td><td></td><td></td>
     </tr>
     <tr>
-      <td>select</td><td>OK</td><td>OK</td><td></td><td></td><td></td><td></td><td></td>
+      <td>select</td><td>OK</td><td>OK</td><td></td><td></td><td></td><td></td><td></td><td>OK</td>
     </tr>
     <tr>
-      <td>multi_select</td><td>OK</td><td>OK</td><td></td><td>OK</td><td></td><td></td><td></td>
+      <td>multi_select</td><td>OK</td><td>OK</td><td></td><td>OK</td><td></td><td></td><td></td><td></td>
     </tr>
     <tr>
       <td>radio</td><td>OK</td><td>OK</td><td></td><td></td>
-      <td>OK</td><td></td><td></td>
+      <td>OK</td><td></td><td></td><td></td>
     </tr>
     <tr>
-      <td>checkbox</td><td>OK</td><td>OK</td> <td></td><td>OK</td><td>OK</td><td></td><td></td>
+      <td>checkbox</td><td>OK</td><td>OK</td> <td></td><td>OK</td><td>OK</td><td></td><td></td><td></td>
     </tr>
     <tr>
-      <td>path</td><td>OK</td><td></td><td></td><td></td><td></td><td></td><td>OK</td>
+      <td>path</td><td>OK</td><td></td><td></td><td></td><td></td><td></td><td>OK</td><td></td>
+    </tr>
+    <tr>
+      <td>module_load</td><td>label, value, help, indent</td><td>module<br>(see 2.9)</td><td></td><td></td><td></td><td></td><td></td><td></td>
+    </tr>
+    <tr>
+      <td>dependent_module_select</td><td>label, help, indent</td><td>driver, prefix/contains/module<br>(see 2.10)</td><td></td><td></td><td></td><td></td><td></td><td></td>
     </tr>
   </tbody>
       </table>
+      <p>
+        The <code>header</code> section renders fewer widget types than the <code>form</code> section: only <code>number</code>, <code>text</code>, <code>email</code>, <code>select</code>, <code>multi_select</code>, <code>radio</code>, <code>checkbox</code> and <code>path</code> are drawn there.
+        A <code>module_load</code> or <code>dependent_module_select</code> widget placed in the <code>header</code> section is silently skipped — no dropdown is drawn and no module list is fetched.
+        Define those two widgets in the <code>form</code> section only.
+      </p>
 
       <h2 id="script">5. Script section</h2>
       <h3 id="label">5.1. Change label</h3>
@@ -771,28 +966,49 @@ Note that the filename is <code>form.yml.erb</code> since it uses ERB.
         <li>#{OC_APP_NAME}: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
         <li>#{OC_DIR_NAME}: The name of the directory where <code>manifest.yml</code> and related files are stored (the last path element of each application’s URL).</li>
         <li>#{OC_SCRIPT_LOCATION}: <code>Script Location</code> defined in the <code>header</code> section</li>
-        <li>#{OC_CLUSTER_NAME}: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
+        <li>#{OC_CLUSTER_NAME}: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when more than one cluster is defined under <code>clusters:</code> in <code>./conf.yml.erb</code>, because <code>lib/header.yml.erb</code> only draws the <code>_cluster_name</code> widget in that case)</li>
         <li>#{OC_SCRIPT_NAME}: <code>Script Name</code> defined in the <code>header</code> section</li>
         <li>#{OC_JOB_NAME}: <code>Job Name</code> defined in the <code>header</code> section</li>
       </ul>
 
-      <h3 id="overwrite_warning">5.5. Disable warning</h3>
+      <h3 id="reverse-parse">5.5. Loading a script back into the form</h3>
       <p>
-        If you try to modify a widget that affects the <code>script</code> or <code>submit</code> section after manually editing those sections, a warning like the one below will appear.
-        If you click "Discard and continue", the changes you made to the section will be discarded and a new script will be generated.
+        The script area works in both directions. As well as the widgets writing the script, Open Composer reads the script back and updates the widgets from it: when a saved script is loaded (from the History page, or from disk through the file browser) the form is reconstructed from the script's contents, and while the user edits the script by hand the widgets follow along, about half a second after the last keystroke.
+        This is done by matching each line of the script against a pattern derived from the corresponding line of the <code>script</code> template, so whether a field can be recovered from a script depends on how its template line is written.
       </p>
-  <img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
       <p>
-        To disable this warning, set <code>overwrite_warning: false</code> in the configuration of the section where you want to disable the warning.
+        The rules to follow when writing template lines are:
+      </p>
+      <ul>
+  <li>Give every line a literal prefix. A pattern is registered for a line only if the text before its first <code>#{...}</code> is not empty, so a line that begins with an interpolation (e.g. <code>#{command} -n 4</code>) is never matched back to its widget.</li>
+  <li>Keep those prefixes distinct. Each pattern is applied to the first line of the script that it matches, so if two template lines start with the same text (e.g. two different fields both writing <code>#SBATCH --ntasks=</code>) both fields will read the same script line.</li>
+  <li>Do not use the template functions on a line you want parsed back. A line whose interpolations use <code>calc()</code>, <code>zeropadding()</code>, <code>dirname()</code> or <code>basename()</code> cannot be reversed: its pattern is registered for placement purposes only, with no fields attached to it. Plain <code>#{key}</code> interpolations are reversed, and a line may contain any number of them — each becomes a capture group whose text is written back to that widget.</li>
+  <li>There is exactly one exception to the previous rule. A line that begins with <code>#SBATCH --time=</code> and does use those functions is handled by a dedicated Slurm-time parser. It accepts every Slurm <code>--time</code> format (<code>D-HH:MM:SS</code>, <code>D-HH:MM</code>, <code>D-HH</code>, <code>HH:MM:SS</code>, <code>MM:SS</code> and <code>MM</code>) and fills the line's fields, in the order they appear in the template, with days, hours, minutes and seconds. Any field beyond the fourth is set to <code>0</code>, so the time fields must be written in exactly that order.</li>
+      </ul>
+      <p>
+        The captured text is applied according to the target widget:
+      </p>
+      <ul>
+  <li><code>number</code>, <code>text</code>, <code>email</code>: written straight into the input field.</li>
+  <li><code>select</code>, <code>module_load</code>, <code>dependent_module_select</code>: the option whose value (the second element of its <code>options</code> array) equals the captured text is selected. Nothing happens if no option matches, or while the widget is disabled.</li>
+  <li><code>radio</code>: the button whose value equals the captured text is selected.</li>
+  <li><code>checkbox</code>: the captured text is split on the widget's <code>separator</code> (a comma if none is set), and every option whose value appears in the result is ticked.</li>
+  <li><code>multi_select</code> and <code>path</code>: <strong>not applied.</strong> The reverse parser has no case for these two widget types, so text captured for them is discarded and the field keeps whatever it already held — the <code>cd #{working_dir}</code> line of <a href="#path">section 2.8</a>, for instance, is not read back. A <code>path</code> field is still pre-filled on the server in the History case described below, when its template line starts with <code>#SBATCH</code>.</li>
+      </ul>
+      <p>
+        When a script is loaded, a matched line may also open a hidden section: if the field it belongs to is disabled, the <code>enable-</code> actions that control that field are triggered so the section appears with the loaded value already in it.
+        For the number, text, email and Slurm-time cases this happens only when the line is unique to that field — if the same line also matches a pattern belonging to another widget, the value is still applied but no section is opened.
+        For example, if two fields both emit <code>#SBATCH --ntasks=</code>, an advanced section is opened only by a line that belongs to it alone, such as its own <code>#SBATCH --cpus-per-task=</code> line.
+        While the user is typing in the script area, no section is ever opened and disabled fields are left untouched.
+      </p>
+      <p>
+        When a job's script is not held in the history database — because <code>history_store_script</code> is <code>false</code>, or because Open Composer did not submit the job — the script is fetched from the scheduler with <code>sacct -B</code> and the widgets' <code>value</code> keys are additionally pre-filled on the server, before the page is rendered. That path is narrower than the one described above: a template line is considered only if it starts with <code>#SBATCH</code>, and it is matched only against script lines that start with <code>#SBATCH</code>. On an ordinary History load the stored script is used as it is and all widget reconstruction happens in the browser.
+        Every other line of the script is ignored, which means that on a non-Slurm scheduler this server-side step does nothing.
+        <code>zeropadding(field, N)</code> is understood there; the other functions are not, and their captures are discarded.
+        The script template is also read as plain text, so an application that writes its script with <code>label:</code> and <code>content:</code> keys (see <a href="#label">section 5.1</a>) gets no server-side pre-fill.
+        In all of these cases the parsing done in the browser still runs, so the form still ends up matching the loaded script.
       </p>
 
-      <pre>script:
-  overwrite_warning: false
-  content: |</pre>
-
-      <pre>submit:
-  overwrite_warning: false
-  content: |</pre>
       <h2 id="check">6. Check section</h2>
       <p>
   Variables defined in the <code>form</code> section can be validated in the <code>check</code> section using the Ruby language and the function <code>oc_assert(condition, message)</code>.
@@ -825,7 +1041,7 @@ check: |
   <li>@OC_APP_NAME: Application name defined in <code>name</code> of <code>manifest.yml</code></li>
         <li>@OC_DIR_NAME: The name of the directory where <code>manifest.yml</code> and related files are stored (the last path element of each application’s URL).</li>
         <li>@OC_SCRIPT_LOCATION: <code>Script Location</code> defined in the <code>header</code> section</li>
-        <li>@OC_CLUSTER_NAME: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when <code>cluster</code> is defined in <code>./conf.yml.erb</code>)</li>
+        <li>@OC_CLUSTER_NAME: <code>Cluster name</code> defined in the <code>header</code> section (This is only available when more than one cluster is defined under <code>clusters:</code> in <code>./conf.yml.erb</code>)</li>
         <li>@OC_SCRIPT_NAME: <code>Script Name</code> defined in the <code>header</code> section</li>
   <li>@OC_JOB_NAME: <code>Job Name</code> defined in the <code>header</code> section</li>
       </ul>
@@ -879,10 +1095,30 @@ submit:
       </p>
       <img src="img/submit.png" width="600" alt="Submit">
       <p>
-  If you also set <code>action: save</code> in the <code>script</code> section, its contents will be saved before executing the commands in the <code>submit</code> section.
+  The job script is always written to <code>Script Location</code>/<code>Script Name</code> before the commands in the <code>submit</code> section run — this is what makes the <code>mv #{OC_SCRIPT_NAME} …</code> in the example above work. Setting <code>action: save</code> in the <code>script</code> section only suppresses the job submission that would otherwise follow the <code>submit</code> section.
   The button at the bottom of the "Confirm" screen will change from "Submit" to "Save," as shown below.
       </p>
       <img src="img/submit2.png" width="600" alt="Submit">
+
+      <h3 id="empty-script-warning">7.1. Empty script warning</h3>
+      <p>
+        When the user submits the form — with the <strong>Submit</strong> button, or with the <strong>Submit</strong> button inside the confirmation dialog of an <code>action: confirm</code> application, since clicking <strong>Confirm</strong> itself only opens that dialog — Open Composer automatically checks whether the batch script contains any real commands.
+        A line is considered boilerplate and ignored if it is blank, starts with <code>#</code> (comments, <code>#SBATCH</code> directives, or the shebang line), or starts with <code>module</code>.
+        If no real commands are found, a browser confirmation dialog is shown before the job is submitted:
+      </p>
+      <pre>No commands have been added to the batch script.
+
+Are you sure you want to submit?</pre>
+      <p>
+        Clicking <strong>Cancel</strong> returns the user to the form without submitting.
+        Clicking <strong>OK</strong> proceeds with submission as normal.
+        This check is automatic and enabled by default. It does not apply to an application whose <code>script</code> section sets <code>action: save</code>, because that writes a file instead of submitting a job.
+      </p>
+      <p>
+        To disable the warning, set <code>empty_script_warning: false</code> in <code>conf.yml.erb</code>:
+      </p>
+      <pre>empty_script_warning: false</pre>
+      <img src="img/no_entry_warning_message.png" width="600" alt="Empty script warning">
 
       <h2 id="header">8. Header section</h2>
       <p>
@@ -891,7 +1127,7 @@ submit:
       </p>
       <p>
   The example below defines a new widget, <code>script_content</code>, that hides the job script.
-  The <code>_script_location</code> and <code>_script</code> are widgets defined in <code>lib/header.yml.erb</code> (if a <code>cluster</code> is defined in <code>./conf.yml.erb</code>, you must also define <code>_cluster_name</code>).
+  The <code>_script_location</code> and <code>_script</code> are widgets defined in <code>lib/header.yml.erb</code> (if more than one cluster is defined under <code>clusters:</code> in <code>./conf.yml.erb</code>, you must also define <code>_cluster_name</code>).
       </p>
 
       <pre>header:
@@ -936,15 +1172,124 @@ queue:
     - [large]
 &lt;% end %&gt;</pre>
 
-      <h2 id="supplement">9. Supplement</h2>
+      <h2 id="erb">9. ERB and Dynamic Configuration</h2>
+      <p>
+        When a form file is named <code>form.yml.erb</code>, Open Composer processes it as Embedded Ruby (ERB) before parsing the YAML.
+        This lets you generate form content dynamically at page load time — for example, running a shell command to build the list of options for a dropdown, or reading values from the OpenComposer configuration.
+      </p>
+
+      <h3 id="erb-conf">9.1. Accessing @conf</h3>
+      <p>
+        The variable <code>@conf</code> is available inside <code>form.yml.erb</code> and contains the full OpenComposer configuration hash loaded from <code>conf.yml.erb</code>.
+        It is set only while a page is being rendered. The same <code>form.yml.erb</code> is re-evaluated when the form is submitted, and on that request <code>@conf</code> is <code>nil</code> — so always use safe navigation (<code>@conf&amp;.fetch('login_node', nil)</code>) or wrap the lookup in <code>begin</code>/<code>rescue</code>, otherwise submitting the form fails with a <code>NoMethodError</code> page instead of submitting the job.
+        Use it to read site-specific settings such as the login node hostname.
+      </p>
+      <pre>&lt;%
+  login_node = @conf&.fetch('login_node', nil)
+%&gt;
+---
+form:
+  my_field:
+    widget: text
+    label: Login node is &lt;%= login_node %&gt;</pre>
+
+      <h3 id="erb-command">9.2. Populating a dropdown from a shell command</h3>
+      <p>
+        You can run a shell command inside ERB to populate a <code>select</code> widget's <code>options</code> list at page load time.
+        If the OOD web server does not have direct access to the job scheduler daemon, prefix the command with
+        <code>ssh</code> to the login node. Use <code>@login_node</code>, which Open Composer has already resolved for the cluster the user selected (<code>@cluster_name</code> is available too); <code>@conf['login_node']</code> is the raw setting and is a Hash keyed by cluster name on a multi-cluster site.
+      </p>
+      <p>
+        The example below populates a "Project" dropdown from the user's Slurm associations by running <code>sacctmgr</code> via SSH.
+        It always renders a <code>select</code> widget — if no accounts are found the options list is empty rather than crashing.
+      </p>
+      <pre>&lt;%
+  begin
+    _login_node = (@conf&amp;.fetch('login_node', nil) rescue nil)
+    _login_node = _login_node.is_a?(Hash) ? _login_node.values.compact.first : _login_node
+    _ssh_prefix = _login_node ? "ssh -o BatchMode=yes -o ConnectTimeout=10 #{_login_node}" : ""
+    _accounts = `#{_ssh_prefix} sacctmgr -n -P show user #{ENV['USER']} withassoc format=Account 2&gt;/dev/null`
+                .split("\n").map(&amp;:strip).reject(&amp;:empty?).uniq.sort
+  rescue
+    _accounts = []
+  end
+%&gt;
+---
+form:
+  account:
+    widget: select
+    label: Project
+&lt;% if _accounts.empty? %&gt;
+    options: []
+&lt;% else %&gt;
+    options:
+&lt;% _accounts.each do |a| %&gt;
+      - ["&lt;%= a %&gt;", "&lt;%= a %&gt;"]
+&lt;% end %&gt;
+&lt;% end %&gt;
+
+script: |
+  #SBATCH --account=#{account}</pre>
+      <p>
+        Key points:
+      </p>
+      <ul>
+        <li>Wrap the shell command in a <code>begin/rescue</code> block so a failed command produces an empty list rather than a form error.</li>
+        <li>Use <code>options: []</code> (not omitting the key) when the list is empty — a missing <code>options</code> key parses as <code>nil</code> in YAML and causes a runtime error.</li>
+        <li><code>BatchMode=yes</code> prevents SSH from hanging waiting for a password; <code>ConnectTimeout=10</code> prevents the page from stalling if the login node is unreachable.</li>
+        <li>The Passenger web process runs as the logged-in OOD user, so their SSH key to the login node must already be set up.</li>
+      </ul>
+
+      <h3 id="erb-read-yaml">9.3. Inheriting a base form with read_yaml</h3>
+      <p>
+        Use the <code>read_yaml(path)</code> helper to load another form file (including <code>.erb</code> files) and then modify its content before emitting YAML.
+        This is how the applications in the <code>apps/</code> directory inherit their common Slurm fields from one of two base forms: <code>SlurmBasic</code> for CPU jobs, or <code>SlurmGPU</code> — which adds the partition-aware GPU type and GPU-count selectors and the corresponding <code>--gpus-per-node</code> script lines — for GPU jobs. Point <code>base_path</code> at whichever one matches your application.
+      </p>
+      <p>
+        Inside a <code>form.yml.erb</code>, the local variable <code>yml_path</code> holds the path of the form file being processed, always written without the <code>.erb</code> suffix (for example <code>./apps/MyApp/form.yml</code>), so <code>File.dirname(yml_path)</code> is the application's own directory.
+      </p>
+      <pre>&lt;%
+base_path = File.join(File.dirname(yml_path), '../SlurmBasic/form.yml')
+base = read_yaml(base_path)
+
+# Insert an application-specific field before the time widget
+new_form = {}
+base['form'].each do |k, v|
+  if k == 'time_days_hours_minutes'
+    new_form['myapp_module'] = {
+      'widget' => 'module_load',
+      'module' => 'myapp',
+      'label'  => 'MyApp Module'
+    }
+  end
+  new_form[k] = v
+end
+
+base['form']   = new_form
+base['script'] = base['script'].rstrip + "\n\n" + &lt;&lt;~'APP_SCRIPT'
+  module load #{myapp_module}
+APP_SCRIPT
+%&gt;
+&lt;%= base.to_yaml -%&gt;</pre>
+      <p>
+        Note the single-quoted heredoc (<code>&lt;&lt;~'APP_SCRIPT'</code>). Any script text containing <code>#{...}</code> must be written in a single-quoted heredoc or a single-quoted Ruby string: <code>#{...}</code> is Open Composer's <em>form</em> interpolation syntax, but inside a <code>&lt;% %&gt;</code> block a double-quoted string would make Ruby try to interpolate the widget name first, and the page would fail with <code>NameError: undefined local variable or method 'myapp_module'</code>.
+      </p>
+      <p>
+        <code>read_yaml</code> automatically finds and processes the <code>.erb</code> version of the file if it exists, so <code>SlurmBasic</code>'s ERB header (which populates the Project dropdown) is executed correctly when inherited.
+      </p>
+
+      <h2 id="supplement">10. Supplement</h2>
       <ul>
   <li>All the samples on this page are written in the Bash language, but you can use other shells as well. However, the <code>submit</code> section can only be written in the Bash language.</li>
   <li>Widget names can only contain alphanumeric characters and underscores. Numbers and underscores cannot start the name. Please also avoid using widget names that end with an underscore followed by a number (e.g., <code>nodes_1</code>). The same rule applies to the directory name in which the application is saved. However, when defining the <code>header</code> section in <code>form.yml</code>, the widget names beginning with underscores (e.g. <code>_script_location</code>) used in <code>lib/header.yml.erb</code> can be used.</li>
   <li>If there is no second element in <code>options</code>, the first element is used instead.</li>
+  <li>The <code>label</code> and <code>help</code> texts are inserted into the page as HTML rather than as plain text, so simple markup such as <code>&lt;br&gt;</code>, <code>&lt;b&gt;</code>, <code>&lt;code&gt;</code> or an <code>&lt;a href="…" target="_blank"&gt;</code> link can be used in them. The same applies to text supplied by a <code>set-label-</code> or <code>set-help-</code> action. Because of this, a literal <code>&lt;</code> must be written as <code>&amp;lt;</code> and a literal <code>&amp;</code> as <code>&amp;amp;</code>; a double quote in a <code>label</code> also breaks the attribute the label is copied into, so write it as <code>&amp;quot;</code>. Note that markup in a label is flattened to plain text if a <code>set-required-</code> action later rewrites that label. The first and second elements of an <code>options</code> array are escaped and always appear literally.</li>
+  <li><code>module_load</code> and <code>dependent_module_select</code> values reach the <code>check</code> section as the selected <code>Name/version</code> string, so <code>@my_module</code> can be validated like any text field.</li>
   <li>In the <code>script</code> section, if a variable used in a line does not have a value, the line is not displayed. However, if you add a colon to the beginning of the variable (e.g. <code>#{:nodes}</code> or <code>#{basename(:input_file)}</code>), the line will be output even if the variable does not have a value.</li>
   <li>The order of processing that Open Composer performs before submitting a job script is as follows.
     <ol>
       <li>The "Submit" button is clicked in the application page</li>
+      <li>If <code>empty_script_warning</code> is enabled, check whether the batch script contains any real commands and show a confirmation dialog if not (see <a href="#empty-script-warning">section 7.1</a>)</li>
       <li>Execute the script written in the <code>check</code> section in <code>form.yml</code> (if the <code>check</code> section exists)</li>
       <li>Execute the script written in the <code>submit</code> section in <code>form.yml</code> (if the <code>submit</code> section exists)</li>
       <li>Submit the job script</li>

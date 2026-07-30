@@ -1,0 +1,10 @@
+<div style="display:flex; flex-direction:column; height:calc(100vh - 56px);">
+  <div id="oc-all-list" style="background:#F3F4F4; border-top:1px solid #C3C8C8; flex:1; overflow-y:auto;">
+    <%# Featured Slurm submit templates first … %>
+    <% @at_featured.each do |m| %><%= output_all_template_row(m) %><% end %>
+    <%# … then the user's own custom templates … %>
+    <% @templates.each do |t| %><%= output_custom_template_row(t) %><% end %>
+    <%# … then every other application, alphabetically. %>
+    <% @at_rest.each do |m| %><%= output_all_template_row(m) %><% end %>
+  </div>
+</div>

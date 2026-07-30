@@ -1,0 +1,8 @@
+<%# Open Composer's <head> assets and <body> content are %>
+<%# spliced into the dashboard's application layout, so the live OOD navbar %>
+<%# and footer wrap Open Composer directly. @oc_head / @oc_body are set by %>
+<%# OpencomposerProxyController (see initializers/opencomposer_embed.rb). %>
+<% content_for :head do %>
+  <%= @oc_head %>
+<% end %>
+<%= @oc_body %>

@@ -53,6 +53,91 @@ class Fujitsu_tcs < Scheduler
     return e.message
   end
 
+  def valid_job_id?(id)
+    id.to_s.match?(/\A\d+\z/) || id.to_s.match?(/\A\d+\[\d+\]\z/)
+  end
+
+  def state_to_oc_status(state)
+    case state.to_s
+    when "RNP", "RUN", "RNE", "RNO"             then JOB_STATUS["running"]
+    when "ACC", "QUE", "RNA", "SPP", "SPD",
+         "RSM", "HLD"                            then JOB_STATUS["queued"]
+    when "EXT"                                   then JOB_STATUS["completed"]
+    when "CCL"                                   then JOB_STATUS["cancelled"]
+    when "RJT", "ERR"                            then JOB_STATUS["failed"]
+    else                                              JOB_STATUS["unknown"]
+    end
+  end
+
+  # Fetch all jobs from pjstat (active + historical) in the sacct_all_jobs format.
+  # Historical window is the maximum pjstat supports: 365 days.
+  def sacct_all_jobs(date_from, date_to, bin = nil, bin_overrides = nil, ssh_wrapper = nil, scheduler_env = nil)
+    pjstat   = get_command_path("pjstat", bin, bin_overrides)
+    choose   = "--choose=jid,jnam,rscg,st,adt,std,stde"
+    command1 = [ssh_wrapper, pjstat, "-s -E --data", choose].compact.join(" ")
+    stdout1, stderr1, status1 = capture_scheduler_command(scheduler_env, command1)
+    return nil, [stdout1, stderr1].join(" ").strip, command1 unless status1.success?
+
+    command2 = command1 + " -H day=365"
+    stdout2, stderr2, status2 = capture_scheduler_command(scheduler_env, command2)
+    return nil, [stdout2, stderr2].join(" ").strip, command2 unless status2.success?
+
+    jobs = {}
+    [stdout1, stdout2].each do |stdout|
+      CSV.new(stdout, headers: true).to_a.map(&:fields).each do |f|
+        job_id = f[1]
+        next if job_id.nil? || jobs.key?(job_id)
+        jobs[job_id] = {
+          "JobID"     => job_id,
+          "JobName"   => f[2],
+          "Partition" => f[3],
+          "State"     => f[4],
+          "Submit"    => f[5],
+          "StdOut"    => f[6].to_s.strip,
+          "StdErr"    => f[7].to_s.strip
+        }
+      end
+    end
+
+    [jobs.values, nil, command1]
+  rescue Exception => e
+    return nil, e.message, nil
+  end
+
+  # Fetch resource-group availability from pjstat -A --data and return it in the sinfo_nodes format.
+  # Fujitsu TCS manages resources at the group level; each resource group appears as a "node".
+  def sinfo_nodes(bin = nil, bin_overrides = nil, ssh_wrapper = nil, scheduler_env = nil)
+    pjstat  = get_command_path("pjstat", bin, bin_overrides)
+    command = [ssh_wrapper, pjstat, "-A --data"].compact.join(" ")
+    stdout, stderr, status = capture_scheduler_command(scheduler_env, command)
+    return nil, [stdout, stderr].join(" ").strip, command unless status.success?
+
+    rows = []
+    CSV.new(stdout, headers: true).each do |row|
+      fields = row.fields
+      next if fields.compact.empty?
+      # Column order from pjstat -A --data (site-dependent; adjust indices if needed):
+      # H, RSC_GRP, AVST, MND_TOT, MND_USE, MND_FRE, CPU_TOT, CPU_USE, CPU_FRE, MEM_TOT, MEM_USE, MEM_FRE
+      rscg     = fields[1].to_s.strip
+      avst     = fields[2].to_s.strip.downcase  # "up" / "down" / etc.
+      cpu_tot  = fields[6].to_i
+      cpu_use  = fields[7].to_i
+      cpu_fre  = fields[8].to_i
+      mem_tot  = (fields[9].to_f  * 1_024).to_i  # GB → MB
+      mem_use  = (fields[10].to_f * 1_024).to_i
+      mem_fre  = (fields[11].to_f * 1_024).to_i
+
+      next if rscg.empty?
+      state    = avst == "up" ? (cpu_use >= cpu_tot ? "allocated" : (cpu_use > 0 ? "mixed" : "idle")) : avst
+      cpus_str = "#{cpu_use}/#{[cpu_fre, 0].max}/0/#{cpu_tot}"
+      rows << [rscg, state, cpus_str, mem_tot.to_s, mem_fre.to_s, "", ""]
+    end
+
+    [rows, nil, command]
+  rescue Exception => e
+    return nil, e.message, nil
+  end
+
   # Query the status of one or more jobs in the Fujitsu TCS system using 'pjstat'.
   # It retrieves job details and combines information for both active and completed jobs.
   def query(jobs, bin = nil, bin_overrides = nil, ssh_wrapper = nil, scheduler_env = nil)

@@ -1,0 +1,107 @@
+<div class="mt-3 mb-2 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom"
+     style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
+  New Custom Template — Choose a Style
+</div>
+<div class="px-4 pt-2 pb-1 small text-muted">
+  Select an application style. Fill in your settings and click <strong>Save as Custom Template</strong>.
+</div>
+
+<%# ── Load/Create a Script from Disk (full-page file browser, new-template ──── %>
+<%# ── mode; the chosen script is loaded into the generic Slurm script page) ─── %>
+<% if @conf.fetch('show_load_script', true) %>
+<div class="px-3 pt-1 pb-2">
+  <a href="<%= @script_name %>/load_script?new_template=1" class="btn btn-primary">
+    <i class="bi bi-folder2-open me-1"></i><%= ERB::Util.h(@conf.fetch('load_script_label', 'Load or Create a Script from Disk')) %>
+  </a>
+</div>
+<% end %>
+
+<div class="px-3 pb-3 pt-1">
+  <input type="search" id="oc-app-search" class="form-control form-control-lg"
+         placeholder="Search all templates…" autocomplete="off">
+</div>
+
+<%# Flat search results — all apps including hidden, shown only while searching %>
+<div id="oc-tmpl-search-results" class="d-none px-3 mb-3">
+  <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-6 g-3" id="oc-tmpl-search-grid">
+    <% @all_manifests.each do |m| %>
+      <%= output_thumbnail(m.dirname, m.name, m.icon, "?new_template=1") %>
+    <% end %>
+    <% @generic_manifests.each do |m| %>
+      <%= output_generic_thumbnail(m.dirname, m.name, m.icon, "?new_template=1") %>
+    <% end %>
+  </div>
+  <div id="oc-app-no-results" class="py-2 small text-muted d-none">No apps match your search.</div>
+</div>
+
+<%# Normal categorised view — hidden while searching %>
+<div id="oc-categorized-view">
+  <% group_manifests_by_category(@manifests_w_category).each.with_index do |(category, manifests), index| %>
+    <div class="mt-<%= index == 0 ? 0 : 3 %> mb-4 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom"
+         style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
+      <%= category %>
+    </div>
+    <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-6 g-3 px-3">
+      <% manifests.each do |m| %>
+        <%= output_thumbnail(m['dirname'], m['name'], m['icon'], "?new_template=1") %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if @manifests_wo_category.any? %>
+    <div class="mt-<%= @manifests_w_category.empty? ? 0 : 3 %> mb-4 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom"
+         style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
+      Application
+    </div>
+    <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-6 g-3 px-3">
+      <% @manifests_wo_category.each do |m| %>
+        <%= output_thumbnail(m['dirname'], m['name'], m['icon'], "?new_template=1") %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="mt-3 mb-4 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom"
+       style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
+    Generic
+  </div>
+  <% if @generic_manifests.any? %>
+    <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-6 g-3 px-3 mb-3">
+      <% @generic_manifests.each do |m| %>
+        <%= output_generic_thumbnail(m.dirname, m.name, m.icon, "?new_template=1") %>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="px-4 py-2 small text-muted mb-3">No generic templates found.</div>
+  <% end %>
+</div>
+
+<script>
+(function() {
+  var input = document.getElementById('oc-app-search');
+  var searchResults = document.getElementById('oc-tmpl-search-results');
+  var searchGrid = document.getElementById('oc-tmpl-search-grid');
+  var categorizedView = document.getElementById('oc-categorized-view');
+  var noResults = document.getElementById('oc-app-no-results');
+
+  input.addEventListener('input', function() {
+    var q = input.value.trim().toLowerCase();
+    if (!q) {
+      searchResults.classList.add('d-none');
+      categorizedView.classList.remove('d-none');
+      return;
+    }
+    categorizedView.classList.add('d-none');
+    searchResults.classList.remove('d-none');
+    var cards = searchGrid.querySelectorAll('.oc-app-card');
+    var visible = 0;
+    cards.forEach(function(card) {
+      var match = card.dataset.name.includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    noResults.classList.toggle('d-none', visible > 0);
+  });
+
+  input.focus();
+})();
+</script>

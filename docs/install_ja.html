@@ -16,15 +16,16 @@
         <li class="nav-item"><a href="#install" class="nav-link">1. インストール</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. 設定</a></li>
         <li class="nav-item ms-3"><a href="#clusters" class="nav-link">2.1. clusters</a></li>
-        <li class="nav-item ms-3"><a href="#scheduler_env" class="nav-link">2.2. scheduler_env</a></li>
-        <li class="nav-item ms-3"><a href="#copy_environment" class="nav-link">2.3. copy_environment</a></li>
-        <li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.4. bin_overrides</a></li>
+        <li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
+        <li class="nav-item ms-3"><a href="#scheduler_env" class="nav-link">2.3. scheduler_env</a></li>
+        <li class="nav-item ms-3"><a href="#copy_environment" class="nav-link">2.4. copy_environment</a></li>
         <li class="nav-item ms-3"><a href="#history" class="nav-link">2.5. history</a></li>
         <li class="nav-item"><a href="#registor" class="nav-link">3. Open OnDemandへの登録</a></li>
-        <li class="nav-item"><a href="#general" class="nav-link">4. 一般ユーザによるインストール</a></li>
-        <li class="nav-item"><a href="#local" class="nav-link">5. ローカルにおける開発方法</a></li>
-        <li class="nav-item"><a href="#test" class="nav-link">6. テスト</a></li>
-        <li class="nav-item"><a href="#jobscheduler" class="nav-link">7. ジョブスケジューラの追加</a></li>
+        <li class="nav-item"><a href="#ood-integration" class="nav-link">4. OOD統合インストール</a></li>
+        <li class="nav-item"><a href="#general" class="nav-link">5. 一般ユーザによるインストール</a></li>
+        <li class="nav-item"><a href="#local" class="nav-link">6. ローカルにおける開発方法</a></li>
+        <li class="nav-item"><a href="#test" class="nav-link">7. テスト</a></li>
+        <li class="nav-item"><a href="#jobscheduler" class="nav-link">8. ジョブスケジューラの追加</a></li>
       </ul>
     </nav>
 
@@ -33,51 +34,259 @@
       <h2 id="install">1. インストール</h2>
       <p>
         Open Composerは<a target="_blank" href="https://openondemand.org/">Open OnDemand</a>上で動作します。Open OnDemandのアプリケーションディレクトリ<code>/var/www/ood/apps/sys/</code>にOpen Composerを保存してください。
+        ここにインストールしたアプリケーションは、ユーザ毎の設定を必要とせず、そのOpen OnDemandの<strong>すべてのユーザ</strong>が自動的に利用できるようになります。
       </p>
       <pre>
 $ cd /var/www/ood/apps/sys/
-$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git</pre>
+$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git opencomposer</pre>
+      <p>
+        ディレクトリ名はアプリケーションのURLの一部になります（<code>/pun/sys/opencomposer</code>）。また、後述する<a href="#ood-integration">4. OOD統合インストール</a>のOOD統合モードを有効にする場合にも影響します。そのプロキシは既定で<code>opencomposer</code>を対象とするため、別の名前でインストールした場合は、それに合わせて<code>OC_EMBED_APP_NAME</code>を設定してください。
+      </p>
+
+      <h4 class="mt-3">gemの事前インストール <span class="badge bg-secondary" style="font-size: 0.7em; vertical-align: middle;">任意（推奨）</span></h4>
+      <p>
+        Open Composerは、ユーザが最初にアプリケーションを開いたときに、依存するRubyのgemを自動的にインストールします。
+        その初回のアクセスでユーザが待たされることを避けるため、管理者が事前にgemをインストールしておくことができます。
+      </p>
+      <pre>
+$ cd /var/www/ood/apps/sys/opencomposer
+$ sudo cp misc/Gemfile .
+$ sudo bundle install</pre>
+      <p>
+        <code>Gemfile</code>が更新される<code>git pull</code>を行った後は、<code>bundle install</code>を再度実行してください。
+      </p>
+
+      <h4 class="mt-3" id="network-dependencies">ネットワークと外部への依存</h4>
+      <p>
+        <code>module_load</code>ウィジットと<code>dependent_module_select</code>ウィジット、および自動的に付与される<strong>GPU</strong>のバッジは、クラスタで利用可能なモジュールのカタログによって動作します。Open Composerは、<code>conf.yml.erb</code>の<code>modules_list_url</code>で指定されたURLからそれを取得します。この設定は<strong>デフォルトでは空</strong>であり、その場合この機能は動作しません。モジュールのウィジットはバージョンを提示せず、GPUのバッジも自動的には付与されません。それ以外の機能には影響しません。
+      </p>
+      <p>
+        この設定を行う場合、Passengerのアプリケーション（PUN）から、そのホストへの外向きのネットワークアクセスが必要です。取得する文書は次の形式のJSONでなければなりません。
+      </p>
+      <pre>{
+  "GROMACS": {
+    "versions": ["2025.2-foss-2023a", "2024.5-foss-2023a"],
+    "default":  "2025.2-foss-2023a",
+    "domains":  ["chem"]
+  }
+}</pre>
+      <p>
+        <code>domains</code>の一覧に<code>gpu</code>を含むモジュールは、同名のアプリケーションに自動的に<strong>GPU</strong>のバッジを付与します。アプリケーションは、<code>manifest.yml</code>の<code>tags</code>キーで明示的にバッジを付与することもできます。
+      </p>
+      <p>
+        この一覧はページの描画中に取得されます。Open Composerのすべてのページで参照が発生し、モジュールのウィジットが行う<code>/_module_avail</code>の要求でも発生します。
+        応答は<code>&lt;data_dir&gt;/.module-list-cache.json</code>にキャッシュされ、キャッシュのファイルが24時間より古くなった場合にのみ再取得されます。
+        接続のタイムアウトは10秒、読み込みのタイムアウトは15秒です。取得に失敗した場合、既存の（古い）キャッシュのファイルが使用されます。キャッシュのファイルが無い場合、一覧は空として扱われます。ユーザにはエラーが表示されないため、ウィジットが空のままになる場合はPUNのログを確認してください。
+      </p>
+
+      <h4 class="mt-3">トラブルシューティング</h4>
+      <p>
+        Open Composerは、実行したジョブスケジューラの操作毎に、標準出力へログの行を書き出します。
+        Open OnDemandのPassengerは標準出力をユーザ毎のPUNのログ<code>/var/log/ondemand-nginx/&lt;user&gt;/error.log</code>に取り込むため、ジョブの投入が期待どおりに動作しない場合は、このファイルを確認してください。
+        このパスにアプリケーション毎の要素が無いことに注意してください。ユーザ毎にPUNは1つであり、そのユーザが開くすべてのOpen OnDemandのアプリケーション（ダッシュボードを含む）が同じファイルに書き出します。
+        Open Composerが出力する各行は次の形式です。
+      </p>
+      <pre>[&lt;time&gt;] [Open Composer] &lt;action&gt; : scheduler=&lt;scheduler class&gt; : &lt;key&gt;=&lt;value&gt; : ...</pre>
+      <p>
+        Passengerは取り込んだすべての行の先頭に<code>App &lt;pid&gt; output:</code>を付加するため、上記のテキストは行の先頭ではなく途中に現れます。
+        これらの記録を要求のログや他のアプリケーションのログと区別するには、<code>[Open Composer]</code>のタグで絞り込んでください。
+        その際は固定文字列としての一致を用いてください。<code>-F</code>を付けないと角括弧が文字クラスとして解釈され、すべての行が一致してしまいます。
+      </p>
+      <pre>$ sudo grep -F '[Open Composer]' /var/log/ondemand-nginx/&lt;user&gt;/error.log</pre>
+      <p>
+        末尾のキーと値の組は操作によって異なり、該当する場合に<code>cluster</code>、<code>job_ids</code>、<code>app_dir</code>、<code>app_name</code>、<code>category</code>、<code>script_path</code>、<code>command</code>、<code>result</code>が含まれます。空の値は省略されます。記録される操作は次のとおりです。
+      </p>
+      <ul>
+        <li><code>Submit job</code>と<code>Save job file</code></li>
+        <li><code>Cancel job</code>、<code>Cancel all jobs</code>、<code>Delete job information</code>、<code>Delete all job history</code></li>
+        <li><code>Run commands in the check section</code>と<code>Run commands in the submit section</code>（実行したコマンドも記録されます）</li>
+        <li><code>Ensure SSH key</code> — 実際に鍵が作成された場合、または生成に失敗した場合にのみ記録され、利用可能な鍵がすでに存在した場合は記録されません</li>
+      </ul>
 
       <h2 id="setting">2. 設定</h2>
       <p>
-        <code>./conf.yml.erb.sample</code>を参考にして<code>./conf.yml.erb</code>を作成してください。
+        <code>./conf.yml.erb.sample</code>を参考にして<code>./conf.yml.erb</code>を作成してください。このサンプルにはすべての設定項目がデフォルト値とともに記載されているため、項目毎に本文書を参照することなく、そのまま編集できます。
       </p>
-      <pre>$ cd OpenComposer
+      <pre>$ cd opencomposer
 $ sudo cp conf.yml.erb.sample conf.yml.erb</pre>
+      <p>
+        下記の分類は<code>conf.yml.erb.sample</code>の番号付きの節と同じ順序で並んでいるため、ファイルと本文書を並べて読むことができます。
+        Open Composerを動作させるために設定が必要なものから、保存・表示される内容、そして外観に関するものへと並んでいます。値の設定が必須なのは<strong>必須</strong>の2項目のみです。
+      </p>
 
+      <h4>1. 必須</h4>
+      <p><code>apps_dir</code>と<code>scheduler</code>は必須です。<code>scheduler</code>は<code>clusters</code>の中にクラスタ毎に定義しても構いません。</p>
       <table class="table" style="vertical-align: middle;">
         <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
         <tr><td>apps_dir</td><td>アプリケーションのディレクトリ</td><td>(None)</td></tr>
-        <tr><td>scheduler</td><td>利用するスケジューラ（<code>slurm</code>、<code>pbspro</code>、<code>sge</code>、<code>fujitsu_tcs</code>）</td><td>(None)</td></tr>
-        <tr><td>clusters</td><td>クラスタの定義</td><td>(None)</td></tr>
-        <tr><td>data_dir</td><td>投入したジョブの情報の保存先</td><td><code>${HOME}/composer</code></td></tr>
-        <tr><td>login_node</td><td>Open OnDemandのWebターミナルを起動した際のログイン先</td><td>(None)</td></tr>
+        <tr><td>scheduler</td><td>ジョブスケジューラ（<code>slurm</code>、<code>pbspro</code>、<code>miyabi</code>、<code>sge</code>、<code>fujitsu_tcs</code>）</td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">2. クラスタとジョブスケジューラ</h4>
+      <p>
+        Open Composerがジョブスケジューラに到達する方法、すなわちスケジューラのコマンドが置かれている場所と、それをWebノード上で実行するのかログインノード上でSSH経由で実行するのかを設定します。ここにある項目はすべてサイト固有であり、デフォルト値はありません。そのため、スケジューラのコマンドがWebノード上にあり<code>PATH</code>に含まれているサイトでは、すべて未設定のままで構いません。このうち4つの項目には独立した節があります（<a href="#clusters">2.1</a>、<a href="#bin_overrides">2.2</a>、<a href="#scheduler_env">2.3</a>、<a href="#copy_environment">2.4</a>）。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>clusters</td><td>クラスタの定義（<a href="#clusters">2.1. clusters</a>を参照）</td><td>(None)</td></tr>
+        <tr><td>login_node</td><td>ログインノードのホスト名。ナビゲーションバーの「Shell Access」のリンク、履歴ページとアプリケーションページのスクリプトの保存先の横にあるターミナルのショートカット、およびログインノードでコマンドを実行するアプリケーションのフォーム（例えば<code>apps/SlurmBasic</code>で「Project」のドロップダウンを生成する<code>sacctmgr</code>の問い合わせ）で使用されます。未設定の場合、2つのページのショートカットは表示されませんが、ナビゲーションバーのリンクは表示されます（<code>show_shell_access</code>を参照）</td><td>(None)</td></tr>
         <tr><td>ssh_wrapper</td><td>SSHを用いて他のノードのジョブスケジューラを用いる場合のコマンド</td><td>(None)</td></tr>
-        <tr><td>bin</td><td>ジョブスケジューラのコマンドのパス</td><td>(None)</td></tr>
-        <tr><td>bin_overrides</td><td>ジョブスケジューラの各コマンドのパス</td><td>(None)</td></tr>
-        <tr><td>scheduler_env</td><td>ジョブスケジューラのコマンド実行時に追加する環境変数</td><td>(None)</td></tr>
-        <tr><td>copy_environment</td><td>Slurmのジョブ投入時にPUNの環境変数をコピーするかどうか</td><td><code>false</code></td></tr>
-        <tr><td>sge_root</td><td>Grid Engineのルート用ディレクトリ（<code>SGE_ROOT</code>）</td><td> (None)</td></tr>
-        <tr><td>history</td><td>履歴ページの追加表示項目</td><td><code>OC_HISTORY_JOB_NAME</code>, <code>OC_HISTORY_PARTITION</code>, <code>OC_HISTORY_SUBMISSION_TIME</code></td></tr>
-        <tr><td>footer</td><td>フッタに記載する文字</td><td>(None)</td></tr>
+        <tr><td>bin</td><td>ジョブスケジューラのコマンドが置かれているディレクトリ。<em>Open Composerが動作しているマシン上</em>に<code>&lt;bin&gt;/&lt;command&gt;</code>が存在する場合にのみ有効です。そのファイルが存在しない場合は、コマンド名のみが使用され、<code>PATH</code>から解決されます。<code>ssh_wrapper</code>を用いる一般的な構成では、コマンドは実際にはリモートホスト上で実行されるため、ローカルでの存在確認は失敗し、<code>bin</code>は無視されます。その場合は<code>bin_overrides</code>を使用してください。こちらは存在確認を行わず、常に適用されます</td><td>(None)</td></tr>
+        <tr><td>bin_overrides</td><td>ジョブスケジューラの各コマンドのパス（<a href="#bin_overrides">2.2. bin_overrides</a>を参照）</td><td>(None)</td></tr>
+        <tr><td>scheduler_env</td><td>ジョブスケジューラのコマンド実行時に追加する環境変数（<a href="#scheduler_env">2.3. scheduler_env</a>を参照）</td><td>(None)</td></tr>
+        <tr><td>copy_environment</td><td>Slurmのジョブ投入時にPUNの環境変数をコピーするかどうか（<a href="#copy_environment">2.4. copy_environment</a>を参照）</td><td><code>false</code></td></tr>
+        <tr><td>sge_root</td><td>Grid Engineのコマンドに対して<code>SGE_ROOT</code>として設定される値。ジョブの投入とキャンセルだけでなく、履歴のテーブル、ノードページ、ジョブの詳細のモーダルを含むすべての要求で設定されます。ただし、環境に<code>SGE_ROOT</code>がまだ設定されていない場合にのみ設定されるため、PUNが継承している値が常に優先されます</td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">3. SSH鍵の準備</h4>
+      <p>
+        <code>ensure_ssh_key</code>が<code>true</code>の場合、<strong>「Submit」</strong>を押すと、Open Composerはジョブを投入する前にユーザの<code>~/.ssh</code>ディレクトリを確認し、鍵が存在しなければ鍵を用意します。これは、ユーザのホームディレクトリを共有しているログインノードへSSHでジョブを投入するサイトを想定した機能です。
+      </p>
+      <p>
+        この確認では、<code>~/.ssh</code>が存在しない場合はそれを作成し、いずれの場合もそのモードを<code>0700</code>に設定します。次に、<code>id_ed25519</code>、<code>id_rsa</code>、<code>id_ecdsa</code>、<code>id_dsa</code>、および<code>ed25519</code>、<code>rsa</code>、<code>ecdsa</code>、<code>dsa</code>の各種類についての<code>&lt;ssh_key_name&gt;_&lt;type&gt;</code>を探します。これらのいずれかが存在する場合、確認は直ちに終了します。既存の鍵が上書きされることは決してありません。存在しない場合は、次の処理を行います。
+      </p>
+      <ul>
+        <li>パスフレーズを空にし、コメントを<code>Open Composer auto-generated key</code>として<code>ssh-keygen</code>を実行し、<code>~/.ssh/&lt;ssh_key_name&gt;_&lt;ssh_key_type&gt;</code>（モード<code>0600</code>）とその<code>.pub</code>ファイル（モード<code>0644</code>）を書き出します。</li>
+        <li><code>~/.ssh/authorized_keys</code>（モード<code>0600</code>）に、その公開鍵がまだ含まれていない場合に追記します。</li>
+        <li><code>~/.ssh/config</code>（モード<code>0600</code>）に、その鍵のファイル名がまだ現れていない場合、<code>IdentityFile ~/.ssh/&lt;ssh_key_name&gt;_&lt;ssh_key_type&gt;</code>の行を含む<code>Host *</code>のブロックを追記します。<code>ssh</code>が自動的に提示するのは<code>id_*</code>の鍵のみであるため、このブロックはすべてのSSHのホストを対象とします。</li>
+      </ul>
+      <p>
+        利用可能な鍵がすでに存在した場合を除き、結果はPUNのログに書き出されます。失敗した場合も記録されますが、ジョブの投入は妨げられません。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>ensure_ssh_key</td><td>ジョブの投入時に上記のSSH鍵の確認を行うかどうか（<code>true</code>または<code>false</code>）</td><td><code>false</code></td></tr>
+        <tr><td>ssh_key_type</td><td><code>ssh-keygen -t</code>に渡す鍵の種類。<code>ed25519</code>、<code>rsa</code>、<code>ecdsa</code>を指定できます。<code>rsa</code>の鍵は<code>-b 4096</code>で生成されます。それ以外の値は<code>ed25519</code>に置き換えられます</td><td><code>ed25519</code></td></tr>
+        <tr><td>ssh_key_name</td><td>生成される鍵のファイルの基本名。ファイル名は<code>&lt;ssh_key_name&gt;_&lt;ssh_key_type&gt;</code>になります。英数字、<code>_</code>、<code>.</code>、<code>-</code>以外の文字は除去され、何も残らない場合は<code>opencomposer</code>が使用されます</td><td><code>opencomposer</code></td></tr>
+      </table>
+
+      <h4 class="mt-4">4. データとモジュール</h4>
+      <p>
+        Open Composer自身の状態を保存する場所と、<code>module_load</code>ウィジットおよび<code>dependent_module_select</code>ウィジット、ならびに自動的に付与されるGPUのバッジが読み込む、任意の環境モジュールのカタログを設定します。
+        このカタログはOpen Composerの一部ではなく外部への依存であるため、<code>modules_list_url</code>を設定する前に、1章の<a href="#network-dependencies">ネットワークと外部への依存</a>を参照してください。そこでは、必要なJSONの形式、Webノードに必要な外向きのネットワークアクセス、応答のキャッシュ方法、取得に失敗した場合の動作を説明しています。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>data_dir</td><td>投入したジョブの情報の保存先</td><td><code>${HOME}/composer</code></td></tr>
+        <tr><td>modules_list_url</td><td>利用可能な環境モジュールのカタログのJSONのURL。<code>module_load</code>ウィジットと<code>dependent_module_select</code>ウィジット、および自動的に付与されるGPUのバッジで使用されます（1章の<a href="#network-dependencies">ネットワークと外部への依存</a>を参照）。空の場合、この機能は無効になります</td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">5. テンプレートとスクリプト</h4>
+      <p>
+        ユーザが到達できるアプリケーションとテンプレート、およびスクリプトのファイルブラウザの提示方法を設定します。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>generic_apps_dir</td><td>アプリケーションの一覧には表示されないが直接リンクできる、非表示の汎用アプリケーション（例えば汎用のSlurmのフォーム）を格納するディレクトリ</td><td><code>./generic_apps</code></td></tr>
+        <tr><td>external_reload_app</td><td>履歴ページからOpen Composer以外で投入されたジョブを読み込むときに開く、<code>generic_apps_dir</code>内のサブフォルダ</td><td><code>Slurm</code></td></tr>
+        <tr><td>show_load_script</td><td>全画面のファイルブラウザを開く「Load or Create a Script from Disk」ボタンを、「Selected Templates」と「New Custom Template」のページに表示するかどうか（<code>true</code>または<code>false</code>）</td><td><code>true</code></td></tr>
+        <tr><td>load_script_label</td><td>「Load or Create a Script from Disk」ボタンのラベル。ファイルブラウザのページの見出しとページタイトルにも使用されます</td><td><code>Load or Create a Script from Disk</code></td></tr>
+        <tr><td>new_script_featured_category</td><td>「All Templates」と「New Script」のページで先頭に表示するテンプレートの、<code>manifest.yml</code>のカテゴリ名。大文字と小文字を区別せずに照合され、残りのテンプレートはアルファベット順で続きます</td><td><code>Slurm Submit Templates</code></td></tr>
+      </table>
+
+      <h4 class="mt-4">6. 履歴</h4>
+      <p>
+        履歴ページに表示する内容と、ジョブスケジューラから読み直すのではなくOpen Composer自身がどこまで保存するかを設定します。列のキーは<a href="#history">2.5. history</a>に一覧があります。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>history</td><td>履歴ページの追加表示項目（<a href="#history">2.5. history</a>を参照）。この設定を省略した場合、7つの特殊な変数すべてが表示されます</td><td><code>OC_HISTORY_JOB_NAME</code>, <code>OC_HISTORY_PARTITION</code>, <code>OC_HISTORY_SUBMISSION_TIME</code>, <code>OC_HISTORY_START_TIME</code>, <code>OC_HISTORY_END_TIME</code>, <code>OC_HISTORY_OUTPUT_FILE</code>, <code>OC_HISTORY_ERROR_FILE</code></td></tr>
+        <tr><td>history_store_script</td><td>バッチスクリプトの全文を履歴のデータベースに保存するかどうか。<code>false</code>にすると、常に<code>sacct -B</code>で取得します</td><td><code>true</code></td></tr>
+        <tr><td>history_efficiency</td><td>完了、失敗、キャンセルされたジョブについて、ジョブの詳細のモーダルに<strong>Job Efficiency</strong>の区画（Wall Time、CPU、Memory、およびジョブスケジューラが記録している場合はGPU）を表示します。<code>sacct --json</code>を使用するため、Slurm 20.11以降が必要です。有効にするには<code>true</code>を設定します。<em>GPU Memory</em>の百分率には、下記の<code>gpu_memory</code>も必要です。設定していない場合、その行には使用量のみが表示され、百分率は表示されません</td><td><code>false</code></td></tr>
+        <tr><td>gpu_memory</td><td>クラスタ上の各GPUのモデルのメモリ容量（GB）。Job Efficiencyの区画の<em>GPU Memory</em>の百分率を算出するためにのみ使用されます。モデル名は、ジョブの<code>gpu:&lt;model&gt;</code>のリソースと大文字・小文字を区別せずに照合されます。各モデルには単純な数値を指定します。同じモデルのカードでメモリ容量が異なり、かつジョブスケジューラがそれらを1つのGRESの名前で報告する場合は、ハッシュを指定します。A100は40&nbsp;GBでも80&nbsp;GBでも<code>gpu:a100</code>として報告されます。ハッシュのキーはパーティション名であり、それ以外のすべてのパーティションのために<code>default</code>を指定します。
+          <pre>gpu_memory:
+  l4:   23
+  h100: 94
+  a100:
+    default: 80
+    genoa:   40</pre>
+          パーティション名は、ジョブスケジューラと同様に大文字と小文字を区別して照合されます。容量が分からない場合は、未設定のままにする方が安全であり適切です。その場合、GPUのメモリの使用量は百分率なしで報告されるため、誤った総量に対する百分率が表示されることはありません。<code>clusters</code>の中にクラスタ毎に設定することもできます</td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">7. フォームの動作</h4>
+      <p>
+        ユーザが「Submit」を押したときに、アプリケーションのフォームに対して行われる確認を設定します。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>empty_script_warning</td><td>実際のコマンドを含まない（空行、コメント、<code>#SBATCH</code>のディレクティブ、<code>module</code>の行のみからなる）バッチスクリプトを投入したときに、確認のダイアログを表示します。無効にするには<code>false</code>を設定します</td><td><code>true</code></td></tr>
+      </table>
+
+      <h4 class="mt-4">8. ナビゲーションバー</h4>
+      <p>
+        すべてのページの上部にあるバーのリンク、ロゴ、検索ボックス、色、区切り線を設定します。各リンクは対応する<code>show_*</code>で非表示にでき、対応する<code>*_label</code>と<code>*_icon</code>でラベルとアイコンを変更できます。アイコンにはFont AwesomeのクラスとBootstrap Iconsのクラスのどちらも指定できます。両方のアイコンセットが読み込まれています。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>navbar_color</td><td>ナビゲーションバーの背景色</td><td rowspan="2" style="color: white; background-color: #3D3B40;">#3D3B40</td></tr>
+        <tr><td>navbar_text_color</td><td>ナビゲーションバーの文字色</td></tr>
+        <tr><td>navbar_logo</td><td>ナビゲーションバーに表示するロゴの画像のファイル名（<code>public/</code>に配置する必要があります）</td><td>(None)</td></tr>
+        <tr><td>show_navbar_logo</td><td>ナビゲーションバーのロゴを表示するかどうか（<code>true</code>または<code>false</code>）。<code>navbar_logo</code>の値を消さずにロゴを非表示にできます</td><td><code>true</code></td></tr>
+        <tr><td>show_home_directory</td><td>ナビゲーションバーに「Home Directory」のリンクを表示するかどうか（<code>true</code>または<code>false</code>）</td><td><code>true</code></td></tr>
+        <tr><td>show_shell_access</td><td>ナビゲーションバーに「Shell Access」のリンクを表示するかどうか（<code>true</code>または<code>false</code>）。<code>login_node</code>と関係します。この設定が<code>true</code>であれば、<code>login_node</code>が設定されているかを確認せずにリンクが描画され、その参照先は<code>&lt;Open OnDemand&gt;/pun/sys/shell/ssh/&lt;login_node&gt;</code>になります。<code>login_node</code>が未設定の場合、そのURLのホストの部分が空になりシェルを開けないため、<code>login_node</code>を設定するか、この項目を<code>false</code>にしてください</td><td><code>true</code></td></tr>
+        <tr><td>show_open_ondemand</td><td>ナビゲーションバーに「Open OnDemand」のリンクを表示するかどうか（<code>true</code>または<code>false</code>）</td><td><code>true</code></td></tr>
+        <tr><td>open_ondemand_url</td><td>ナビゲーションバーの「Open OnDemand」のリンクと、ナビゲーションバーのロゴのリンクの参照先を上書きします。未設定のままにすると、どちらも要求を受け付けたホスト上のOpen OnDemandのダッシュボードに自動的に解決されるため、サイト毎のURLは不要です。ダッシュボードが別の場所にある場合にのみ設定してください</td><td><code>&lt;このホスト&gt;/pun/sys/dashboard</code></td></tr>
+        <tr><td>open_ondemand_label</td><td>ナビゲーションバーの「Open OnDemand」のリンクのラベル</td><td><code>Open OnDemand</code></td></tr>
+        <tr><td>navbar_search_placeholder</td><td>ナビゲーションバーの検索ボックスのプレースホルダ。このボックスは、ホームページに表示されないアプリケーションとユーザ自身が保存したカスタムテンプレートを含め、すべてのテンプレートを名前、カテゴリ、説明で検索し、そのページの一覧を検索結果に置き換えます</td><td><code>Search apps…</code></td></tr>
+        <tr><td>show_search</td><td>ナビゲーションバーの右側に検索ボックスを表示するかどうか（<code>true</code>または<code>false</code>）</td><td><code>true</code></td></tr>
+        <tr><td>home_directory_label</td><td>ナビゲーションバーの「Home Directory」のリンクのラベル</td><td><code>Home Directory</code></td></tr>
+        <tr><td>home_directory_icon</td><td>「Home Directory」のリンクのアイコンのクラス。Font Awesomeのクラス（例えば<code>fas fa-folder</code>）またはBootstrap Iconsのクラス（例えば<code>bi bi-folder-fill</code>）を指定します。両方のアイコンセットが読み込まれています</td><td><code>fas fa-home</code></td></tr>
+        <tr><td>shell_access_label</td><td>ナビゲーションバーの「Shell Access」のリンクのラベル</td><td><code>Shell Access</code></td></tr>
+        <tr><td>shell_access_icon</td><td>「Shell Access」のリンクのアイコンのクラス（Font AwesomeまたはBootstrap Icons）</td><td><code>fas fa-terminal</code></td></tr>
+        <tr><td>open_ondemand_icon</td><td>「Open OnDemand」のリンクのアイコンのクラス（Font AwesomeまたはBootstrap Icons）</td><td><code>bi bi-grid-fill</code></td></tr>
+        <tr><td>open_ondemand_new_tab</td><td>「Open OnDemand」のリンクとナビゲーションバーのロゴを新しいタブで開きます。同じタブで開く場合は<code>false</code>を設定します</td><td><code>true</code></td></tr>
+        <tr><td>show_navbar_separator</td><td>ナビゲーションバーの直下に描画する水平の区切り線。指定できる値は、区切り線なしの<code>false</code>または<code>none</code>、透明に向かって薄くなる6pxのグラデーションの線の<code>true</code>または<code>gradient</code>、1pxの実線の<code>solid</code>または<code>line</code>、3pxの色付きのバーの<code>accent</code>です。それ以外の値は<code>gradient</code>として扱われます。「All Templates」のページには枠線付きの一覧があるため、そのページには区切り線は描画されません</td><td><code>false</code></td></tr>
+        <tr><td>navbar_separator_color</td><td><code>solid</code>／<code>line</code>と<code>accent</code>の区切り線の色。<code>gradient</code>は固定の灰色を使用し、この設定を無視します</td><td style="background-color: #C3C8C8;">#C3C8C8</td></tr>
+      </table>
+
+      <h4 class="mt-4">9. 外観</h4>
+      <p>
+        ナビゲーションバーより下のすべての色とレイアウトを設定します。いくつかの項目は、固定の色ではなく他の項目の値にフォールバックするため、1つを変更すると複数の箇所に影響することがあります。デフォルト値の列に、それが起こる箇所を示しています。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>home_format</td><td>ホームページのアプリケーションの並びのレイアウト。大きなタイル（アイコンと名前）の<code>big</code>、またはコンパクトな一覧形式のタイルの<code>small</code></td><td><code>big</code></td></tr>
         <tr><td>thumbnail_width</td><td>ホームページの各アプリケーションのサムネイルの横幅</td><td>100</td></tr>
+        <tr><td>accent_color</td><td><code>views/layout.erb</code>におけるBootstrapの上書きで使用されるアクセントの色。リンク、主要なボタン（<strong>Submit</strong>、<strong>Confirm</strong>、<strong>Save</strong>）、入力欄とスクリプトのエディタのフォーカスの枠、チェックされたチェックボックスとラジオボタン、履歴の並べ替えのリンクのホバー時の状態に使用されます。Bootstrap自身のアクセントの色がデフォルトであるため、未設定のままにするとBootstrapの標準の外観になります</td><td style="color: white; background-color: #0D6EFD;">#0D6EFD</td></tr>
+        <tr><td>accent_contrast_color</td><td><code>accent_color</code>と対になる色。見出しと、<code>accent_color</code>が適用されるすべての要素のホバー時および選択時の状態に使用されます。白の背景に対して読みやすい色にしてください</td><td style="color: white; background-color: #0A58CA;">#0A58CA</td></tr>
+        <tr><td>body_text_color</td><td>ページ本文のデフォルトの文字色</td><td style="color: white; background-color: #212529;">#212529</td></tr>
         <tr><td>highlight_theme</td><td><code>script</code>/<code>submit</code>セクションに使用する<a target="_blank" href="https://highlightjs.org/">highlight.js</a>のテーマ名</td><td><code>vs</code></td></tr>
         <tr><td>directive_color</td><td><code>script</code>/<code>submit</code>セクションのスケジューラ指示文の文字色</td><td style="background-color: #D73A49;">#D73A49</td></tr>
-        <tr><td>navbar_color</td><td>ナビゲーションバーの色</td><td rowspan="3" style="color: white; background-color: #3D3B40;">#3D3B40</td></tr>
-        <tr><td>dropdown_color</td><td>ドロップダウンメニューの色</td></tr>
-        <tr><td>footer_color</td><td>フッタの色</td></tr>
-        <tr><td>category_color</td><td>ホームページのカテゴリの背景色</td><td rowspan="2" style="color: white; background-color: #5522BB;">#5522BB</td></tr>
-        <tr><td>description_color</td><td>アプリケーションページのアプリケーション説明の背景色</td></tr>
+        <tr><td>category_color</td><td>ホームページのカテゴリの見出しの背景色</td><td rowspan="2" style="color: white; background-color: #5522BB;">#5522BB</td></tr>
+        <tr><td>category_text_color</td><td>ホームページのカテゴリの見出しの文字色</td></tr>
+        <tr><td>description_color</td><td>アプリケーションページの上部にある帯の背景色。この帯にはアプリケーションのタイトル、その説明、ヘッダの項目が含まれます。<code>category_color</code>にフォールバックするため、明示的に設定しない限り、ホームページのカテゴリの見出しの色を変更するとこの帯の色も変わります</td><td style="color: white; background-color: #5522BB;">category_colorの値（#5522BB）</td></tr>
+        <tr><td>description_text_color</td><td>その帯で使用される文字色。ヘッダの項目のラベル（「Script location」「Script name」「Job name」）も含みます。下記の2項目のフォールバック先でもあります</td><td><code>#FFFFFF</code></td></tr>
+        <tr><td>app_title_color</td><td><strong>アプリケーションのタイトル</strong>（アプリケーションページの上部に表示されるアプリケーション名）の色。周囲のテーマから継承した見出しの色が<code>description_color</code>に対して読みにくい場合など、タイトルを帯の他の部分と異なる色にする必要があるときに個別に設定します</td><td><code>description_text_color</code>の値</td></tr>
+        <tr><td>app_description_text_color</td><td>アプリケーションページのタイトルの下に表示される<strong>アプリケーションの説明</strong>（アプリケーションの<code>manifest.yml</code>の<code>description</code>から取得）の色</td><td><code>description_text_color</code>の値</td></tr>
         <tr><td>form_color</td><td>アプリケーションページのテキストエリアの背景色</td><td style="background-color: #BFCFE7;">#BFCFE7</td></tr>
         <tr><td>non_script_color</td><td><code>script</code>セクションに影響を与えないフォームの背景色</td><td style="background-color: #FFE28A;">#FFE28A</td></tr>
         <tr><td>non_script_button_color</td><td><code>script</code>セクションに影響を与えないボタンの背景色</td><td style="background-color: #FFBF00;">#FFBF00</td></tr>
         <tr><td>submit_color</td><td><code>submit</code>セクションのみに影響を与えるフォームの背景色</td><td style="background-color: #FFCCCC;">#FFCCCC</td></tr>
         <tr><td>submit_button_color</td><td><code>submit</code>セクションのみに影響を与えるボタンの背景色</td><td style="background-color: #FFAAAA">#FFAAAA</td></tr>
+        <tr><td>history_action_color</td><td>履歴ページの「Cancel Job」と「Delete Info」のボタンの背景色</td><td style="color: white; background-color: #DC3545;">#DC3545</td></tr>
+        <tr><td>favicon</td><td>ブラウザのタブのアイコンのファイル名（<code>public/</code>に配置する必要があります）。空にするとfaviconのリンクを出力しません</td><td>(None)</td></tr>
+        <tr><td>app_description</td><td>「Selected Templates」のページで、カテゴリの一覧の上に表示される説明文。HTMLを使用できます。<code>description_color</code>と<code>description_text_color</code>で描画されます。空にすると表示されません</td><td>(None)</td></tr>
+        <tr><td>category_badge_colors</td><td>カテゴリ名とバッジの背景色の対応。「All Templates」と「New Script」の一覧、およびナビゲーションバーの検索結果で使用されます。指定のないカテゴリは<code>#6C757D</code>になります。「My Template」のバッジは常に<code>#6F42C1</code>です</td><td>(None)</td></tr>
+        <tr><td>all_templates_footer</td><td>「All Templates」の一覧の直下、フッタのバーの上に表示される注記。HTMLを使用できます。「All Templates」のページでのみ、かつ<code>show_footer</code>が<code>true</code>の場合にのみ描画されます</td><td>(None)</td></tr>
       </table>
 
+      <h4 class="mt-4">10. フッタ</h4>
       <p>
-        <code>apps_dir</code>および<code>scheduler</code>は必須です（<code>scheduler</code>は<code>clusters</code>の中に定義しても構いません）。
+        すべてのページの下部にあるバーを設定します。Open ComposerをOpen OnDemandに埋め込む場合は<code>show_footer: false</code>を設定し、OOD自身のフッタが使用されるようにしてください。
       </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>項目名</th><th>設定内容</th><th>デフォルト値</th></tr>
+        <tr><td>show_footer</td><td>フッタのバーを表示するかどうか（<code>true</code>または<code>false</code>）。OODに埋め込む場合は<code>false</code>を設定し、OOD自身のフッタが使用されるようにします</td><td><code>true</code></td></tr>
+        <tr><td>footer</td><td>フッタのバーに表示する文字またはHTML。デフォルトは改行しない空白であるため、設定していないフッタも高さを保って描画されます。バーを完全に取り除くには<code>show_footer: false</code>を使用してください</td><td><code>&amp;nbsp;</code></td></tr>
+        <tr><td>footer_color</td><td>フッタの背景色。<code>navbar_color</code>にフォールバックするため、明示的に設定しない限り、ナビゲーションバーの色を変更するとフッタの色も変わります</td><td style="color: white; background-color: #3D3B40;">navbar_colorの値（#3D3B40）</td></tr>
+        <tr><td>footer_text_color</td><td>フッタの文字色</td><td>#FFFFFF</td></tr>
+        <tr><td>footer_padding</td><td>フッタのバーに適用するBootstrapのパディングのクラス（例えば<code>p-1</code>から<code>p-5</code>）</td><td><code>p-3</code></td></tr>
+        <tr><td>footer_ood_logo</td><td>同梱のOpen OnDemandの「Powered by」のロゴをフッタに表示するかどうか（<code>true</code>または<code>false</code>）。<code>footer_brand_logo</code>が未設定の場合にのみ参照されます。独自のブランドのロゴは常に表示されます。フッタのロゴを一切表示しないには、<code>footer_ood_logo: false</code>を設定し、<em>かつ</em><code>footer_brand_logo</code>を空のままにしてください</td><td><code>true</code></td></tr>
+        <tr><td>footer_logo_height</td><td>フッタのブランドのロゴの高さ。対象は<code>footer_brand_logo</code>、またはそれが未設定の場合は同梱のOpen OnDemandのロゴです。任意のCSSの長さを指定できます</td><td><code>24px</code></td></tr>
+        <tr><td>footer_brand_logo</td><td>フッタの左下に表示される「Powered by」のブランドの画像のファイル名（<code>public/</code>に配置する必要があります）。未設定の場合、<code>footer_ood_logo</code>が<code>false</code>でなければOpen OnDemandのロゴが使用されます</td><td>(None)</td></tr>
+        <tr><td>footer_brand_url</td><td>フッタのブランドのロゴをクリックしたときに開くURL</td><td><code>https://openondemand.org/</code></td></tr>
+        <tr><td>footer_brand_alt</td><td>フッタのブランドのロゴの代替テキスト</td><td>Open OnDemandのロゴを使用する場合は<code>Powered by Open OnDemand</code>、それ以外は<code>Powered by</code></td></tr>
+      </table>
 
       <h3 id="clusters">2.1. clusters</h3>
       <p>
@@ -104,7 +313,52 @@ clusters:
   prepost:
     ssh_wrapper "ssh prepost.example.net"</pre>
 
-      <h3 id="scheduler_env">2.2. scheduler_env</h3>
+      <h3 id="bin_overrides">2.2. bin_overrides</h3>
+      <p>
+  各コマンドのパスを設定します。本設定は省略可能です。<code>bin</code>とは異なり、上書きした値はファイルの存在を確認せずに記述したとおりに使用されます。そのため、<code>ssh_wrapper</code>経由で到達するリモートホスト上にコマンドがある場合は、こちらを使用してください。
+      </p>
+      <p>
+  必要なコマンドのみを上書きしてください。指定しなかったコマンドは<code>bin</code>にフォールバックし、次にコマンド名のみにフォールバックします。ジョブの投入のコマンドのみを上書きすると、履歴ページとノードページはPUNの<code>PATH</code>が見つけたものを使用することになる点に注意してください。
+      </p>
+      <p>
+  ジョブスケジューラが<code>slurm</code>の場合、使用されるコマンドは<code>sbatch</code>（投入）、<code>scontrol</code>（ジョブの詳細）、<code>scancel</code>（キャンセル）、<code>sacct</code>（履歴のテーブル、ジョブの詳細、バッチスクリプト、Job Efficiency）、<code>squeue</code>（履歴のテーブルに追加されるキュー登録中と実行中のジョブ）、<code>sinfo</code>（ノードページ）です。
+      </p>
+      <pre>bin_overrides:
+  sbatch:   "/usr/local/bin/sbatch"
+  scontrol: "/usr/local/bin/scontrol"
+  scancel:  "/usr/local/bin/scancel"
+  sacct:    "/usr/local/bin/sacct"
+  squeue:   "/usr/local/bin/squeue"
+  sinfo:    "/usr/local/bin/sinfo"</pre>
+
+      <p>
+  ジョブスケジューラが<code>pbspro</code>の場合、使用されるコマンドは<code>qsub</code>（投入）、<code>qstat</code>（ジョブの詳細と履歴のテーブル）、<code>qdel</code>（キャンセル）、<code>pbsnodes</code>（ノードページ）です。<code>miyabi</code>のスケジューラはPBS Proのクラスを継承しており、同じコマンド名を使用します。
+      </p>
+      <pre>bin_overrides:
+  qsub:     "/usr/local/bin/qsub"
+  qstat:    "/usr/local/bin/qstat"
+  qdel:     "/usr/local/bin/qdel"
+  pbsnodes: "/usr/local/bin/pbsnodes"</pre>
+
+      <p>
+  ジョブスケジューラが<code>sge</code>の場合、使用されるコマンドは<code>qsub</code>（投入）、<code>qstat</code>（稼働中のジョブ）、<code>qdel</code>（キャンセル）、<code>qacct</code>（履歴のテーブルの完了したジョブ）、<code>qhost</code>（ノードページ）です。
+      </p>
+      <pre>bin_overrides:
+  qsub:  "/usr/local/bin/qsub"
+  qstat: "/usr/local/bin/qstat"
+  qdel:  "/usr/local/bin/qdel"
+  qacct: "/usr/local/bin/qacct"
+  qhost: "/usr/local/bin/qhost"</pre>
+
+      <p>
+  ジョブスケジューラが<code>fujitsu_tcs</code>の場合、使用されるコマンドは<code>pjsub</code>（投入）、<code>pjstat</code>（ジョブの詳細、履歴のテーブル、ノードページ）、<code>pjdel</code>（キャンセル）です。
+      </p>
+      <pre>bin_overrides:
+  pjsub:  "/usr/local/bin/pjsub"
+  pjstat: "/usr/local/bin/pjstat"
+  pjdel:  "/usr/local/bin/pjdel"</pre>
+
+      <h3 id="scheduler_env">2.3. scheduler_env</h3>
       <p>
   ジョブスケジューラのコマンドを実行するときに追加する環境変数を設定します。本設定は省略可能です。
   例えばSlurmのconfigless構成で<code>SLURM_CONF_SERVER</code>が必要な場合に利用できます。
@@ -123,8 +377,11 @@ clusters:
   <code>ssh_wrapper</code>を利用してリモートホスト上でジョブスケジューラを実行する場合、<code>scheduler_env</code>はローカルで起動する<code>ssh</code>コマンドの環境変数です。
   リモート側にも環境変数が必要な場合は、SSHの設定またはwrapperスクリプトで設定してください。
       </p>
+      <p>
+  <strong>適用範囲。</strong><code>scheduler_env</code>は、ジョブの投入だけでなく、Open Composerが実行するすべてのスケジューラのコマンドに適用されます。履歴のテーブル（<code>sacct_all_jobs()</code>、<code>squeue_active_jobs()</code>）、ノードページ（<code>sinfo_nodes()</code>）、ジョブの詳細のモーダル（<code>sacct_job()</code>、<code>scontrol_job()</code>）、Job Efficiencyの区画（<code>efficiency()</code>）、バッチスクリプトの取得（<code>batch_script()</code>）のすべてに渡されます。そのため、configless構成のSlurmで必要な<code>SLURM_CONF_SERVER</code>のような変数は、これだけですべてのページが動作するようになります。
+      </p>
 
-      <h3 id="copy_environment">2.3. copy_environment</h3>
+      <h3 id="copy_environment">2.4. copy_environment</h3>
       <p>
   Slurmのジョブ投入時に<code>--export=ALL</code>を使う場合は、<code>true</code>を設定します。デフォルトは<code>false</code>であり、従来通り<code>--export=NONE</code>でジョブを投入します。
   この設定はSlurmでのみ使われます。
@@ -140,53 +397,36 @@ clusters:
       <p>
   これはSlurmのコマンド実行時にPUNの環境変数をコピーします。PUNの環境は通常のログインシェル環境とは異なる場合があるため、注意してください。
       </p>
-
-      <h3 id="bin_overrides">2.4. bin_overrides</h3>
       <p>
-  各コマンドのパスを設定します。本設定は省略可能です。
+  <code>--export</code>のオプションは、アプリケーションが独自の投入オプションを指定していない場合にのみ生成されます。アプリケーションの<code>submit</code>セクションが空でない<code>OC_SUBMIT_OPTIONS</code>を設定している場合、その文字列はそのまま<code>sbatch</code>に渡され、<code>copy_environment</code>は完全に無視されます。そのようなアプリケーションで<code>--export=…</code>が必要な場合は、アプリケーション自身で指定してください。
       </p>
-      <p>
-  ジョブスケジューラが<code>slurm</code>の場合は、<code>sbatch</code>、<code>scontrol</code>、<code>scancel</code>、<code>sacct</code>を設定できます。
-      </p>
-      <pre>bin_overrides:
-  sbatch:   "/usr/local/bin/sbatch"
-  scontrol: "/usr/local/bin/scontrol"
-  scancel:  "/usr/local/bin/scancel"
-  sacct:    "/usr/local/bin/sacct"</pre>
-
-      <p>
-  ジョブスケジューラが<code>pbspro</code>の場合は、<code>qsub</code>、<code>qstat</code>、<code>qdel</code>を設定できます。
-      </p>
-      <pre>bin_overrides:
-  qsub:   "/usr/local/bin/qsub"
-  qstat: "/usr/local/bin/qstat"
-  qdel:  "/usr/local/bin/qdel"</pre>
-
-      <p>
-  ジョブスケジューラが<code>sge</code>の場合は、<code>qsub</code>、<code>qstat</code>、<code>qdel</code>、<code>qacct</code>を設定できます。
-      </p>
-      <pre>bin_overrides:
-  qsub:   "/usr/local/bin/qsub"
-  qstat: "/usr/local/bin/qstat"
-  qdel:  "/usr/local/bin/qdel"
-  qacct: "/usr/local/bin/qacct"</pre>
-
-      <p>
-  ジョブスケジューラが<code>fujitsu_tcs</code>の場合は、<code>pjsub</code>、<code>pjstat</code>、<code>pjdel</code>を設定できます。
-      </p>
-      <pre>bin_overrides:
-  pjsub:  "/usr/local/bin/pjsub"
-  pjstat: "/usr/local/bin/pjstat"
-  pjdel:  "/usr/local/bin/pjdel"</pre>
 
       <h3 id="history">2.5. history</h3>
       <p>
-        履歴ページの必須表示項目は「Job ID」、「Application」、「Script Location」、「Script Name」、「Status」です。それに対して、<code>history</code>では追加表示項目を設定します。本設定を省略した場合、「Job Name」、「Partiton」、「Submission Time」が自動的に設定されます。下記のコードと同じです。<code>OC_HISTORY_JOB_NAME</code>、<code>OC_HISTORY_PARTITION</code>、<code>OC_HISTORY_SUBMISSION_TIME</code>は特殊な変数であり、「Job Name」、「Partiton」、「Submission Time」をそれぞれ指します。
+        履歴ページの必須表示項目は「Job ID」、「Application」、「Script Location」、「Script Name」、「Status」です。
+        それに対して、<code>history</code>では追加表示項目を設定します。
+        本設定を省略した場合、すべての特殊な変数が表示されます。
+        利用できる特殊な変数は次のとおりです。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>特殊な変数</th><th>表示名</th></tr>
+        <tr><td><code>OC_HISTORY_JOB_NAME</code></td><td>Job Name</td></tr>
+        <tr><td><code>OC_HISTORY_PARTITION</code></td><td>Partition — ジョブが実行されたキューまたはパーティション</td></tr>
+        <tr><td><code>OC_HISTORY_SUBMISSION_TIME</code></td><td>Submission Time — ジョブが投入された時刻</td></tr>
+        <tr><td><code>OC_HISTORY_START_TIME</code></td><td>Start Time — ジョブスケジューラが報告するジョブの開始時刻</td></tr>
+        <tr><td><code>OC_HISTORY_END_TIME</code></td><td>End Time — ジョブスケジューラが報告するジョブの終了時刻</td></tr>
+        <tr><td><code>OC_HISTORY_OUTPUT_FILE</code></td><td>Output — そのジョブについてジョブスケジューラが記録した標準出力のファイル。ファイル名をクリックすると、その内容がオーバーレイの区画に表示されます。</td></tr>
+        <tr><td><code>OC_HISTORY_ERROR_FILE</code></td><td>Error — そのジョブについてジョブスケジューラが記録した標準エラーのファイル。ファイル名をクリックすると、その内容がオーバーレイの区画に表示されます。</td></tr>
+      </table>
+      <p>
+        ジョブ名、開始時刻、終了時刻を独自のラベルで表示する一般的な設定は次のとおりです。
       </p>
       <pre>history:
   OC_HISTORY_JOB_NAME:
-  OC_HISTORY_PARTITION:
-  OC_HISTORY_SUBMISSION_TIME:</pre>
+  OC_HISTORY_START_TIME:
+    label: "Start Time"
+  OC_HISTORY_END_TIME:
+    label: "End Time"</pre>
       <img alt="history table" width="800" src="./img/history_page.png">
       <p>
   追加表示項目をなくしたい場合は、空配列を定義します。
@@ -194,7 +434,15 @@ clusters:
       <pre>history: []</pre>
       <img alt="history table" width="800" src="./img/history_page2.png">
       <p>
-  ジョブスケジューラから得られるプロファイルの値を表示項目に設定することができます。「Job ID」をクリックすると表示される表の左の値を<code>history</code>に設定します。また、<code>label</code>を用いると、表示ラベルを設定できます。<code>label</code>を用いない場合は、そのままの値が用いられます。
+  ジョブスケジューラ自身のアカウンティングの出力から直接取得した項目を追加することもできます。<code>history</code>のキーが上記の<code>OC_HISTORY_*</code>の変数でない場合、そのキーは、スケジューラのクラスの<code>sacct_all_jobs()</code>メソッドがそのジョブについて返した記録の中から、そのままの名前で参照されます。そのため、値が得られるのは、そのメソッドが実際に要求している項目名のみであり、それ以外の名前は空の列になります。参照はハッシュの完全一致であるため、名前は大文字と小文字を区別し、下記のとおりに記述しなければなりません。「Job ID」をクリックすると開くモーダルに表示される、より長い項目の一覧は別のコマンドによるものであり、それらの名前の多くはここでは<em>使用できません</em>。
+      </p>
+      <p>
+  <code>slurm</code>で使用できる名前は、
+  <code>JobID</code>、<code>JobName</code>、<code>Partition</code>、<code>State</code>、<code>Submit</code>、<code>Start</code>、<code>End</code>、<code>Elapsed</code>、<code>WorkDir</code>、<code>Account</code>、<code>TotalCPU</code>、<code>AllocCPUS</code>、<code>ReqMem</code>、<code>ExitCode</code>、<code>NodeList</code>、<code>StdOut</code>、<code>StdErr</code>、<code>SubmitLine</code>です。
+  ローカルのSlurmのビルドが対応していない項目は除外されます。他のスケジューラで使用できる名前は、それぞれの<code>sacct_all_jobs()</code>が構築するキーです。<code>lib/schedulers/</code>を参照してください。
+      </p>
+      <p>
+  <code>label</code>を用いると、列の見出しを設定できます。<code>label</code>を用いない場合は、項目名がそのまま見出しになります。
       </p>
       <img alt="history table" width="400" src="./img/history_table3.png">
       <pre>history:
@@ -206,18 +454,138 @@ clusters:
 
       <h2 id="registor">3. Open OnDemandへの登録</h2>
       <p>
-  Open Composerを<code>/var/www/ood/apps/sys/</code>に保存すると、Open OnDemandのホームページにOpen Composerのアイコンが表示されます。Open Composerのアイコンが表示されない場合は、Open OnDemand用の設定ファイル<code>/var/www/ood/apps/sys/OpenComposer/manifest.yml</code>を確認してください。
+  Open Composerを<code>/var/www/ood/apps/sys/</code>に保存すると、Open OnDemandのホームページにOpen Composerのアイコンが表示されます。表示されない場合は、<code>/var/www/ood/apps/sys/opencomposer/manifest.yml</code>を確認してください。
       </p>
       <p>
-  Open Composer上のアプリケーションをOpen OnDemandのホームページに表示することもできます。例えば、<code>/var/www/ood/apps/sys/OpenComposer/sample_apps/Slurm</code>というアプリケーションを表示させたい場合は、同名のディレクトリをOpen OnDemandのアプリケーションディレクトリに作成します（<code># mkdir /var/www/ood/apps/sys/Slurm</code>）。そして、そのディレクトリ内に下記のようなOpen OnDemand用の設定ファイル<code>manifest.yml</code>を作成します。
+  Open Composer上のアプリケーションをOpen OnDemandのホームページに表示することもできます。例えば、<code>/var/www/ood/apps/sys/opencomposer/sample_apps/Slurm</code>というアプリケーションを表示させたい場合は、同名のディレクトリをOpen OnDemandのアプリケーションディレクトリに作成します（<code># mkdir /var/www/ood/apps/sys/Slurm</code>）。そして、そのディレクトリ内に下記のようなOpen OnDemand用の設定ファイル<code>manifest.yml</code>を作成します。
       </p>
 
       <pre># /var/www/ood/apps/sys/Slurm/manifest.yml
 ---
 name: Slurm
-url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
+url: https://&lt;your Open OnDemand URL&gt;/pun/sys/opencomposer/Slurm</pre>
 
-      <h2 id="general">4. 一般ユーザによるインストール</h2>
+      <h2 id="ood-integration">4. OOD統合インストール</h2>
+      <p>
+        デフォルトでは、Open OnDemandでOpen Composerのタイルをクリックすると、アプリケーションが新しいタブで開きます。
+        <code>ood_integration/</code>のファイルを使用すると、Open ComposerがOODのページの中に直接描画される<strong>埋め込みモード</strong>を有効にできます。OODの本来のナビゲーションバーが上部に残り、その中央にOpen Composerが表示され、下部にOOD自身のフッタが表示されます。ユーザがOODの画面から離れることはありません。
+      </p>
+      <p>
+        このページはOOD自身のダッシュボードのレイアウトで描画される1つの文書であるため、ヘッダとフッタはOODの実際のもの（動的なメニュー、ユーザとヘルプのドロップダウン、通知）になり、Content-Security-Policyの変更は必要ありません。
+      </p>
+      <p>
+        この機能にはOpen OnDemand 3.x以降と、<code>/etc/ood/config/</code>への管理者権限が必要です。
+      </p>
+
+      <h3>動作の仕組み</h3>
+      <p>
+        イニシャライザ<code>opencomposer_embed.rb</code>は、OODのダッシュボードの中の<code>/pun/sys/dashboard/oc</code>に小さなリバースプロキシのコントローラを設置し、Open Composerのタイルがそこへ到達するように介入します。プロキシは要求毎に次の処理を行います。
+      </p>
+      <ol>
+        <li>要求を、ブラウザが使用したものと同じポートでApacheを経由し、ループバック上の実際のOpen Composerのアプリケーション<code>/pun/sys/opencomposer/…</code>へ転送します。その際、ユーザのセッションのクッキーを転送するため、そのユーザとして認証された呼び出しになります。</li>
+        <li>すべてのテキストの応答において、Open ComposerのURLの接頭辞<code>/pun/sys/opencomposer</code>を<code>/pun/sys/dashboard/oc</code>に書き換えます。これにより、すべてのリンク、フォームの送信先、アセット、AJAXがプロキシのパス上に留まるため、すべてのページがOODの外枠に包まれた状態が維持されます。</li>
+        <li>Open Composerの<code>&lt;head&gt;</code>のアセットと<code>&lt;body&gt;</code>を、<code>opencomposer_embed.html.erb</code>を介してダッシュボードのレイアウトに組み込み、OODの実際のナビゲーションバーとフッタを与えます。CSSとJavaScriptは接頭辞を書き換えたうえでそのまま流し、画像とフォントは変更せずに通過させ、リダイレクトは<code>Location</code>をプロキシのパスに書き換えて中継します。</li>
+      </ol>
+
+      <h3>手順1 — Open Composerをsysアプリケーションとしてインストールする（1章と同じ）</h3>
+      <pre>$ cd /var/www/ood/apps/sys/
+$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git opencomposer</pre>
+
+      <h4 class="mt-3">gemの事前インストール <span class="badge bg-secondary" style="font-size: 0.7em; vertical-align: middle;">任意（推奨）</span></h4>
+      <p>
+        Open Composerは、ユーザが最初にアプリケーションを開いたときに、依存するRubyのgemを自動的にインストールします。
+        その初回のアクセスでユーザが待たされることを避けるため、管理者が事前にgemをインストールしておくことができます。
+      </p>
+      <pre>$ cd /var/www/ood/apps/sys/opencomposer
+$ sudo cp misc/Gemfile .
+$ sudo bundle install</pre>
+      <p>
+        <code>Gemfile</code>が更新される<code>git pull</code>を行った後は、<code>bundle install</code>を再度実行してください。
+      </p>
+
+      <h3>手順2 — 埋め込みモード用にOpen Composerを設定する（2章と同じ）</h3>
+      <pre>$ cd /var/www/ood/apps/sys/opencomposer
+$ sudo cp conf.yml.erb.sample conf.yml.erb</pre>
+      <p>
+        OOD統合モードでは、OODがすでに提供しているUIの要素が重複しないように、<code>conf.yml.erb</code>で次のように設定します。
+      </p>
+      <pre>show_home_directory: false   # OODのFilesメニューがホームディレクトリへのリンクを提供する
+show_shell_access:   false   # OODのClustersメニューがシェルアクセスを提供する
+show_open_ondemand:  false   # OODの中からOODへ戻るリンクは不要
+navbar_logo: ~               # OODのナビゲーションバーがすでにサイトのロゴを表示している
+show_footer: false           # 埋め込まれた表示の下にOODのフッタが表示される</pre>
+
+      <h3>手順3 — 同じタブでの遷移を強制する</h3>
+      <p>
+        タイルをクリックしたときに新しいウィンドウではなく同じタブで開くように、<code>manifest.yml</code>に<code>new_window: false</code>を追加します。
+      </p>
+      <pre># /var/www/ood/apps/sys/opencomposer/manifest.yml
+name: Open Composer
+category: Jobs
+description: |
+  Open Composer is an application that creates and submits batch job scripts.
+icon: fas://hat-wizard
+new_window: false</pre>
+
+      <h3>手順4 — 統合用のファイルをコピーする</h3>
+      <pre>$ sudo mkdir -p /etc/ood/config/apps/dashboard/initializers
+$ sudo mkdir -p /etc/ood/config/apps/dashboard/views/apps
+
+$ sudo cp /var/www/ood/apps/sys/opencomposer/ood_integration/initializers/opencomposer_embed.rb \
+          /etc/ood/config/apps/dashboard/initializers/
+
+$ sudo cp /var/www/ood/apps/sys/opencomposer/ood_integration/views/apps/opencomposer_embed.html.erb \
+          /etc/ood/config/apps/dashboard/views/apps/</pre>
+
+      <h3>手順5 — OODのWebサーバを再起動する</h3>
+      <p>OODのダッシュボードで<strong>「Help」→「Restart Web Server」</strong>を選択するか、コマンドラインから次を実行します。</p>
+      <pre>$ sudo httpd -k graceful</pre>
+      <p>
+        これで、Open Composerのタイルをクリックすると、OODのページの中に埋め込まれた状態で開きます。
+      </p>
+
+      <h3>他のOOD環境への導入</h3>
+      <p>
+        この統合はOODの標準的な仕組み（ダッシュボードのイニシャライザと通常の<code>/pun</code>の要求の流れ）のみを使用しており、マルチユーザ環境でも安全です。各要求は要求元のユーザ自身のセッションのクッキーを転送するため、Apacheがそのユーザとして認証し、そのユーザのインスタンスへ振り分けます。他のOpen OnDemandのサイトへも移植できるはずですが、環境に関するいくつかの前提は確認しておく価値があります。上書きの設定はダッシュボードの環境ファイル<code>/etc/ood/config/apps/dashboard/env</code>から読み込まれます。すべての項目にコメントを付けたテンプレートが<code>ood_integration/dashboard.env.example</code>にあります。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>前提</th><th>サイトが異なる場合</th></tr>
+        <tr>
+          <td>Open Composerがsysアプリケーション<code>opencomposer</code>としてインストールされている（すなわち<code>/pun/sys/opencomposer</code>で配信されている）。</td>
+          <td><code>OC_EMBED_APP_NAME</code>にインストール先のディレクトリ名（例えば<code>OpenComposer</code>）を設定してください。</td>
+        </tr>
+        <tr>
+          <td>OODのApache（ポータルのvhost）が、ブラウザが使用したものと同じポートとスキームでループバックから到達できる。443でHTTPSを配信する標準的なホストでは成り立ちます。</td>
+          <td>TLSを終端するロードバランサがOODの前段にあり、ポータルのvhostが実際には別のポートやスキームで待ち受けている場合は、<code>OC_EMBED_UPSTREAM_HOST</code>、<code>OC_EMBED_UPSTREAM_PORT</code>、<code>OC_EMBED_UPSTREAM_SCHEME</code>（<code>http</code>／<code>https</code>）、<code>OC_EMBED_UPSTREAM_IP</code>を適宜設定してください。</td>
+        </tr>
+        <tr>
+          <td>認証が<code>mod_auth_openidc</code>であり、そのセッションのクッキーが<code>/pun</code>でダッシュボードに送られる（標準の<code>ood-portal.conf</code>はそれを<code>/node</code>と<code>/rnode</code>でのみ削除します）。</td>
+          <td>別の認証モジュールを使用している場合、またはクッキーをより広範に削除している場合は、プロキシの上流への呼び出しが認証されるように、ダッシュボードが認証のクッキーを受け取っていることを確認してください。</td>
+        </tr>
+        <tr>
+          <td><code>/etc/ood/config/apps/dashboard/initializers/</code>に独自のRailsのイニシャライザを設置できる。</td>
+          <td>管理された環境や制限の厳しい環境では、これが許可されていない場合や、セキュリティのレビューが必要な場合があります（このイニシャライザはサーバ側でHTTPの呼び出しを行います）。その環境のOODの管理者に確認してください。</td>
+        </tr>
+      </table>
+      <p>
+        <strong>性能に関する注意。</strong>Open Composerのすべての応答（CSS、JavaScript、画像、フォントを含む）が、ダッシュボードのRubyのプロセスを経由します。通常の対話的な利用では問題ありませんが、高い同時負荷が想定される場合は、ダッシュボードの追加のトラフィックを考慮してください。
+      </p>
+
+      <h3>OOD統合モードのアンインストール</h3>
+      <p>
+        統合用の2つのファイルを削除し、Apacheを再読み込みします。
+      </p>
+      <pre>$ sudo rm /etc/ood/config/apps/dashboard/initializers/opencomposer_embed.rb
+$ sudo rm /etc/ood/config/apps/dashboard/views/apps/opencomposer_embed.html.erb
+$ sudo httpd -k graceful</pre>
+      <p>
+        この後は、タイルをクリックすると、Open Composerが同じブラウザのタブで全画面のアプリケーションとして開きます（<code>manifest.yml</code>の<code>new_window: false</code>が残っているためです）。
+        新しいタブで開く元の動作に戻したい場合は、その行を削除するか元に戻してください。
+      </p>
+      <pre># /var/www/ood/apps/sys/opencomposer/manifest.yml
+new_window: true   # または行を完全に削除する（trueがOODのデフォルト）</pre>
+
+      <h2 id="general">5. 一般ユーザによるインストール</h2>
       <p>
   一般ユーザ権限でOpen Composerをインストールすることもできます。ただし、事前に管理者権限でOpen OnDemandの<a target="_blank" href="https://osc.github.io/ood-documentation/latest/how-tos/app-development/enabling-development-mode.html">App Development</a>の機能を有効化する必要があります。
       </p>
@@ -238,11 +606,11 @@ url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
       </p>
       <img src="img/new_repo.png" width="800" alt="New repository">
       <p>
-        「Files」をクリックし、<code>conf.yml.erb.sample</code>を<code>conf.yml.erb</code>にリネームしください。その後、「Launch Open Composer」をクリックします。
+        「Launch Open Composer」をクリックします。
       </p>
       <img src="img/bundle.png" width="800" alt="Bundle Install">
 
-      <h2 id="local">5. ローカルにおける開発方法</h2>
+      <h2 id="local">6. ローカルにおける開発方法</h2>
       <p>
         ローカルでOpen Composerを起動させる手順は下記の通りです。
       </p>
@@ -256,7 +624,7 @@ $ RACK_ENV=development bundle exec rackup</pre>
         Webブラウザで<code>http://localhost:9292</code>にアクセスしてください。なお、ジョブ投入が行えないなどの制限があります。
       </p>
 
-      <h2 id="test">6. テスト</h2>
+      <h2 id="test">7. テスト</h2>
       <p>
         <code>misc/tests/run_tests.rb</code>は、ドキュメントとサンプルアプリケーションの全<code>form.yml</code>が正しく処理できることを確認するスモークテストです。下記のように実行します。
       </p>
@@ -269,30 +637,52 @@ $ RACK_ENV=development bundle exec rackup</pre>
         <li><code>form</code>セクションが<code>run.rb</code>と同じ検証を通ること</li>
         <li>HTMLの生成が例外を起こさず、空でないこと</li>
         <li>すべてのウィジットのキーが、生成されたHTML中に要素のidとして現れること</li>
-        <li>生成されたJavaScriptの構文が正しいこと（<code>node --check</code>を使用。<code>node</code>が無い場合はスキップ）</li>
+        <li>生成されたJavaScriptの構文が正しいこと（<code>node --check</code>を使用。<code>node</code>が無い場合はmacOS同梱の<code>jsc</code>を使用し、どちらも無い場合はスキップ）</li>
       </ol>
       <p>
         すべてのサンプルが成功すると、終了コード0で下記のように出力されます。失敗した場合は、そのサンプル名と原因が表示され、終了コードは1になります。
       </p>
       <pre>----------------------------------------
-42/42 samples passed</pre>
+44/44 samples passed</pre>
       <p>
         これらはスモークテストであり、すべてのサンプルがエラーなく生成できることを保証しますが、ブラウザ上での挙動（ウィジットを操作してDynamic Form Widgetの効果を確認するなど）は対象外です。その部分は実際のブラウザで確認してください。
       </p>
 
-      <h2 id="jobscheduler">7. ジョブスケジューラの追加</h2>
+      <h2 id="jobscheduler">8. ジョブスケジューラの追加</h2>
       <p>
-        ジョブスケジューラを追加したい場合、スーパークラスSchedulerが定義された<code>lib/scheduler.rb</code>を参考にして、<code>lib/schedulers/</code>以下にジョブスケジューラのためのRubyスクリプトを作成してください。下記のPBS Pro（<code>lib/schedulers/pbspro.rb</code>）のようにSchedulerクラスを継承してください。ジョブを投入する<code>submit()</code>メソッド、ジョブをキャンセルする<code>cancel()</code>メソッド、ジョブの情報を問い合わせる<code>query()</code>メソッドを定義する必要があります。
+        ジョブスケジューラを追加したい場合、<code>lib/scheduler.rb</code>で定義されている<code>Scheduler</code>クラスを継承するRubyスクリプトを<code>lib/schedulers/</code>以下に作成してください。<code>lib/schedulers/pbspro.rb</code>のPBS Proが下記のようにしているのと同様です。
       </p>
       <pre>class Pbspro &lt; Scheduler</pre>
       <p>
-        また、いくつかのクラスタでは、ジョブスケジューラのコマンド（例：<code>qstat</code>）がラッパースクリプトになっていて、オリジナルのコマンドをユーザが実行できない場合があります。そのような場合、既存のスケジューラのスクリプトを少し変更することで対応できることがあります。例えば、<code>lib/schedulers/miyabi.rb</code>では、下記のようにPBS Proのスケジューラを継承して新しいクラスMiyabiを定義しています。Miyabiクラスでは<code>query()</code>メソッドだけが定義されており、他のメソッドは<code>lib/schedulers/pbspro.rb</code>で定義されたものを利用しています。
+        <code>Scheduler</code>は<code>submit()</code>、<code>cancel()</code>、<code>query()</code>を抽象メソッドとして宣言し、それ以外のすべてのフックには、動作はするが何もしないデフォルトの実装を用意しています。それらのデフォルトは失敗しないため、投入とキャンセルのみを実装したクラスでも、ジョブの投入とキャンセルは動作しますが、履歴ページとノードページは何も表示されないままになります。フックは次のとおりです。
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>メソッド</th><th>対応する機能</th><th>上書きしない場合</th></tr>
+        <tr><td><code>submit()</code></td><td>アプリケーションページからのジョブの投入</td><td>実装が必須</td></tr>
+        <tr><td><code>cancel()</code></td><td>履歴ページの「Cancel Job」</td><td>実装が必須</td></tr>
+        <tr><td><code>query()</code></td><td>スーパークラスのインタフェースの一部。履歴ページのジョブの状態は<code>sacct_all_jobs()</code>から取得されます</td><td>呼び出される場合は実装が必須</td></tr>
+        <tr><td><code>sacct_all_jobs()</code></td><td>履歴ページ全体。どのジョブが存在するか、およびその状態、時刻、作業ディレクトリ、標準出力と標準エラーのパスの唯一の情報源です</td><td>何も返さないため、履歴ページは常に「(No Jobs)」と表示します</td></tr>
+        <tr><td><code>state_to_oc_status()</code></td><td>ジョブスケジューラの生の状態の文字列を、Queued／Running／Completed／Cancelled／Failedのバッジに対応付けます</td><td>すべてのジョブの状態が不明として報告されます</td></tr>
+        <tr><td><code>valid_job_id?()</code></td><td>ジョブスケジューラから得たジョブIDのうち、どれを履歴のテーブルに受け入れるかを決定します</td><td>すべて数字のIDのみが受け入れられるため、配列ジョブなどの複合的なIDは除外されます</td></tr>
+        <tr><td><code>sinfo_nodes()</code></td><td>ノードページ。ノード毎に1つの配列を返します。名前、状態、CPU（割り当て済み／空き／その他／総数）、メモリ、空きメモリ、汎用リソース、使用中の汎用リソースです</td><td>ノードページには行が表示されません</td></tr>
+        <tr><td><code>sacct_job()</code>と<code>scontrol_job()</code></td><td>ジョブIDをクリックすると開くジョブの詳細のモーダル。それぞれアカウンティングの記録と現在の記録です</td><td>任意。モーダルは詳細が利用できないことを表示します</td></tr>
+        <tr><td><code>batch_script()</code></td><td>投入したスクリプトをジョブスケジューラから取得します。ジョブスクリプトの表示で使用され、<code>history_store_script</code>が<code>false</code>の場合は必須です</td><td>任意。履歴のデータベースにスクリプトが無いジョブでは、スクリプトが表示されません</td></tr>
+        <tr><td><code>squeue_active_jobs()</code></td><td>アカウンティングのコマンドがまだ報告していないキュー登録中と実行中のジョブを、<code>sacct_all_jobs()</code>に補います。<code>sacct_all_jobs()</code>と同じキー名を返さなければなりません</td><td>任意。投入した直後のジョブは、アカウンティングが追いつくまで履歴ページに表示されない場合があります</td></tr>
+        <tr><td><code>squeue_start_times()</code></td><td>待機中のジョブの開始時刻の見積り。完全性のため<code>Scheduler</code>で宣言されていますが、<code>query()</code>と同様に、現在これを呼び出す処理はありません</td><td>任意。現時点でこれに依存する機能はありません</td></tr>
+        <tr><td><code>efficiency()</code></td><td><code>history_efficiency</code>が<code>true</code>の場合のJob Efficiencyの区画</td><td>任意。この区画は、このスケジューラでは効率の情報に対応していないことを表示します</td></tr>
+      </table>
+      <p>
+        すべてのフックは、末尾の引数として<code>bin</code>、<code>bin_overrides</code>、<code>ssh_wrapper</code>、<code>scheduler_env</code>を受け取ります。<code>scheduler_env</code>（<a href="#scheduler_env">2.3. scheduler_env</a>を参照）が有効になるように、各コマンドは<code>Open3.capture3</code>を直接呼び出すのではなく、継承した<code>capture_scheduler_command(scheduler_env, command)</code>のヘルパを通して実行してください。
+      </p>
+      <p>
+        また、いくつかのクラスタでは、ジョブスケジューラのコマンド（例：<code>qstat</code>）がラッパースクリプトになっていて、オリジナルのコマンドをユーザが実行できない場合があります。そのような場合、既存のスケジューラのスクリプトを少し変更することで対応できることがあります。例えば、<code>lib/schedulers/miyabi.rb</code>では、PBS Proのスケジューラを継承した<code>Miyabi</code>クラスを定義し、<code>query()</code>と<code>sacct_all_jobs()</code>の2つのメソッドのみを上書きしています。これは、Miyabiでは完了したジョブに対してサイト固有の<code>qstat -H --hday</code>の形式が必要なためです。それ以外のメソッドはすべて<code>lib/schedulers/pbspro.rb</code>のものを利用しています。
       </p>
       <pre>class Miyabi &lt; Pbspro</pre>
       <p>
         ジョブスケジューラのスクリプトの作成後、<code>./conf.yml.erb</code>で下記のようにスケジューラを指定します。
       </p>
       <pre>scheduler: miyabi</pre>
+
     </main>
   </div>
 

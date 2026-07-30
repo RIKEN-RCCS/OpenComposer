@@ -6,6 +6,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<%= @script_name %>/fontawesome-6.7.2/css/all.min.css" rel="stylesheet">
+    <% if @conf.fetch("favicon", "").to_s.strip.length > 0 %>
+      <link rel="icon" href="<%= @script_name %>/<%= @conf["favicon"] %>">
+    <% end %>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
@@ -24,7 +27,7 @@
       }
       #<%= OC_SCRIPT_CONTENT %>_highlight_container, #<%= SUBMIT_CONTENT %>_highlight_container {
         position: absolute;
-        inset: 0;
+        top: 0; right: 0; bottom: 0; left: 0;
         margin: 0;
         padding: 0;
         overflow: hidden;
@@ -77,6 +80,12 @@
       #<%= OC_SCRIPT_CONTENT %>::-webkit-scrollbar, #<%= SUBMIT_CONTENT %>::-webkit-scrollbar {
         display: none;
       }
+      .oc-script-placeholder-hint {
+        color: rgba(108, 117, 125, 0.55);
+        font-style: italic;
+        white-space: pre;
+        pointer-events: none;
+      }
       #<%= OC_SCRIPT_CONTENT %>:focus, #<%= SUBMIT_CONTENT %>:focus {
         background: transparent;
         border-color: transparent;
@@ -84,11 +93,51 @@
       }
       #<%= OC_SCRIPT_CONTENT %>_editor:focus-within #<%= OC_SCRIPT_CONTENT %>_highlight_container,
       #<%= SUBMIT_CONTENT %>_editor:focus-within #<%= SUBMIT_CONTENT %>_highlight_container {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        border-color: <%= @conf['accent_color'] %>;
+        box-shadow: 0 0 0 0.25rem <%= hex_to_rgba(@conf['accent_color'], 0.25) %>;
       }
+      /* ── base styles ── */
       body {
         min-width: 768px;
+        color: <%= @conf['body_text_color'] %>;
+      }
+      h1, h2, h3, h4, h5, h6 {
+        color: <%= @conf['accent_contrast_color'] %>;
+      }
+      a { color: <%= @conf['accent_color'] %>; }
+      a:hover { color: <%= @conf['accent_contrast_color'] %>; }
+      .footer a { color: inherit; text-decoration: none; }
+      .footer a:hover { text-decoration: underline; }
+      .btn-primary {
+        background-color: <%= @conf['accent_color'] %>;
+        border-color: <%= @conf['accent_color'] %>;
+        color: #fff;
+        border-radius: 4px;
+      }
+      .btn-primary:hover, .btn-primary:focus {
+        background-color: <%= @conf['accent_contrast_color'] %>;
+        border-color: <%= @conf['accent_contrast_color'] %>;
+        color: #fff;
+      }
+      .form-control:focus, .form-select:focus {
+        border-color: <%= @conf['accent_color'] %>;
+        box-shadow: 0 0 0 0.25rem <%= hex_to_rgba(@conf['accent_color'], 0.25) %>;
+      }
+      .form-check-input:checked {
+        background-color: <%= @conf['accent_color'] %>;
+        border-color: <%= @conf['accent_color'] %>;
+      }
+      .form-check-input:focus {
+        box-shadow: 0 0 0 0.25rem <%= hex_to_rgba(@conf['accent_color'], 0.25) %>;
+      }
+      #_form_container {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      #oc-search-results {
+        font-size: 1rem;
+        line-height: 1.5;
       }
       .ood-logo {
         filter: invert(1) grayscale(100%);
@@ -103,7 +152,7 @@
        transition: none !important;
      }
      .nav-link:hover {
-       color: white !important;
+       color: <%= @conf['navbar_text_color'] %> !important;
      }
       <% if @dir_name == "history" %>
       #_historyTbody td {
@@ -119,7 +168,7 @@
       }
 
       .history-sort-link {
-        color: rgba(70, 48, 32, 0.82);
+        color: #C3C8C8;
         display: block;
         font-size: 0.62rem;
         font-weight: 700;
@@ -138,11 +187,11 @@
       }
 
       .history-sort-link:hover {
-        color: #b85400;
+        color: <%= @conf['accent_color'] %>;
       }
 
       .history-sort-link.history-sort-active {
-        color: #d11f1f;
+        color: <%= @conf['accent_contrast_color'] %>;
       }
 
       .history-modal-match-cell {
@@ -152,99 +201,223 @@
       .history-modal-match-cell.history-modal-match-active {
         box-shadow: inset 0 0 0 2px var(--bs-warning);
       }
+
+      .badge-completed {
+        background-color: #5cb85c !important;
+        color: #fff !important;
+      }
+      .badge-cancelled {
+        background-color: #fd7e14 !important;
+        color: #000 !important;
+      }
       <% end %>
      </style>
   </head>
 
   <body style="visibility: hidden;">
     <div id="_form_container" class="container-fluid">
-      <nav class="navbar navbar-expand mx-1 navbar-dark bg-gradient" style="background:<%= @conf['navbar_color'] %>;">
+      <nav class="navbar navbar-expand mx-1 bg-gradient" style="background:<%= @conf['navbar_color'] %>; --bs-navbar-color: <%= @conf['navbar_text_color'] %>; --bs-navbar-hover-color: <%= @conf['navbar_text_color'] %>; --bs-navbar-active-color: <%= @conf['navbar_text_color'] %>; --bs-navbar-brand-color: <%= @conf['navbar_text_color'] %>; --bs-navbar-brand-hover-color: <%= @conf['navbar_text_color'] %>;">
         <div class="container-fluid">
           <div class="collapse navbar-collapse">
-            <ul class="navbar-nav">
+            <% logo_shown = @conf.fetch("show_navbar_logo", true) && @conf["navbar_logo"].to_s.strip.length > 0 %>
+            <%# Pull the nav group 0.25rem left so its first item (the logo when %>
+            <%# shown, otherwise the first link) lines up with the page content %>
+            <%# column, which uses mx-1 px-3 (the blue button, category titles). The %>
+            <%# bare nav inset is 0.25rem wider than px-3 (the nested container-fluid %>
+            <%# adds 0.75rem and each nav-link adds 0.5rem, vs px-3's 1rem). %>
+            <ul class="navbar-nav" style="margin-left: -0.25rem;">
+              <% if logo_shown %>
+                <li class="nav-item d-flex align-items-center px-2">
+                  <a href="<%= @open_ondemand_url %>" target="<%= @conf["open_ondemand_new_tab"] == false ? "_self" : "_blank" %>">
+                    <img src="<%= @script_name %>/<%= @conf["navbar_logo"] %>" alt="Logo" style="height: 30px; vertical-align: middle;">
+                  </a>
+                </li>
+              <% end %>
               <li class="nav-item">
-                <a href="<%= @script_name %>/" class="nav-link <%= active?("" == @dir_name) %>">Home</a>
+                <a href="<%= @script_name %>/" class="nav-link <%= active?("" == @dir_name) %>">Selected Templates</a>
               </li>
-              <li class="nav-item dropdown">
-                <a href="#" class="nav-link dropdown-toggle <%= active?("" != @dir_name && "history" != @dir_name) %>" data-bs-toggle="dropdown">
-                  Application
-                </a>
-                <ul class="dropdown-menu dropdown-menu-dark bg-gradient" style="background:<%= @conf['dropdown_color'] %>;">
-                  <% @manifests_w_category.group_by(&:category).each do |category, manifests| %>
-                    <li class="dropdown-header"><%= category %></li>
-                    <% manifests.each do |m| %>
-                      <li>
-                        <a href="<%= @script_name %>/<%= m['dirname'] %>" class="dropdown-item <%= active?(m['dirname'] == @dir_name) %>">
-                          <%= m['name'] %>
-                        </a>
-                      </li>
-                    <% end %>
-                    <li><hr class="dropdown-divider"></li>
-                  <% end %>
-                  <% @manifests_wo_category.each do |m| %>
-                    <li>
-                      <a href="<%= @script_name %>/<%= m['dirname'] %>" class="dropdown-item <%= active?(m['dirname'] == @dir_name) %>">
-                        <%= m['name'] %>
-                      </a>
-                    </li>
-                  <% end %>
-                </ul>
+              <li class="nav-item">
+                <a href="<%= @script_name %>/all_templates" class="nav-link <%= active?("all_templates" == @dir_name) %>">All Templates</a>
               </li>
               <li class="nav-item">
                 <a href="<%= @script_name %>/history" class="nav-link <%= active?("history" == @dir_name) %>">History</a>
               </li>
+              <li class="nav-item">
+                <a href="<%= @script_name %>/nodes" class="nav-link <%= active?("nodes" == @dir_name) %>">Nodes</a>
+              </li>
             </ul>
 
             <ul class="navbar-nav ms-auto">
-              <li class="nav-item">
-                <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files" class="nav-link py-0">
-                  <i class="fas fa-home fa-fw" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
-                  <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Home Directory</span>
-                </a>
-              </li>
-              <% unless @login_node.nil? %>
-                <% if @conf["login_node"].is_a?(Hash) && @conf["login_node"].values.compact.uniq.size > 1 %>
-                  <li class="nav-item dropdown">
-                    <a href="#" class="nav-link dropdown-toggle py-0" data-bs-toggle="dropdown">
-                      <i class="bi bi-terminal-fill" style="font-size: 20px; vertical-align: middle;"></i>
-                      <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-dark bg-gradient" style="background:<%= @conf['dropdown_color'] %>; --bs-dropdown-min-width: 100%;">
-                      <% @conf["login_node"].each do |key, value| %>
-                        <li><a target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= value %>" class="dropdown-item"><%= key %></a></li>
-                      <% end %>
-                    </ul>
-                  </li>
-                <% else %>
-                  <li class="nav-item">
-                    <a target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>" class="nav-link py-0">
-                      <i class="bi bi-terminal-fill" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
-                      <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;">Shell Access</span>
-                    </a>
-                  </li>
-                <% end %>
+              <% if @conf.fetch("show_search", true) %>
+                <li class="nav-item me-2 d-flex align-items-center">
+                  <input type="search" id="oc-search" class="form-control form-control-sm"
+                         placeholder="<%= ERB::Util.h(@conf.fetch("navbar_search_placeholder", "Search apps…")) %>" autocomplete="off" style="width:180px;">
+                </li>
               <% end %>
-              <li class="nav-item">
-                <a target="_blank" href="<%= @my_ood_url %>" class="nav-link py-0">
-                  <img src="<%= @ood_logo_path %>" class="ood-logo" alt="OOD logo" style="height: 20px; display: inline-block; vertical-align: middle;">
-                  <span class="d-none d-lg-inline ms-1" style="vertical-align: middle;">Open OnDemand</span>
-                </a>
-              </li>
+              <% if @conf["show_home_directory"] %>
+                <li class="nav-item">
+                  <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files" class="nav-link py-0">
+                    <i class="<%= @conf.fetch("home_directory_icon", "fas fa-home") %> fa-fw" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
+                    <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;"><%= ERB::Util.h(@conf.fetch("home_directory_label", "Home Directory")) %></span>
+                  </a>
+                </li>
+              <% end %>
+              <%# Needs a login node to point at: without one the URL has an empty
+                  host and cannot open a shell, so hide the link rather than
+                  render a broken one (the form and history pages guard likewise). %>
+              <% if @conf["show_shell_access"] && !@login_node.to_s.strip.empty? %>
+                <li class="nav-item">
+                  <a target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>" class="nav-link py-0">
+                    <i class="<%= @conf.fetch("shell_access_icon", "fas fa-terminal") %> fa-fw" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
+                    <span class="d-none d-lg-inline ms-1" style="display: inline-block; vertical-align: middle;"><%= ERB::Util.h(@conf.fetch("shell_access_label", "Shell Access")) %></span>
+                  </a>
+                </li>
+              <% end %>
+              <% if @conf["show_open_ondemand"] %>
+                <li class="nav-item">
+                  <a target="<%= @conf["open_ondemand_new_tab"] == false ? "_self" : "_blank" %>" href="<%= @open_ondemand_url %>" class="nav-link py-0">
+                    <i class="<%= @conf.fetch("open_ondemand_icon", "bi bi-grid-fill") %> fa-fw" style="font-size: 20px; display: inline-block; vertical-align: middle;" aria-hidden="true"></i>
+                    <span class="ms-1" style="display: inline-block; vertical-align: middle;"><%= ERB::Util.h(@conf["open_ondemand_label"]) %></span>
+                  </a>
+                </li>
+              <% end %>
             </ul>
           </div>
         </div>
       </nav>
 
-      <%= yield %>
+      <%# Separator rule under the header. Shown on every page except All %>
+      <%# Templates (which has its own full-height bordered list). The style is %>
+      <%# chosen by show_navbar_separator: %>
+      <%#   false               -> no separator (default) %>
+      <%#   true / 'gradient'   -> soft 6px gradient fading to transparent (the "special" line) %>
+      <%#   'solid' / 'line'    -> a normal 1px solid rule %>
+      <%#   'accent'            -> a thicker 3px colored accent bar %>
+      <%# The line/accent color comes from navbar_separator_color (default #C3C8C8). %>
+      <% _sep = @conf.fetch('show_navbar_separator', false) %>
+      <% if _sep && _sep.to_s != 'none' && @dir_name != 'all_templates' %>
+        <% _sep_color = @conf.fetch('navbar_separator_color', '#C3C8C8') %>
+        <% case _sep.to_s
+           when 'solid', 'line' %>
+          <div class="mx-1" style="border-top:1px solid <%= _sep_color %>;"></div>
+        <% when 'accent' %>
+          <div class="mx-1" style="height:3px; background:<%= _sep_color %>;"></div>
+        <% else %>
+          <%# true / 'gradient' %>
+          <div class="mx-1" style="height:6px; background:linear-gradient(to bottom, rgba(195,200,200,0.28) 0%, rgba(195,200,200,0) 100%);"></div>
+        <% end %>
+      <% end %>
 
-      <footer class="footer py-1 bg-gradient mx-1 <%= @dir_name == '' ? 'mt-3' : '' %>" style="background:<%= @conf['footer_color'] %>;">
-        <div class="row text-white align-items-center">
-          <div class="col text-start"></div> <!-- An empty column to center the middle text -->
-          <div class="col text-center"><%= @conf['footer'] %></div>
-          <div class="col text-end small mx-3">Open Composer version: <%= @version %></div>
-        </div>
-      </footer>
+      <div id="oc-search-results" style="display:none; background:#F3F4F4; border-top:1px solid #C3C8C8; max-height:60vh; overflow-y:auto;"></div>
+
+      <div style="flex: 1;">
+        <%= yield %>
+      </div>
+
+      <% if @conf.fetch('show_footer', true) %>
+      <div style="<%= @show_all_templates_subfooter ? 'position:sticky; bottom:0; z-index:100;' : '' %>">
+        <% if @show_all_templates_subfooter && @conf['all_templates_footer'] && !@conf['all_templates_footer'].to_s.strip.empty? %>
+          <div class="px-3 py-3 text-muted small" style="background:#F3F4F4; border-top:1px solid #C3C8C8; margin-left: calc(-1 * var(--bs-gutter-x, 1.5rem) * 0.5) !important; margin-right: calc(-1 * var(--bs-gutter-x, 1.5rem) * 0.5) !important;">
+            <%= @conf['all_templates_footer'] %>
+          </div>
+        <% end %>
+        <footer class="footer d-flex justify-content-between align-items-center m-0 <%= @conf.fetch('footer_padding', 'p-3') %> <%= @dir_name == '' ? 'mt-3' : '' %>" style="background:<%= @conf['footer_color'] %>; margin-left: calc(-1 * var(--bs-gutter-x, 1.5rem) * 0.5) !important; margin-right: calc(-1 * var(--bs-gutter-x, 1.5rem) * 0.5) !important;">
+          <div style="color:<%= @conf['footer_text_color'] %>; --bs-link-color: <%= @conf['footer_text_color'] %>; --bs-link-hover-color: <%= @conf['footer_text_color'] %>; --bs-link-opacity: 1;">
+            <%# Footer brand logo. Prefer an explicit footer_brand_logo; otherwise %>
+            <%# fall back to the OpenOnDemand "powered by" logo (footer_ood_logo). %>
+            <% _brand_logo = @conf.fetch('footer_brand_logo', '').to_s.strip %>
+            <% _brand_logo = 'OpenOnDemand_powered_by_invert.svg' if _brand_logo.empty? && @conf['footer_ood_logo'] != false %>
+            <% unless _brand_logo.empty? %>
+              <% _is_ood = (_brand_logo == 'OpenOnDemand_powered_by_invert.svg') %>
+              <a href="<%= @conf.fetch('footer_brand_url', 'https://openondemand.org/') %>" target="_blank">
+                <img src="<%= @script_name %>/<%= _brand_logo %>" alt="<%= ERB::Util.h(@conf.fetch('footer_brand_alt', _is_ood ? 'Powered by Open OnDemand' : 'Powered by')) %>" style="height:<%= @conf.fetch('footer_logo_height', '24px') %>; vertical-align: middle;">
+              </a>
+            <% end %>
+          </div>
+          <div style="color:<%= @conf['footer_text_color'] %>; --bs-link-color: <%= @conf['footer_text_color'] %>; --bs-link-hover-color: <%= @conf['footer_text_color'] %>; --bs-link-opacity: 1;"><%= @conf['footer'] %></div>
+          <div class="small" style="color:<%= @conf['footer_text_color'] %>;">Open Composer version: <%= @version %></div>
+        </footer>
+      </div>
+      <% end %>
     </div>
+
+    <script>
+    (function() {
+      var ALL_APPS = <%=
+        (
+          @all_manifests.map { |m|
+            { name: m.name, description: m.description, categories: Array(m.category),
+              gpu: @gpu_names.include?(m.name.to_s.downcase) || m.tags.map(&:downcase).include?("gpu"),
+              href: "#{@script_name}/#{m.dirname}" }
+          } +
+          Array(@templates).map { |t|
+            { name: t["name"], description: t["description"], categories: ["My Template"], gpu: false,
+              href: "#{@script_name}/#{t["app_path"]}?template=#{ERB::Util.u(t["slug"])}" }
+          }
+        ).to_json.gsub('</', '<\/')
+      %>;
+      var scriptName = '<%= @script_name %>';
+      var CATEGORY_COLORS = <%= (@conf['category_badge_colors'] || {}).merge("My Template" => "#6f42c1").to_json %>;
+
+      function esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      }
+
+      var input   = document.getElementById('oc-search');
+      var results = document.getElementById('oc-search-results');
+      if (!input || !results) return;  // search box hidden via show_search: false
+
+      input.addEventListener('input', function() {
+        var q = this.value.trim().toLowerCase();
+
+        // Hide whichever main content list is on this page.
+        var list = document.getElementById('oc-app-list') || document.getElementById('oc-all-list');
+        if (!q) {
+          results.style.display = 'none';
+          results.style.height = '';
+          results.style.maxHeight = '';
+          results.innerHTML = '';
+          if (list) list.style.display = '';
+          return;
+        }
+        if (list) list.style.display = 'none';
+        results.style.display = '';
+        if (list && list.id === 'oc-all-list') {
+          results.style.height = 'calc(100vh - 56px)';
+          results.style.maxHeight = 'none';
+        } else {
+          results.style.height = '';
+          results.style.maxHeight = '';
+        }
+
+        var matches = ALL_APPS.filter(function(m) {
+          return (m.name        || '').toLowerCase().includes(q) ||
+                 (m.categories  || []).join(' ').toLowerCase().includes(q) ||
+                 (m.description || '').toLowerCase().includes(q);
+        });
+
+        if (!matches.length) {
+          results.innerHTML = '<p class="py-2 px-3 text-muted">No applications found.</p>';
+          return;
+        }
+
+        results.innerHTML = matches.map(function(m) {
+          var badges = '';
+          (m.categories || []).forEach(function(cat) {
+            var catColor = CATEGORY_COLORS[cat];
+            var catStyle = catColor ? ' style="background-color:' + esc(catColor) + ';"' : '';
+            var catClass = catColor ? 'badge me-1' : 'badge text-bg-secondary me-1';
+            badges += '<span class="' + catClass + '"' + catStyle + '>' + esc(cat) + '</span>';
+          });
+          if (m.gpu)      badges += '<span class="badge me-1" style="background-color:#000; color:#fff;">GPU</span>';
+          var desc = m.description ? '<div class="small text-muted">' + esc(m.description) + '</div>' : '';
+          return '<a href="' + esc(m.href) + '" class="d-block text-decoration-none py-2 px-3 border-bottom">' +
+                 '<div>' + badges + '<span class="fw-semibold">' + esc(m.name) + '</span></div>' +
+                 desc + '</a>';
+        }).join('');
+      });
+    })();
+    </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
     <!-- To prevent elements that are initially hidden from appearing for just a moment, make them visible after all loading is complete. -->

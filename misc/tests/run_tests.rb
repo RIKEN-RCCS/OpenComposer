@@ -15,6 +15,7 @@
 
 require "cgi"
 require "erb"
+require "json"   # lib/form.rb calls to_json when emitting module_load JS
 require "set"
 require "yaml"
 require "tmpdir"
@@ -31,7 +32,8 @@ HEADER_SCRIPT_NAME     = "_script_1"
 HEADER_JOB_NAME        = "_script_2"
 HEADER_CLUSTER_NAME    = "_cluster_name"
 
-WIDGETS = %w[number text email select multi_select radio checkbox path].freeze
+WIDGETS = %w[number text email select multi_select radio checkbox path
+             module_load dependent_module_select].freeze
 
 # lib/form.rb defines Sinatra helpers. Load its body into a plain class so the
 # generators can be called without booting the web app.
@@ -84,15 +86,31 @@ DEFAULT_HEADER = YAML.load(
 )["header"]
 
 NODE = system("node --version > /dev/null 2>&1")
-warn "node not found: skipping JavaScript syntax checks" unless NODE
+# macOS ships JavaScriptCore's shell, which parses the same syntax. Used as a
+# fallback so the JS check still runs on developer Macs without Node installed.
+JSC = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+JSC_OK = !NODE && File.executable?(JSC)
+warn "node not found: using #{JSC} for JavaScript syntax checks" if JSC_OK
+warn "neither node nor jsc found: skipping JavaScript syntax checks" if !NODE && !JSC_OK
 
 def check_js_syntax(js, name, errors)
-  return unless NODE
+  return unless NODE || JSC_OK
   Dir.mktmpdir do |tmp|
     path = File.join(tmp, "#{name}.js")
     File.write(path, js)
-    out = `node --check #{path} 2>&1`
-    errors << "generated JS is invalid:\n#{out}" unless $?.success?
+    if NODE
+      out = `node --check #{path} 2>&1`
+      errors << "generated JS is invalid:\n#{out}" unless $?.success?
+    else
+      # new Function() parses without executing, matching `node --check`.
+      script = File.join(tmp, "check.js")
+      File.write(script, <<~JS)
+        try { new Function(readFile(#{path.to_json})); }
+        catch (e) { print("" + e); }
+      JS
+      out = `#{JSC} #{script} 2>&1`.strip
+      errors << "generated JS is invalid:\n#{out}" unless out.empty?
+    end
   end
 end
 

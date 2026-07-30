@@ -1,0 +1,6 @@
+---
+name: Job Script (PBS - Generic)
+category: Application
+icon: icon.png
+description: |
+  This application generates an arbitrary job script in PBS.

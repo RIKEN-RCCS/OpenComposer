@@ -1,0 +1,12 @@
+---
+# Job Script (Fujitsu TCS - Generic)
+#
+# A deliberately minimal, generic Fujitsu TCS application. It exposes only the
+# standard header fields - Script location, Script name and Job name - plus the
+# editable Script Content area. No other form widgets are defined, so an
+# arbitrary Fujitsu TCS script (for example an external job loaded from the
+# History page) can be reviewed, edited and submitted as-is.
+#
+# The empty "form:" below is intentional: run.rb normalizes an empty form body
+# to "no widgets", so the header and Script Content area are all that render.
+form:

@@ -15,8 +15,18 @@
       <ul class="nav flex-column px-2 py-2">
         <li class="nav-item"><a href="#intro" class="nav-link">1. Introduction</a></li>
         <li class="nav-item"><a href="#home" class="nav-link">2. Home Page</a></li>
-        <li class="nav-item"><a href="#application" class="nav-link">3. Application Page</a></li>
-        <li class="nav-item"><a href="#history" class="nav-link">4. History Page</a></li>
+        <li class="nav-item ms-3"><a href="#templates" class="nav-link">2.1. My Custom Templates</a></li>
+        <li class="nav-item"><a href="#all-templates" class="nav-link">3. All Templates Page</a></li>
+        <li class="nav-item"><a href="#load-script" class="nav-link">4. Load or Create a Script from Disk</a></li>
+        <li class="nav-item"><a href="#application" class="nav-link">5. Application Page</a></li>
+        <li class="nav-item ms-3"><a href="#submitting" class="nav-link">5.1. Submitting</a></li>
+        <li class="nav-item ms-3"><a href="#save-template" class="nav-link">5.2. Save as Custom Template</a></li>
+        <li class="nav-item ms-3"><a href="#template-mode" class="nav-link">5.3. Template Mode</a></li>
+        <li class="nav-item"><a href="#history" class="nav-link">6. History Page</a></li>
+        <li class="nav-item ms-3"><a href="#history-scope" class="nav-link">6.1. What the Table Contains</a></li>
+        <li class="nav-item ms-3"><a href="#history-dates" class="nav-link">6.2. How Far Back the Page Looks</a></li>
+        <li class="nav-item ms-3"><a href="#history-sections" class="nav-link">6.3. The Four Sections</a></li>
+        <li class="nav-item"><a href="#nodes" class="nav-link">7. Nodes Page</a></li>
       </ul>
     </nav>
 
@@ -25,19 +35,144 @@
       <h2 id="intro">1. Introduction</h2>
       <p>
         Open Composer is a web application to submit batch jobs to an HPC cluster system from a web browser.
-        Open Composer consists of "Home page", "Application page", and "History page".
+        It consists of the home page ("Selected Templates"), the "All Templates" page, the "Load or Create a Script from Disk" file browser, an application page for each template, the "History" page, and the "Nodes" page.
       </p>
 
       <h2 id="home">2. Home Page</h2>
       <p>
         Displays application icons by category.
-        On the left side of the navigation bar are links to the "Home page", "Application page", and "History page".
-        On the right side of the navigation bar are links to the Open OnDemand "Home Directory", "Shell Access", and "Dashboard".
-        Note that "Shell Access" is only displayed if <code>login_node</code> is set in <code>conf.yml.erb</code>.
+        The home page layout can be configured by the administrator via the <code>home_format</code> setting in <code>conf.yml.erb</code>.
+        The <code>big</code> format (default) shows large tiles with the application icon and name; the <code>small</code> format shows compact list-style entries.
       </p>
-      <img src="img/home_page.png" width="800" alt="Home page">
+      <p>
+        The navigation bar contains the following links:
+      </p>
+      <ul>
+        <li><strong>Left side</strong> — four links, one per page:
+          <ul>
+            <li><strong>Selected Templates</strong> — the home page you are on: the applications your site has chosen to show, grouped by category, followed by your own saved templates.</li>
+            <li><strong>All Templates</strong> — a single scrolling list of every template, including applications that are not shown on the home page. See <a href="#all-templates">3. All Templates Page</a>.</li>
+            <li><strong>History</strong> — your job history. See <a href="#history">6. History Page</a>.</li>
+            <li><strong>Nodes</strong> — the current state of the cluster's compute nodes. See <a href="#nodes">7. Nodes Page</a>.</li>
+          </ul>
+          If your administrator has set <code>navbar_logo</code>, your site's logo appears in the top-left corner, before these links, and is itself a link back to Open OnDemand. It can be hidden without unsetting it via <code>show_navbar_logo: false</code>, and is normally left off when Open Composer runs inside Open OnDemand, whose own navigation bar already shows the site logo.
+        </li>
+        <li><strong>Search box</strong> — on the right-hand side of the navigation bar, before the remaining links.
+          <ul>
+            <li>It searches every application (including those hidden from the home page) and your own saved templates. A match is a case-insensitive substring of the name, of any of its categories, or of its description.</li>
+            <li>Matches are listed directly below the navigation bar, with the same category and GPU badges used on the All Templates page; your saved templates are tagged <code>My Template</code>. Click an entry to open it.</li>
+            <li>While the box has text in it, the list of templates on the page is hidden, so the results take its place. Clear the box to bring the page's own list back.</li>
+            <li>The box is absent if your administrator has set <code>show_search: false</code> in <code>conf.yml.erb</code>.</li>
+          </ul>
+        </li>
+        <li><strong>Right side:</strong>
+          <ul>
+            <li><strong>Home Directory</strong> — opens the Open OnDemand file browser. Hidden if <code>show_home_directory: false</code> in <code>conf.yml.erb</code>.</li>
+            <li><strong>Shell Access</strong> — opens an Open OnDemand shell session on a login node. It is always a single link, never a dropdown, and it connects to the login node configured for the cluster the current page is using: the cluster selected on the History or Nodes page, or in an application page's "Cluster name" field, and otherwise the first cluster in the configuration. Hidden if <code>show_shell_access: false</code>, and also hidden if your administrator has not configured a login node for the cluster in use — without one there is nothing for the link to connect to. The label and icon are set via <code>shell_access_label</code> and <code>shell_access_icon</code>, so your site may have renamed it.</li>
+            <li><strong>Open OnDemand</strong> — a link back to the OOD dashboard. Hidden if <code>show_open_ondemand: false</code>. The label is set via <code>open_ondemand_label</code>; the URL defaults to the dashboard on the same host and only needs <code>open_ondemand_url</code> if your dashboard lives elsewhere.</li>
+          </ul>
+        </li>
+      </ul>
+      <img src="img/home.png" width="800" alt="Home page">
 
-      <h2 id="application">3. Application Page</h2>
+      <h3 id="templates">2.1. My Custom Templates</h3>
+      <p>
+        The "My Custom Templates" section appears below the application categories.
+        It shows your saved templates as thumbnails, using the same icon as the application the template was created from.
+      </p>
+      <ul>
+        <li>Click a template thumbnail to open its source application page with all form values pre-filled.</li>
+        <li>Click the <strong>+ New Custom Template</strong> button in the section header to open the "New Custom Template — Choose a Style" picker page, where you can select any available application as the starting point for your new template.</li>
+        <li>Click the <strong>pencil icon</strong> on a template to rename it or update its description without leaving the home page.</li>
+        <li>Click the <strong>× icon</strong> on a template to delete it (a confirmation prompt will appear).</li>
+      </ul>
+      <p>
+        Templates are stored per-user under <code>data_dir/templates/</code>.
+        If no templates have been saved yet, the section displays a short hint explaining how to create one.
+      </p>
+      <p>
+        Once you have saved at least one template, a <strong>"Search templates…"</strong> box appears in the section header.
+        It filters the tiles by template name and description as you type, and reports "No templates match your search." when nothing matches.
+        It only affects this section; the search box in the navigation bar covers everything.
+      </p>
+      <p>
+        You can also reorder the tiles by dragging one and dropping it where you want it.
+        The new order is saved automatically and is used every time the section is shown.
+        A few points are worth knowing:
+      </p>
+      <ul>
+        <li>Dragging is disabled while the section's search box has text in it. Clear the box first, then reorder.</li>
+        <li>Press Esc, or drop the tile outside the grid, to cancel the move. The previous order is restored.</li>
+        <li>If a drag leaves the order unchanged, nothing is saved.</li>
+        <li>If saving fails (for example because your session has expired), the previous order is restored and a message asks you to reload the page and try again.</li>
+        <li>Templates you have never dragged sort after the ones you have positioned, in alphabetical order. A template you have just saved therefore appears at the end of the section until you drag it somewhere.</li>
+      </ul>
+
+      <h2 id="all-templates">3. All Templates Page</h2>
+      <p>
+        The <strong>All Templates</strong> link in the navigation bar shows every template as one full-height scrolling list instead of icon tiles.
+        Because the list is not filtered, this is the place to look for something you cannot find on the home page:
+        it also includes applications that your site has marked as hidden, which never appear in the home page categories.
+      </p>
+      <img src="img/all_templates.png" width="1000" alt="All Templates page">
+      <p class="mt-3">
+        The list is in three groups, in this order:
+      </p>
+      <ol>
+        <li>The site's featured job-script templates — the applications in the category your administrator has featured.</li>
+        <li>Your own saved custom templates.</li>
+        <li>Every other application, in alphabetical order by name.</li>
+      </ol>
+      <p>
+        Each row shows the template name with its description underneath, preceded by badges:
+      </p>
+      <ul>
+        <li>One badge per category the application belongs to. The color is chosen per category by your administrator; categories with no color set use gray.</li>
+        <li>A black <code>GPU</code> badge on applications that are GPU applications.</li>
+        <li>A purple <code>My Template</code> badge on your own saved templates.</li>
+      </ul>
+      <p>
+        Click a row to open that application's page. Clicking one of your own templates opens its application page with your saved values already filled in.
+        Typing in the navigation bar's search box replaces this list with the matching entries.
+        Your site may show a short note along the bottom of the page.
+      </p>
+
+      <h2 id="load-script">4. Load or Create a Script from Disk</h2>
+      <p>
+        If you already have a job script on the cluster, you can open it in Open Composer instead of rebuilding it in a form.
+        The <strong>"Load or Create a Script from Disk"</strong> button is at the top of the home page, above the application categories,
+        and again at the top of the "New Custom Template — Choose a Style" page.
+        Its label can be changed by your administrator (<code>load_script_label</code>), and the button is absent if <code>show_load_script: false</code> is set.
+      </p>
+      <img src="img/load_script.png" width="1000" alt="Load or Create a Script from Disk">
+      <p class="mt-3">
+        The button opens a full-page file browser, starting in your home directory. Its controls are:
+      </p>
+      <ul>
+        <li>Buttons to go to your home directory, to the parent directory, and to reload the current directory.</li>
+        <li>A path box: type a directory path and press Enter to jump to it.</li>
+        <li>A breadcrumb trail of the current path; click any part of it to go there.</li>
+        <li>A <strong>Filter</strong> box that narrows the listing to names containing what you type.</li>
+        <li>An <strong>Owner &amp; mode</strong> checkbox that adds two more columns, and a <strong>Show hidden</strong> checkbox that includes names beginning with a dot.</li>
+        <li>Sortable Name, Size, Modified and Owner column headings; click the active heading again to reverse the order. Directories always sort before files.</li>
+      </ul>
+      <p>
+        The directory you are in is kept in the page's address, so the browser's Back and Forward buttons walk through the directories you have visited, and reloading keeps you where you were.
+      </p>
+      <ul>
+        <li>Click a directory row to open it.</li>
+        <li>Files ending in <code>.sl</code>, <code>.sh</code>, <code>.sbatch</code>, <code>.batch</code>, <code>.slurm</code> or <code>.bash</code> can be opened.</li>
+        <li>Any other file is listed grayed out and cannot be clicked.</li>
+        <li>Clicking a script reads it from disk and opens it in the generic job-script page, with the file's contents in the script editor and "Script location" and "Script name" filled in from the file's path. From there you can edit the script, change form fields, and submit it.</li>
+        <li>Only the first 1&nbsp;MB of a file is read. For anything larger, a warning says the file was truncated, and the truncated text is what gets loaded — so do not submit it as-is.</li>
+      </ul>
+      <p>
+        The green <strong>New Script</strong> button starts a new script instead of opening an existing one.
+        It opens a list of every application — hidden ones included, with the featured templates at the top — and the directory you were browsing is carried across,
+        so the application page you choose opens with its "Script location" already set to that directory.
+      </p>
+
+      <h2 id="application">5. Application Page</h2>
       <p>
         Generates a job script.
         When you enter values in the web form on the left side of the page,
@@ -45,85 +180,201 @@
         The text area can be freely edited.
         When you click the "Submit" button below the text area, the generated job script is submitted to an HPC cluster system.
       </p>
-      <img src="img/application_page2.png" width="800" alt="Application page">
+      <img src="img/application_slurm.png" width="800" alt="Application page">
 
       <ul class="mt-3">
         <li>The "Script location," "Script name," and "Job name" in the header section specify the "Directory where the job script is stored," "Name of the job script file," and "Job name," respectively. </li>
-        <li>The "Cluster name" in the header section  is only displayed if multiple job schedulers are configured. The job script will be submitted to the selected cluster. </li>
+        <li>The "Cluster name" in the header section is only displayed if your site defines more than one cluster under <code>clusters:</code> in <code>conf.yml.erb</code> — those clusters may all run the same scheduler. The job script will be submitted to the selected cluster.</li>
         <li>An asterisk next to the label of a web form indicates that it is a required field.</li>
-        <li>If you try to modify a web form with a white background after manually editing the job script, a warning like the one shown below will appear.
-          If you click "Discard and continue", the changes made in the job script will be discarded and a new script will be generated.
-          <p>
-            <img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
-          </p>
+        <li>If you manually edit the job script and then change a form field, only the lines corresponding to that field are updated in the script — the rest of your manual edits are preserved.</li>
+        <li>The link works both ways: about half a second after you stop typing in the script area, any scheduler directive lines you changed are read back into the matching form fields. Fields that are hidden or disabled are left alone, so editing the script by hand never expands a collapsed section — whereas a script loaded from disk or from the History page does open the sections it needs.</li>
+        <li>Some dropdowns — "Project" and "Partition" on the Slurm job-script forms, for example — remember the value you last chose and pre-select it next time you open that application page. The remembered value is stored in your browser only, and is ignored when you open the page from a saved template or from the History page.</li>
+      </ul>
+
+      <p>
+        Applications provided by your site can be more elaborate than the generic form above.
+        The example below shows a quantum chemistry application whose form pulls the available software versions from the cluster's module system,
+        so the dropdowns only ever offer versions that are actually installed:
+      </p>
+      <img src="img/application_orca.png" width="800" alt="Application page for a site-provided application">
+
+      <h3 id="submitting">5.1. Submitting</h3>
+      <p>
+        Clicking <strong>Submit</strong> writes the script to disk and submits it to the cluster. You stay on the application page, where a green banner confirms the Job ID and offers a <strong>History page</strong> link; follow that link to see the new job at the top of the History table.
+        Two things can happen first, depending on how your site has configured Open Composer:
+      </p>
+      <ul>
+        <li>
+          <strong>A warning that the script has no commands.</strong>
+          If the script contains nothing but blank lines, comments, scheduler directives and <code>module</code> lines, a dialog asks you to confirm before submitting.
+          This usually means that a form field meant to add a command to the script is still empty. You can submit anyway, but the job will run and do nothing.
         </li>
-        <li>If the background color of the web form is <span style="background-color:#FFE28A">yellow</span>, it indicates that neither the job script nor the script that performs processing before job submission will be modified.</li>
-        <li>If the background color of the web form is <span style="background-color:#FFCCCC">pink</span>, it indicates that only the script that performs processing before job submission will be modified. If you try to modify these web forms after manually editing that script, the same warning described above will appear.
-          <p>
-            <img src="img/application_page3.png" width="600" alt="Application page">
-          </p>
+        <li>
+          <strong>An SSH key being set up for you.</strong>
+          At sites that submit jobs over SSH to a login node, the first submission may generate a passphrase-less SSH key in your <code>~/.ssh</code> directory and authorize it, so the job can be submitted without a password prompt.
+          The public key is appended to <code>~/.ssh/authorized_keys</code>, and because the key does not use a default <code>id_*</code> name an <code>IdentityFile</code> line under <code>Host *</code> is added to your <code>~/.ssh/config</code> so <code>ssh</code> offers it. This happens once and is silent; an SSH key you already have is never replaced.
         </li>
       </ul>
 
-      <h2 id="history">4. History Page</h2>
+      <h3 id="save-template">5.2. Save as Custom Template</h3>
       <p>
-        You can browse the job history. You can also check the status of jobs and cancel running jobs. 
-        The page consists of four sections: 
-        <span style="color: red; font-weight: bold;">Filter</span>,
-        <span style="color: blue; font-weight: bold;">Jobs</span>,
-        <span style="color: green; font-weight: bold;">Actions</span>, and
-        <span style="color: #FF00FF; font-weight: bold;">Display</span>.
+        The <strong>"Save as Custom Template"</strong> button appears at the bottom of the script panel on every application page, directly below the Submit button.
+        Clicking it opens a dialog where you can give the template a name and an optional description.
+        The current form values, together with the application's icon and path, are saved as a reusable template.
       </p>
-      
-      <img src="img/history_page4.png" width="1000" alt="History page">
-      
+      <ul>
+        <li>Saved templates appear in the "My Custom Templates" section on the home page.</li>
+        <li>When you open one of your own saved templates, the button reads <strong>"Save"</strong> from the moment the page loads, rather than "Save as Custom Template".
+          Clicking it overwrites that template with the form's current values — no dialog is shown. To keep the original and create a second template, start again from <strong>+ New Custom Template</strong>.</li>
+      </ul>
+
+      <h3 id="template-mode">5.3. Template Mode</h3>
+      <p>
+        When you open an application page from the <strong>+ New Custom Template</strong> picker — or from "Load or Create a Script from Disk" and "New Script" started from that picker —
+        the page opens in <em>template mode</em>. The page is then for building a template, not for running a job, so:
+      </p>
+      <ul>
+        <li>The <strong>Submit</strong> (or <strong>Confirm</strong>) button below the script is not shown. This is expected; nothing has gone wrong.</li>
+        <li><strong>Save as Custom Template</strong> becomes the main blue button at the bottom of the panel instead of an outlined secondary button.</li>
+      </ul>
+      <p>
+        To run the job, save the template first. Saving returns you to the home page, where your new template appears in "My Custom Templates".
+        Open it from there (or from the All Templates page) and the same form reopens with your values and with the Submit button available.
+        If you did not want a template at all, reach the application from the home page categories or from the All Templates page instead of the picker;
+        those routes open the ordinary application page with Submit in place.
+      </p>
+
+      <h2 id="history">6. History Page</h2>
+      <p>
+        You can browse the job history. You can also check the status of jobs and cancel running jobs.
+        The page consists of four sections: <strong>Filter</strong>, <strong>Jobs</strong>, <strong>Actions</strong> and <strong>Display</strong>.
+      </p>
+
+      <img src="img/history.png" width="1000" alt="History page">
+
+      <h3 id="history-scope">6.1. What the Table Contains</h3>
+      <p>
+        The table lists every job the scheduler reports for your user account — not only the jobs you submitted through Open Composer.
+        Open Composer stores its own record of the jobs it submitted (application, script location, script name, and the script itself) and joins that onto the scheduler's data.
+        Rows for jobs submitted some other way, for example from a terminal, therefore look different:
+      </p>
+      <ul>
+        <li>The "Application" column is empty and has no link.</li>
+        <li>The "Script Location" column is empty, so there are no file-browser or terminal icons.</li>
+        <li>The "Script Name" column shows the word <strong>Job</strong> instead of a file name. Clicking it still works: the batch script is fetched from the scheduler when the dialog opens.</li>
+        <li>Job ID, Job Name, start and end times, output and error files, and Status come from the scheduler, so they are filled in for every job.</li>
+      </ul>
+
+      <h3 id="history-dates">6.2. How Far Back the Page Looks</h3>
+      <p>
+        By default the page asks the scheduler for a seven-day window: today and the six days before it.
+        Jobs older than that are not listed until you widen the range. While the range is <strong>(ALL)</strong> no date filter is applied at all, so every queued and running job is listed whatever its date; once you pick a Range, that filter applies to queued and running jobs too, so a long-pending job submitted before the window drops out of the table.
+      </p>
+      <p>
+        The <strong>Range</strong> menu under the "Detail" button changes the window:
+      </p>
+      <ul>
+        <li><strong>(ALL)</strong> — the default. It applies no date filter at all, so on top of the seven-day scheduler window it keeps every queued or running job however long ago it was submitted. Choosing "Last 7 days" filters on submission date as well, so older queued and running jobs drop out.</li>
+        <li><strong>Today</strong> — today only.</li>
+        <li><strong>Yesterday and Today</strong> — yesterday and today.</li>
+        <li><strong>Last 7 days</strong> — today and the six days before it, the same window used by default.</li>
+        <li><strong>Last 30 days</strong> — today and the 29 days before it.</li>
+        <li><strong>Custom</strong> — enter "From" and "To" dates yourself. This is the only way to see jobs older than 30 days.</li>
+      </ul>
+
+      <h3 id="history-sections">6.3. The Four Sections</h3>
       <ul class="mt-3">
-        <li><span style="color: red; font-weight: bold;">Filter</span>
+        <li><strong>Filter</strong>
           <ul>
             <li>This section allows you to filter job history and search for specific jobs.</li>
             <li>Enter text in the input field and press Enter to display only the jobs that match the input in the table.</li>
+              <li>Text that matches is highlighted in yellow in the table. If a row matches only inside the job's stored script rather than in a visible column, its "Script Name" cell is outlined in yellow instead — click it to open the Job Script dialog and see the highlighted match.</li>
             <li>Click the "Detail" button to perform more advanced searches such as AND/OR conditions, filtering by specific fields, and specifying a time range.
               <p>
                 <img src="img/history_page5.png" width="300" alt="History page">
               </p>
             </li>
-            <li>You can filter jobs by their status using the checkboxes: "Queued", "Running", "Completed", and "Failed".</li>
+            <li>You can filter jobs by their status using the checkboxes: "Queued", "Running", "Completed", "Cancelled", "Failed", and "Unknown".</li>
             <li>If multiple job schedulers are configured, radio buttons will appear below the status checkboxes. You can select a scheduler to display only its jobs (e.g., "Fugaku" and "Prepost"; labels depend on configuration).</li>
           </ul>
         </li>
         
-        <li><span style="color: blue; font-weight: bold;">Jobs</span>
+        <li><strong>Jobs</strong>
           <ul>
             <li>This section displays the list of jobs.</li>
             <li>Click &#9650; or &#9660; in the table header to sort the entire table in ascending or descending order using that column as the key. The default order is descending by Job ID.</li>
-            <li>Click the "Job ID" link to view detailed information about the job.</li>
+            <li>Click the "Job ID" link to open the <strong>Job Details</strong> dialog. The details are fetched from the scheduler at the moment you open the dialog, so they are current rather than a stored copy.
+              <ul>
+                <li>For a job that has finished (Completed, Cancelled or Failed) the accounting record is shown: fields such as JobID, JobName, Partition, State, Submit, Start, End, Elapsed, WorkDir, Account, TotalCPU, AllocCPUS, ReqMem, ExitCode, NodeList, and the standard output and error paths. Which of these appear depends on what your site's scheduler reports.</li>
+                <li>For a queued or running job the scheduler's live record is shown instead, which is a much longer list of settings. This is why the field names differ between an active and a finished job.</li>
+                <li>The <strong>Source</strong> line at the bottom of the dialog is a disclosure. Click it to see the exact command Open Composer ran, which you can run yourself in a terminal.</li>
+                <li>For finished jobs, a <strong>Job Efficiency</strong> table is shown below the details, if your site has enabled it. It first lists the cluster, the number of cores and the number of nodes for context, then Wall Time, CPU and Memory, each as a percentage followed by the figures it was calculated from; GPU jobs also get GPU Utilization and GPU Memory. The GPU Memory percentage needs your administrator to have recorded the memory capacity of each GPU model, so without that only the amount used is shown. If the scheduler has no usable accounting data for the job, the section reads "No efficiency information available." instead.</li>
+                <li>Reading the percentages: CPU compares the CPU time your job actually used against the cores it reserved for the time it ran, Memory compares peak usage against the memory you requested, and Wall Time compares the run time against your time limit. A low percentage means you asked for more than the job needed. Reducing the request next time does not slow the job down and usually means it starts sooner.</li>
+              </ul>
+            </li>
             <li>Click the "Application" link to open the corresponding application page. If an icon is shown next to the application name, clicking it will open the Open OnDemand application page directly.</li>
             <li>Click the "Script Location" link to open the Open OnDemand Home Directory. Clicking the terminal icon will launch the Terminal application.</li>
-            <li>Click the "Script Name" link to view the executed job script. Clicking "Load parameters" will open the application page with the parameters used for that job preloaded.
-              <p>
-                <img src="img/history_page6.png" width="250" alt="History page" border="1">
-              </p>
+            <li>Click the "Script Name" link to view the job script that was executed. For a job submitted through Open Composer, clicking <strong>"Load script"</strong> reopens that application's own page with the job's script and the values it was submitted with preloaded, so you can adjust and resubmit it. For a job submitted some other way there is no application page to return to, so "Load script" opens the generic job-script page with the script text and the "Script location", "Script name" and "Job name" fields filled in; the form fields beside it are reconstructed by reading the script's scheduler directives, so only settings written as directives come back.</li>
+          </ul>
+        </li>
+
+        <li><strong>Actions</strong>
+          <ul>
+            <li>This section allows you to perform operations on jobs.</li>
+            <li>Select jobs using the checkboxes on the left side of the table, then use one of the per-selection actions:
+              <ul>
+                <li><strong>Cancel Job</strong> — cancels the selected queued or running jobs. Only the selected jobs that are Queued or Running are counted, and the number on the button shows how many.</li>
+                <li><strong>Delete Info</strong> — hides the selected <em>finished</em> jobs from the table and discards the information Open Composer stored about them. The jobs themselves are untouched, but the rows do not come back, so this cannot be undone. Queued and running jobs cannot be deleted: they are left out of the button's count, and the dialog warns you how many of your selected jobs were excluded and asks you to cancel them first.</li>
+                <li><strong>Cancel All Jobs</strong> — cancels every queued and running job found in the last 30 days. A confirmation dialog appears before any jobs are canceled.</li>
+                <li><strong>Delete All History</strong> — hides every job from the last 30 days, in the same way as "Delete Info", and cannot be undone. It refuses to run while you still have queued or running jobs: a banner appears telling you how many are active and asking you to cancel them all first.</li>
+                <li><strong>Refresh</strong> — reloads the history page to pick up the latest job statuses.</li>
+              </ul>
+            </li>
+            <li>You can select multiple jobs and perform actions on them at once.</li>
+            <li>Selecting the checkbox at the top of the table selects all jobs displayed on the current page.</li>
+            <li>When canceling multiple jobs, each job is canceled individually.
+              A progress bar inside the dialog tracks how many have been processed ("X / N"), and an <strong>Abort</strong> button stops after the job currently in flight.
+              If all jobs are canceled successfully, the bar turns green and the page reloads automatically.
+              If any cancellations fail, each error is listed so you can see which jobs were not canceled.
             </li>
           </ul>
         </li>
 
-        <li><span style="color: green; font-weight: bold;">Actions</span>
-    	    <ul>
-            <li>This section allows you to perform operations on selected jobs.</li>
-            <li>Select jobs using the checkboxes on the left side of the table, then click "Cancel Job" to cancel queued or running jobs. Click "Delete Info" to remove completed job information from the table.</li>
-            <li>You can select multiple jobs and perform actions on them at once.</li>
-            <li>Selecting the checkbox at the top of the table selects all jobs displayed on the current page.</li>
-    	    </ul>
-        </li>
-        
-        <li><span style="color: #FF00FF; font-weight: bold;">Display</span>
+        <li><strong>Display</strong>
           <ul>
             <li>This section controls how the job list is displayed, including the number of entries and pagination.</li>
             <li>At the bottom of the screen, the number of displayed entries, total entries, and the time taken to generate the table are shown.</li>
             <li>Enter a number in "Show entries" and press Enter to change the number of entries displayed per page.</li>
             <li>Click page numbers to navigate between pages.</li>
+            <li>Depending on how your site is configured, the table may include extra columns: "Job Name", "Partition", "Submission Time", "Start Time", "End Time", "Output" and "Error", and possibly further raw scheduler fields. If a column you expect is missing, your administrator has not enabled it.</li>
+            <li>In the "Output" and "Error" columns the file name is a link. Clicking it reads the file and shows it in a dialog without leaving the page. Only the first 1&nbsp;MB of a large file is shown, with a notice saying so.</li>
+            <li>On narrow screens all of these optional columns except "Job Name" are hidden. Widen the browser window to see them.</li>
           </ul>
         </li>
+      </ul>
+      <h2 id="nodes">7. Nodes Page</h2>
+      <p>
+        The Nodes page shows the current status of the cluster's compute nodes.
+        It is accessible via the "Nodes" link in the navigation bar.
+        The data is read once, when the page loads; the page does not refresh itself.
+      </p>
+      <img src="img/nodes.png" width="1000" alt="Nodes page">
+      <ul class="mt-3">
+        <li>The row of badges above the table summarizes the cluster: the total number of nodes, then a count for each state that is present — idle, allocated, mixed, down, drained and draining first, followed by any other states your site reports.</li>
+        <li>The table shows each node's name, state, CPU usage and memory usage. CPUs and memory are drawn as bars labeled available&nbsp;/&nbsp;total; the bar changes color as the node fills up.</li>
+        <li>Additional columns are added automatically for every GRES (Generic Resource) type the
+          scheduler reports — for example <code>gpu</code> or <code>nvme</code>.
+          Each GRES column is broken down by subtype (e.g. <code>A100</code>, <code>H100</code>) and
+          shows available vs. total counts.
+          These columns follow "Memory", in alphabetical order.</li>
+        <li>The search box is a plain substring match over the whole row: the node name, its state, its CPU counts, its memory figures, and the names of the GRES types it has — so typing <code>gpu</code> shows only GPU nodes.</li>
+        <li>Use the "State" checkboxes to show or hide nodes by their current state
+          (e.g. idle, allocated, down). All are ticked to begin with, and only the states actually present on the cluster are offered.</li>
+        <li>Click a column header to sort the table by that column; click again to reverse the order.</li>
+        <li>"Showing N of M node(s)" above the table tells you how many rows the current search and state filters leave.</li>
+        <li>"Fetched at" next to the <strong>Refresh</strong> button is the time the data was read from the cluster. Click Refresh to fetch it again.</li>
+        <li>The information icon beside the "Node Status" heading opens a dialog showing the exact command the page is built from, so you can run it yourself in a terminal.</li>
+        <li>If your site has more than one cluster, radio buttons appear next to Refresh. Choosing one reloads the page for that cluster.</li>
       </ul>
     </main>
   </div>

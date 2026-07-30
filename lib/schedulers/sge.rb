@@ -43,6 +43,143 @@ class Sge < Scheduler
     return e.message
   end
 
+  def valid_job_id?(id)
+    id.to_s.match?(/\A\d+\z/) || id.to_s.match?(/\A\d+\.\d+\z/)
+  end
+
+  def state_to_oc_status(state)
+    case state.to_s
+    when "r", "t", "Rr"                     then JOB_STATUS["running"]
+    when "qw", "h", "d", "s", "S", "T", "Rq" then JOB_STATUS["queued"]
+    when "E"                                 then JOB_STATUS["failed"]
+    when "completed"                         then JOB_STATUS["completed"]
+    when "failed_exit"                       then JOB_STATUS["failed"]
+    else                                          JOB_STATUS["unknown"]
+    end
+  end
+
+  # Fetch all jobs from qstat (active) and qacct (historical) in the sacct_all_jobs format.
+  # SGE has no date-range filtering — all available history is returned.
+  def sacct_all_jobs(date_from, date_to, bin = nil, bin_overrides = nil, ssh_wrapper = nil, scheduler_env = nil)
+    qstat    = get_command_path("qstat", bin, bin_overrides)
+    command1 = [ssh_wrapper, qstat].compact.join(" ")
+    stdout1, stderr1, status1 = capture_scheduler_command(scheduler_env, command1)
+    return nil, [stdout1, stderr1].join(" ").strip, command1 unless status1.success?
+
+    jobs = {}
+
+    unless stdout1.empty?
+      stdout1.lines[2..].each do |line|
+        cols = line.gsub(/\s+/, ' ').strip.split(' ')
+        next if cols.size < 5
+
+        base_id    = cols[0]
+        state      = cols[4]
+        name       = cols[2]
+        submit     = "#{cols[5]} #{cols[6]}"
+        is_running = (state == "r" || state == "t")
+
+        # Running array tasks have an individual task ID in the last column
+        if is_running && cols.size >= 10 && cols.last.match?(/\A\d+\z/)
+          job_id    = "#{base_id}.#{cols.last}"
+          partition = cols[7] || ""
+        else
+          job_id    = base_id
+          partition = is_running ? (cols[7] || "") : ""
+        end
+
+        jobs[job_id] ||= {
+          "JobID"     => job_id,
+          "JobName"   => name,
+          "State"     => state,
+          "Partition" => partition,
+          "Submit"    => submit
+        }
+      end
+    end
+
+    # Append completed jobs from qacct (no day limit — fetch all history)
+    qacct    = get_command_path("qacct", bin, bin_overrides)
+    command2 = [ssh_wrapper, qacct, "-j"].compact.join(" ")
+    stdout2, _stderr2, status2 = capture_scheduler_command(scheduler_env, command2)
+
+    if status2.success?
+      stdout2.split(/={10,}/).each do |block|
+        parsed = {}
+        block.lines.each do |line|
+          key, value = line.strip.split(' ', 2)
+          next unless key && value
+          parsed[key] = value.strip
+        end
+        base_id = parsed["jobnumber"]
+        next unless base_id
+        task_id = parsed["taskid"]
+        job_id  = (task_id && task_id != "undefined") ? "#{base_id}.#{task_id}" : base_id
+        next if jobs.key?(job_id)
+        raw_state = (parsed["exit_status"] && parsed["exit_status"] != "0") ? "failed_exit" : "completed"
+        # stdout/stderr paths use "host:path" format; strip the host prefix
+        jobs[job_id] = {
+          "JobID"     => job_id,
+          "JobName"   => parsed["jobname"] || "",
+          "State"     => raw_state,
+          "Partition" => parsed["qname"] || "",
+          "Submit"    => parsed["qsub_time"] || "",
+          "StdOut"    => parsed["stdout_path_list"].to_s.sub(/\A[^:]+:/, ''),
+          "StdErr"    => parsed["stderr_path_list"].to_s.sub(/\A[^:]+:/, '')
+        }
+      end
+    end
+
+    [jobs.values, nil, command1]
+  rescue Exception => e
+    return nil, e.message, nil
+  end
+
+  # Fetch node information from qhost and return it in the sinfo_nodes format.
+  def sinfo_nodes(bin = nil, bin_overrides = nil, ssh_wrapper = nil, scheduler_env = nil)
+    qhost   = get_command_path("qhost", bin, bin_overrides)
+    command = [ssh_wrapper, qhost].compact.join(" ")
+    stdout, stderr, status = capture_scheduler_command(scheduler_env, command)
+    return nil, [stdout, stderr].join(" ").strip, command unless status.success?
+
+    nodes = []
+    stdout.each_line do |line|
+      line = line.chomp
+      next if line =~ /\AHOSTNAME/i || line =~ /\A-{5}/ || line =~ /\Aglobal\s/i
+      parts = line.split
+      next if parts.size < 9
+      hostname = parts[0]
+      ncpu_s   = parts[2]
+      load_s   = parts[6]
+      memtot_s = parts[7]
+      memuse_s = parts[8]
+
+      if load_s == "-" || ncpu_s == "-"
+        state    = "down"
+        used_cpu = 0
+        idle_cpu = 0
+        total_cpu = ncpu_s == "-" ? 0 : ncpu_s.to_i
+      else
+        total_cpu = ncpu_s.to_i
+        load      = load_s.to_f
+        used_cpu  = [load.ceil, total_cpu].min
+        idle_cpu  = [total_cpu - used_cpu, 0].max
+        state     = used_cpu >= total_cpu ? "allocated" : (used_cpu > 0 ? "mixed" : "idle")
+      end
+
+      cpus_str     = "#{used_cpu}/#{idle_cpu}/0/#{total_cpu}"
+      total_mem_mb = sge_mem_to_mb(memtot_s)
+      used_mem_mb  = sge_mem_to_mb(memuse_s)
+      free_mem_mb  = [total_mem_mb - used_mem_mb, 0].max
+
+      nodes << [hostname, state, cpus_str, total_mem_mb.to_s, free_mem_mb.to_s, "", ""]
+    end
+
+    [nodes, nil, command]
+  rescue Exception => e
+    return nil, e.message, nil
+  end
+
   # Return Job Name, Job Partition, Job Status ID.
   def get_job_info(columns)
     job_name = columns[2]
@@ -214,5 +351,22 @@ class Sge < Scheduler
     return info, nil
   rescue Exception => e
     return nil, e.message
+  end
+
+  private
+
+  def sge_mem_to_mb(mem_str)
+    return 0 if mem_str.nil? || mem_str == "-"
+    m = mem_str.match(/\A([\d.]+)\s*([TGMK]?)\z/i)
+    return 0 unless m
+    val  = m[1].to_f
+    unit = m[2].upcase
+    case unit
+    when 'T' then (val * 1_048_576).to_i
+    when 'G' then (val * 1_024).to_i
+    when 'M' then val.to_i
+    when 'K' then (val / 1_024).to_i
+    else          val.to_i
+    end
   end
 end

@@ -40,6 +40,14 @@ def find(samples, sec, n)
   s
 end
 
+# Like find(), but returns nil instead of raising. Used for the synthesised
+# fragment samples below, whose documentation sections are optional: a section
+# that has been renamed or removed means "nothing to synthesise here", not a
+# broken extractor.
+def find_optional(samples, sec, n)
+  samples.find { |x| x[:sec] == sec && x[:n] == n }
+end
+
 def sample_name(sample)
   "#{sample[:idx]}_#{sample[:sec].tr('-', '_')}"
 end
@@ -71,37 +79,40 @@ raise "#{sample_name(frag)} synthesis failed (docs changed?)" if replaced == bas
 write_sample(sample_name(frag), replaced)
 
 # 3. overwrite_warning section: script/submit fragments, wrapped with a form.
-script_frag = find(samples, "overwrite_warning", 1)
-submit_frag = find(samples, "overwrite_warning", 2)
-raise "unexpected overwrite_warning fragments" unless
-  script_frag[:text].start_with?("script:") && submit_frag[:text].start_with?("submit:")
+#    Optional: skipped when the docs have no such section.
+script_frag = find_optional(samples, "overwrite_warning", 1)
+submit_frag = find_optional(samples, "overwrite_warning", 2)
+if script_frag && submit_frag
+  raise "unexpected overwrite_warning fragments" unless
+    script_frag[:text].start_with?("script:") && submit_frag[:text].start_with?("submit:")
 
-write_sample(sample_name(script_frag), <<~YML)
-  form:
-    comment:
-      widget: text
-      label: Comment
-      value: test
+  write_sample(sample_name(script_frag), <<~YML)
+    form:
+      comment:
+        widget: text
+        label: Comment
+        value: test
 
-  #{script_frag[:text].chomp}
+    #{script_frag[:text].chomp}
+        #!/bin/bash
+        #comment=\#{comment}
+  YML
+
+  write_sample(sample_name(submit_frag), <<~YML)
+    form:
+      comment:
+        widget: text
+        label: Comment
+        value: test
+
+    script: |
       #!/bin/bash
       #comment=\#{comment}
-YML
 
-write_sample(sample_name(submit_frag), <<~YML)
-  form:
-    comment:
-      widget: text
-      label: Comment
-      value: test
-
-  script: |
-    #!/bin/bash
-    #comment=\#{comment}
-
-  #{submit_frag[:text].chomp}
-      sbatch \#{OC_SCRIPT_LOCATION}/\#{OC_SCRIPT_NAME}
-YML
+    #{submit_frag[:text].chomp}
+        sbatch \#{OC_SCRIPT_LOCATION}/\#{OC_SCRIPT_NAME}
+  YML
+end
 
 # 4. header section, 1st block: a custom header, wrapped with a form.
 header_frag = find(samples, "header", 1)

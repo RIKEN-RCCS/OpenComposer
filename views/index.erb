@@ -1,6 +1,58 @@
-<% @manifests_w_category.group_by(&:category).each.with_index do |(category, manifests), index| %>
-  <div class="mt-<%= index == 0 ? 0 : 3 %> mb-4 mx-1 px-3 py-1 fs-5 text-white bg-gradient"
-       style="background:<%= @conf['category_color'] %>;">
+<%
+  small_format = @conf['home_format'].to_s == 'small'
+%>
+
+<div id="oc-app-list">
+
+<%# ── Optional description of Open Composer, above the template list ─────── %>
+<%# (The gradient separator under the header is rendered globally in layout.erb.) %>
+<% if @conf.fetch('app_description', '').to_s.strip.length > 0 %>
+  <div class="mx-1 px-3 py-4 my-2" style="background:<%= @conf.fetch('description_color', '#FFFFFF') %>; color:<%= @conf.fetch('description_text_color', '#191919') %>;">
+    <%= @conf['app_description'] %>
+  </div>
+<% end %>
+
+<%# ── Load/Create a Script from Disk (opens the full-page file browser; the ── %>
+<%# ── chosen script is loaded into the generic Slurm page via ocExtLoad) ───── %>
+<% if @conf.fetch('show_load_script', true) %>
+<div class="mx-1 px-3 my-2">
+  <a href="<%= @script_name %>/load_script" class="btn btn-primary">
+    <i class="bi bi-folder2-open me-1"></i><%= ERB::Util.h(@conf.fetch('load_script_label', 'Load or Create a Script from Disk')) %>
+  </a>
+</div>
+<% end %>
+
+<% if small_format %>
+<%# ── Small format: letter-grouped pills, no icons ───────────────────────── %>
+
+<% all_categorised = group_manifests_by_category(@manifests_w_category).to_a %>
+<% all_categorised << ["Application", @manifests_wo_category] if @manifests_wo_category.any? %>
+
+<% all_categorised.each.with_index do |(category, manifests), index| %>
+  <div class="mt-<%= index == 0 ? 0 : 3 %> mb-1 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom"
+       style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
+    <%= category %>
+  </div>
+  <div class="px-4 pb-2 pt-1">
+    <% manifests.group_by { |m| m['name'].to_s[0].upcase }.sort.each do |letter, apps| %>
+      <div class="d-flex align-items-baseline mb-1">
+        <span class="fw-bold me-2 text-muted" style="min-width:1.4em; font-size:0.75rem;"><%= letter %></span>
+        <div class="d-flex flex-wrap gap-1">
+          <% apps.each do |m| %>
+            <%= output_small_app_link(m['dirname'], m['name']) %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+
+<% else %>
+<%# ── Big format: icon thumbnails (current layout) ───────────────────────── %>
+
+<% group_manifests_by_category(@manifests_w_category).each.with_index do |(category, manifests), index| %>
+  <div class="mt-<%= index == 0 ? 0 : 3 %> mb-4 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom"
+       style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
     <%= category %>
   </div>
   <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-6 g-3 px-3">
@@ -11,8 +63,8 @@
 <% end %>
 
 <% if @manifests_wo_category.any? %>
-  <div class="mt-<%= @manifests_w_category.empty? ? 0 : 3 %> mb-4 mx-1 px-3 py-1 fs-5 text-white bg-gradient"
-       style="background:<%= @conf['category_color'] %>;">
+  <div class="mt-<%= @manifests_w_category.empty? ? 0 : 3 %> mb-4 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom"
+       style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
     Application
   </div>
   <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-6 g-3 px-3">
@@ -21,3 +73,195 @@
     <% end %>
   </div>
 <% end %>
+
+<% end %>
+
+<%# ── My Templates (same for both formats) ──────────────────────────────── %>
+<div class="mt-3 mb-2 mx-1 px-3 py-1 fs-5 bg-gradient border-bottom d-flex justify-content-between align-items-center"
+     style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>;">
+  My Custom Templates
+  <div class="d-flex align-items-center gap-2">
+    <% unless @templates.empty? %>
+      <input type="search" id="oc-tmpl-search" class="form-control form-control-sm w-auto"
+             placeholder="Search templates…" autocomplete="off">
+    <% end %>
+    <a href="<%= @script_name %>/templates/new" class="btn btn-sm fw-normal fs-6 text-nowrap"
+       style="background:<%= @conf['category_color'] %>; color:<%= @conf['category_text_color'] %>; border-color:<%= @conf['category_text_color'] %>;">
+      + New Custom Template
+    </a>
+  </div>
+</div>
+<% if @templates.empty? %>
+  <div class="px-4 py-2 small text-muted">
+    No templates yet. Click <strong>+ New Custom Template</strong> above to choose a style, fill in your settings, then click <strong>Save as Custom Template</strong>.
+  </div>
+<% else %>
+  <div class="row row-cols-3 row-cols-sm-4 row-cols-md-5 row-cols-lg-6 g-3 px-3 mb-3" id="oc-tmpl-grid">
+    <% @templates.each do |t| %>
+      <%= output_template_thumbnail(t['slug'], t['name'], t['description'], t['app_path'], t['icon']) %>
+    <% end %>
+  </div>
+  <div id="oc-tmpl-no-results" class="px-4 py-2 small text-muted d-none">No templates match your search.</div>
+<% end %>
+
+</div><%# /oc-app-list %>
+
+<div class="modal fade" id="modal-rename-template" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Template</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="rename-tmpl-name">Name</label>
+          <input type="text" id="rename-tmpl-name" class="form-control">
+        </div>
+        <div class="mb-1">
+          <label class="form-label" for="rename-tmpl-desc">Description <span class="text-muted fw-normal">(optional)</span></label>
+          <input type="text" id="rename-tmpl-desc" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal" type="button">Cancel</button>
+        <button class="btn btn-primary" type="button" onclick="ocRenameTemplate()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+<form id="rename-template-form" method="post" action=""></form>
+<script>
+document.getElementById('modal-rename-template').addEventListener('show.bs.modal', function(e) {
+  var btn = e.relatedTarget;
+  document.getElementById('rename-tmpl-name').value = btn.getAttribute('data-name') || '';
+  document.getElementById('rename-tmpl-desc').value = btn.getAttribute('data-desc') || '';
+  document.getElementById('rename-template-form').action =
+    '<%= @script_name %>/templates/' + (btn.getAttribute('data-slug') || '') + '/rename';
+});
+function ocRenameTemplate() {
+  var name = document.getElementById('rename-tmpl-name').value.trim();
+  if (!name) { document.getElementById('rename-tmpl-name').focus(); return; }
+  var form = document.getElementById('rename-template-form');
+  form.innerHTML = '';
+  function addHidden(n, v) {
+    var inp = document.createElement('input'); inp.type = 'hidden'; inp.name = n; inp.value = v;
+    form.appendChild(inp);
+  }
+  addHidden('template_name', name);
+  addHidden('template_description', document.getElementById('rename-tmpl-desc').value.trim());
+  form.submit();
+}
+
+// ── Drag-and-drop reordering of My Custom Templates ────────────────────────
+// Cards are reordered live while dragging; on drop the new slug order is
+// POSTed to /templates/reorder, which stores a "position" in each template's
+// YAML (load_templates sorts by it). Hardening:
+//   - drag is disabled while the template search filter is active
+//   - Esc / dropping outside the grid cancels and restores the original order
+//   - a no-op drag (order unchanged) sends no request
+//   - a failed save restores the original order and shows a message
+//   - stale responses from overlapping saves are ignored (monotonic counter)
+(function() {
+  var grid = document.getElementById('oc-tmpl-grid');
+  if (!grid) return;
+  var dragging  = null;
+  var dragSnapshot = null;  // card order at dragstart, for revert
+  var saveSeq   = 0;
+
+  function cardOrder() {
+    return Array.from(grid.querySelectorAll('.oc-tmpl-card'));
+  }
+  function restoreOrder(cards) {
+    cards.forEach(function(c) { grid.appendChild(c); });
+  }
+  function filterActive() {
+    var input = document.getElementById('oc-tmpl-search');
+    return !!(input && input.value.trim());
+  }
+
+  grid.querySelectorAll('.oc-tmpl-card').forEach(function(card) {
+    card.setAttribute('draggable', 'true');
+    card.style.cursor = 'grab';
+    card.addEventListener('dragstart', function(e) {
+      // Reordering while the list is filtered would move cards relative to
+      // hidden ones in surprising ways — disable it.
+      if (filterActive()) { e.preventDefault(); return; }
+      dragging = card;
+      dragSnapshot = cardOrder();
+      card.classList.add('opacity-50');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        try { e.dataTransfer.setData('text/plain', card.dataset.slug || ''); } catch (err) {}
+      }
+    });
+    card.addEventListener('dragend', function(e) {
+      card.classList.remove('opacity-50');
+      if (!dragging) return;
+      dragging = null;
+      // dropEffect is 'none' when the drag was cancelled (Esc) or dropped
+      // outside the grid — treat that as cancel and restore the original order.
+      if (e.dataTransfer && e.dataTransfer.dropEffect === 'none' && dragSnapshot) {
+        restoreOrder(dragSnapshot);
+        dragSnapshot = null;
+        return;
+      }
+      saveOrder();
+    });
+    card.addEventListener('dragover', function(e) {
+      if (!dragging || dragging === card) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      var rect = card.getBoundingClientRect();
+      var before = (e.clientX - rect.left) < rect.width / 2;
+      grid.insertBefore(dragging, before ? card : card.nextSibling);
+    });
+  });
+  grid.addEventListener('dragover', function(e) {
+    if (!dragging) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+  });
+  grid.addEventListener('drop', function(e) { if (dragging) e.preventDefault(); });
+
+  function saveOrder() {
+    var snapshot = dragSnapshot;
+    dragSnapshot = null;
+    var slugs = cardOrder().map(function(c) { return c.dataset.slug; }).filter(Boolean);
+    if (!slugs.length) return;
+    // No-op drag: nothing moved, nothing to save.
+    if (snapshot && slugs.join(',') === snapshot.map(function(c) { return c.dataset.slug; }).join(',')) return;
+    var seq = ++saveSeq;
+    fetch('<%= @script_name %>/templates/reorder', {
+      method: 'POST',
+      body: new URLSearchParams({ order: slugs.join(',') })
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      if (!data.ok) throw new Error(data.error || 'save failed');
+    }).catch(function() {
+      if (seq !== saveSeq) return;  // a newer save superseded this one
+      if (snapshot) restoreOrder(snapshot);
+      alert('Could not save the new template order (your session may have expired). The previous order has been restored — reload the page and try again.');
+    });
+  }
+})();
+
+(function() {
+  var input = document.getElementById('oc-tmpl-search');
+  if (!input) return;
+  input.addEventListener('input', function() {
+    var q = input.value.trim().toLowerCase();
+    var cards = document.querySelectorAll('#oc-tmpl-grid .oc-tmpl-card');
+    var visible = 0;
+    cards.forEach(function(card) {
+      var match = !q || card.dataset.name.includes(q) || card.dataset.desc.includes(q);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    var noResults = document.getElementById('oc-tmpl-no-results');
+    if (noResults) noResults.classList.toggle('d-none', visible > 0);
+  });
+})();
+</script>

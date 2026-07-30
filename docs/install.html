@@ -16,15 +16,16 @@
         <li class="nav-item"><a href="#install" class="nav-link">1. Installation</a></li>
         <li class="nav-item"><a href="#setting" class="nav-link">2. Setting</a></li>
         <li class="nav-item ms-3"><a href="#clusters" class="nav-link">2.1. clusters</a></li>
-        <li class="nav-item ms-3"><a href="#scheduler_env" class="nav-link">2.2. scheduler_env</a></li>
-        <li class="nav-item ms-3"><a href="#copy_environment" class="nav-link">2.3. copy_environment</a></li>
-        <li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.4. bin_overrides</a></li>
+        <li class="nav-item ms-3"><a href="#bin_overrides" class="nav-link">2.2. bin_overrides</a></li>
+        <li class="nav-item ms-3"><a href="#scheduler_env" class="nav-link">2.3. scheduler_env</a></li>
+        <li class="nav-item ms-3"><a href="#copy_environment" class="nav-link">2.4. copy_environment</a></li>
         <li class="nav-item ms-3"><a href="#history" class="nav-link">2.5. history</a></li>
         <li class="nav-item"><a href="#registor" class="nav-link">3. Registration</a></li>
-        <li class="nav-item"><a href="#general" class="nav-link">4. Installation by general user</a></li>
-        <li class="nav-item"><a href="#local" class="nav-link">5. Local Development</a></li>
-        <li class="nav-item"><a href="#test" class="nav-link">6. Testing</a></li>
-        <li class="nav-item"><a href="#jobscheduler" class="nav-link">7. Adding a job scheduler</a></li>
+        <li class="nav-item"><a href="#ood-integration" class="nav-link">4. OOD-Integrated Installation</a></li>
+        <li class="nav-item"><a href="#general" class="nav-link">5. Installation by general user</a></li>
+        <li class="nav-item"><a href="#local" class="nav-link">6. Local Development</a></li>
+        <li class="nav-item"><a href="#test" class="nav-link">7. Testing</a></li>
+        <li class="nav-item"><a href="#jobscheduler" class="nav-link">8. Adding a Job Scheduler</a></li>
       </ul>
     </nav>
 
@@ -33,50 +34,259 @@
       <h2 id="install">1. Installation</h2>
       <p>
         Open Composer runs on <a target="_blank" href="https://openondemand.org/">Open OnDemand</a>. Save Open Composer in your Open OnDemand application directory: <code>/var/www/ood/apps/sys/</code>.
+        Applications installed here are automatically available to <strong>all users</strong> on the Open OnDemand instance without any per-user setup.
       </p>
       <pre>
 $ cd /var/www/ood/apps/sys/
-$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git</pre>
+$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git opencomposer</pre>
+      <p>
+        The directory name becomes part of the app's URL (<code>/pun/sys/opencomposer</code>). It also matters if you later enable the OOD-integrated mode of <a href="#ood-integration">section 4</a>, whose proxy defaults to <code>opencomposer</code>; if you install under a different name, set <code>OC_EMBED_APP_NAME</code> to match.
+      </p>
+
+      <h4 class="mt-3">Pre-initialize gems <span class="badge bg-secondary" style="font-size: 0.7em; vertical-align: middle;">Optional but recommended</span></h4>
+      <p>
+        Open Composer will install its Ruby gem dependencies automatically the first time a user opens the app.
+        To avoid users seeing a loading delay on that first visit, you can pre-install the gems as the administrator:
+      </p>
+      <pre>
+$ cd /var/www/ood/apps/sys/opencomposer
+$ sudo cp misc/Gemfile .
+$ sudo bundle install</pre>
+      <p>
+        Re-run <code>bundle install</code> after any <code>git pull</code> that updates the <code>Gemfile</code>.
+      </p>
+
+      <h4 class="mt-3" id="network-dependencies">Network and external dependencies</h4>
+      <p>
+        The <code>module_load</code> and <code>dependent_module_select</code> widgets, and the automatic <strong>GPU</strong> badge, are driven by a catalog of the modules available on the cluster. Open Composer downloads it from the URL given by <code>modules_list_url</code> in <code>conf.yml.erb</code>. This setting is <strong>empty by default</strong>, in which case the feature is inactive: the module widgets offer no versions and no GPU badge is applied automatically. Nothing else is affected.
+      </p>
+      <p>
+        When it is set, the Passenger application (PUN) needs outbound network access to that host. The document must be JSON of the form:
+      </p>
+      <pre>{
+  "GROMACS": {
+    "versions": ["2025.2-foss-2023a", "2024.5-foss-2023a"],
+    "default":  "2025.2-foss-2023a",
+    "domains":  ["chem"]
+  }
+}</pre>
+      <p>
+        A module whose <code>domains</code> list contains <code>gpu</code> causes any application of the same name to be badged <strong>GPU</strong> automatically; an application can also be badged explicitly with the <code>tags</code> key in its <code>manifest.yml</code>.
+      </p>
+      <p>
+        The list is fetched while a page is being rendered — every Open Composer page triggers the lookup, as does the <code>/_module_avail</code> request made by the module widgets.
+        The response is cached in <code>&lt;data_dir&gt;/.module-list-cache.json</code> and is re-downloaded only once the cache file is older than 24 hours.
+        Connect and read timeouts are 10 and 15 seconds. If the download fails, an existing (stale) cache file is used; if there is no cache file, the list is treated as empty. No error is shown to the user, so check the PUN log if the widgets stay empty.
+      </p>
+
+      <h4 class="mt-3">Troubleshooting</h4>
+      <p>
+        Open Composer writes a log line to standard output for each job-scheduler action it performs.
+        Open OnDemand's Passenger captures standard output in the per-user PUN log, <code>/var/log/ondemand-nginx/&lt;user&gt;/error.log</code>, so that file is the place to look when a submission does not behave as expected.
+        Note that the path has no per-application component: each user has a single PUN, and every Open OnDemand application that user opens — the dashboard included — writes to the same file.
+        Each line Open Composer emits has the form:
+      </p>
+      <pre>[&lt;time&gt;] [Open Composer] &lt;action&gt; : scheduler=&lt;scheduler class&gt; : &lt;key&gt;=&lt;value&gt; : ...</pre>
+      <p>
+        Passenger prefixes every captured line with <code>App &lt;pid&gt; output:</code>, so the text above appears partway into the line rather than at the start of it.
+        Filter the file on the <code>[Open Composer]</code> tag to separate these entries from the request log and from other applications.
+        Use a fixed-string match — without <code>-F</code> the square brackets are read as a character class and every line matches:
+      </p>
+      <pre>$ sudo grep -F '[Open Composer]' /var/log/ondemand-nginx/&lt;user&gt;/error.log</pre>
+      <p>
+        The trailing key/value pairs vary per action and include, where applicable, <code>cluster</code>, <code>job_ids</code>, <code>app_dir</code>, <code>app_name</code>, <code>category</code>, <code>script_path</code>, <code>command</code> and <code>result</code>. Empty values are omitted. The following actions are logged:
+      </p>
+      <ul>
+        <li><code>Submit job</code> and <code>Save job file</code></li>
+        <li><code>Cancel job</code>, <code>Cancel all jobs</code>, <code>Delete job information</code> and <code>Delete all job history</code></li>
+        <li><code>Run commands in the check section</code> and <code>Run commands in the submit section</code> (the executed command is logged)</li>
+        <li><code>Ensure SSH key</code> — logged only when a key was actually created or when generation failed, not when a usable key already existed</li>
+      </ul>
 
       <h2 id="setting">2. Setting</h2>
       <p>
-        Create <code>./conf.yml.erb</code> with reference to <code>./conf.yml.erb.sample</code>.
+        Create <code>./conf.yml.erb</code> using <code>./conf.yml.erb.sample</code> as a starting point — it lists every available setting with its default value, so you can edit it in place without consulting this document for each one.
       </p>
-      <pre>$ cd OpenComposer
+      <pre>$ cd opencomposer
 $ sudo cp conf.yml.erb.sample conf.yml.erb</pre>
+      <p>
+        The groups below appear in the same order as the numbered sections of <code>conf.yml.erb.sample</code>, so the file and this document can be read side by side.
+        They run from what has to be set for Open Composer to work at all, through what it stores and shows, to how it looks — only the two settings under <strong>Required</strong> have to be given a value.
+      </p>
 
+      <h4>1. Required</h4>
+      <p>The <code>apps_dir</code> and <code>scheduler</code> are required. The <code>scheduler</code> may alternatively be defined per-cluster inside <code>clusters</code>.</p>
       <table class="table" style="vertical-align: middle;">
         <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
         <tr><td>apps_dir</td><td>Application directory</td><td>(None)</td></tr>
-        <tr><td>scheduler</td><td>Job scheduler (<code>slurm</code>, <code>pbspro</code>, <code>sge</code>, <code>fujitsu_tcs</code>)</td><td>(None)</td></tr>
-        <tr><td>clusters</td><td>Cluster properties</td><td>(None)</td></tr>
-        <tr><td>data_dir</td><td>Directory where submitted job information is stored</td><td><code>${HOME}/composer</code></td></tr>
-        <tr><td>login_node</td><td>Login node when you launch the Open OnDemand web terminal</td><td>(None)</td></tr>
+        <tr><td>scheduler</td><td>Job scheduler (<code>slurm</code>, <code>pbspro</code>, <code>miyabi</code>, <code>sge</code>, <code>fujitsu_tcs</code>)</td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">2. Cluster &amp; Job Scheduler</h4>
+      <p>
+        How Open Composer reaches the job scheduler: where the scheduler commands live, and whether they run on the web node or over SSH on a login node. Everything here is site-specific and has no default, so a site whose scheduler commands are on the web node and on <code>PATH</code> can leave all of it unset. Four of these settings have sections of their own: <a href="#clusters">2.1</a>, <a href="#bin_overrides">2.2</a>, <a href="#scheduler_env">2.3</a> and <a href="#copy_environment">2.4</a>.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>clusters</td><td>Cluster properties (see <a href="#clusters">section 2.1</a>)</td><td>(None)</td></tr>
+        <tr><td>login_node</td><td>Hostname of the login node. Used for the "Shell Access" link in the navigation bar, for the terminal shortcut beside the script location on the History page and the application page, and by application forms that shell out to the login node (for example the <code>sacctmgr</code> query that populates the Project dropdown in <code>apps/SlurmBasic</code>). The two page shortcuts are omitted when this is unset, but the navigation bar link is not — see <code>show_shell_access</code></td><td>(None)</td></tr>
         <tr><td>ssh_wrapper</td><td>Command for using the job scheduler of another node using SSH</td><td>(None)</td></tr>
-        <tr><td>bin</td><td>PATH of commands of job scheduler</td><td>(None)</td></tr>
-        <tr><td>bin_overrides</td><td>PATH of each command of job scheduler</td><td>(None)</td></tr>
-        <tr><td>scheduler_env</td><td>Environment variables added when running job scheduler commands</td><td>(None)</td></tr>
-        <tr><td>copy_environment</td><td>Whether Slurm submits jobs with the PUN environment copied</td><td><code>false</code></td></tr>
-        <tr><td>sge_root</td><td>Directory for the Grid Engine root (<code>SGE_ROOT</code>)</td><td>(None)</td></tr>
-        <tr><td>history</td><td>Additional display fields on the history page</td><td><code>OC_HISTORY_JOB_NAME</code>, <code>OC_HISTORY_PARTITION</code>, <code>OC_HISTORY_SUBMISSION_TIME</code></td></tr>
-        <tr><td>footer</td><td>Text in the footer</td><td>(None)</td></tr>
+        <tr><td>bin</td><td>Directory holding the job scheduler commands. It is honored only when <code>&lt;bin&gt;/&lt;command&gt;</code> exists <em>on the machine running Open Composer</em>; when that file is absent the bare command name is used instead and resolved through <code>PATH</code>. In the common <code>ssh_wrapper</code> deployment the commands actually run on the remote host, so the local existence check fails and <code>bin</code> is silently ignored. Use <code>bin_overrides</code> for that case — it is applied unconditionally, with no existence check</td><td>(None)</td></tr>
+        <tr><td>bin_overrides</td><td>PATH of each command of job scheduler (see <a href="#bin_overrides">section 2.2</a>)</td><td>(None)</td></tr>
+        <tr><td>scheduler_env</td><td>Environment variables added when running job scheduler commands (see <a href="#scheduler_env">section 2.3</a>)</td><td>(None)</td></tr>
+        <tr><td>copy_environment</td><td>Whether Slurm submits jobs with the PUN environment copied (see <a href="#copy_environment">section 2.4</a>)</td><td><code>false</code></td></tr>
+        <tr><td>sge_root</td><td>Value assigned to <code>SGE_ROOT</code> for Grid Engine commands. It is exported on every request — the History table, the Nodes page and the job details modal as well as submission and cancellation — but only when <code>SGE_ROOT</code> is not already set in the environment, so a value inherited by the PUN always wins</td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">3. SSH Key Provisioning</h4>
+      <p>
+        When <code>ensure_ssh_key</code> is <code>true</code>, pressing <strong>Submit</strong> makes Open Composer check the user's <code>~/.ssh</code> directory before the job is submitted, and provision a key if none is present. This is intended for sites where jobs are submitted over SSH to a login node that shares the user's home directory.
+      </p>
+      <p>
+        The check creates <code>~/.ssh</code> if it is missing and sets its mode to <code>0700</code> in either case, then looks for any of <code>id_ed25519</code>, <code>id_rsa</code>, <code>id_ecdsa</code>, <code>id_dsa</code>, or <code>&lt;ssh_key_name&gt;_&lt;type&gt;</code> for the types <code>ed25519</code>, <code>rsa</code>, <code>ecdsa</code> and <code>dsa</code>. If any of these exists the check stops immediately: an existing key is never overwritten. Otherwise it:
+      </p>
+      <ul>
+        <li>runs <code>ssh-keygen</code> with an empty passphrase and the comment <code>Open Composer auto-generated key</code>, writing <code>~/.ssh/&lt;ssh_key_name&gt;_&lt;ssh_key_type&gt;</code> (mode <code>0600</code>) and its <code>.pub</code> file (mode <code>0644</code>);</li>
+        <li>appends the public key to <code>~/.ssh/authorized_keys</code> (mode <code>0600</code>) unless that file already contains it;</li>
+        <li>appends a <code>Host *</code> stanza with an <code>IdentityFile ~/.ssh/&lt;ssh_key_name&gt;_&lt;ssh_key_type&gt;</code> line to <code>~/.ssh/config</code> (mode <code>0600</code>) unless the key filename already appears there. The stanza applies to every SSH host, because <code>ssh</code> only offers <code>id_*</code> keys automatically.</li>
+      </ul>
+      <p>
+        The result is written to the PUN log unless a usable key already existed. A failure is logged but does not block the submission.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>ensure_ssh_key</td><td>Run the SSH key check described above when a job is submitted (<code>true</code> or <code>false</code>)</td><td><code>false</code></td></tr>
+        <tr><td>ssh_key_type</td><td>Key type passed to <code>ssh-keygen -t</code>. Accepted values are <code>ed25519</code>, <code>rsa</code> and <code>ecdsa</code>; <code>rsa</code> keys are generated with <code>-b 4096</code>. Any other value is silently replaced with <code>ed25519</code></td><td><code>ed25519</code></td></tr>
+        <tr><td>ssh_key_name</td><td>Base name of the generated key files, which are named <code>&lt;ssh_key_name&gt;_&lt;ssh_key_type&gt;</code>. Characters other than letters, digits, <code>_</code>, <code>.</code> and <code>-</code> are stripped; if nothing remains, <code>opencomposer</code> is used</td><td><code>opencomposer</code></td></tr>
+      </table>
+
+      <h4 class="mt-4">4. Data &amp; Modules</h4>
+      <p>
+        Where Open Composer keeps its own state, and the optional catalog of environment modules read by the <code>module_load</code> and <code>dependent_module_select</code> widgets and by the automatic GPU badge.
+        The catalog is an external dependency rather than part of Open Composer, so before setting <code>modules_list_url</code> see <a href="#network-dependencies">Network and external dependencies</a> in section 1, which covers the JSON format it must have, the outbound network access the web node needs, how the response is cached, and what happens when the download fails.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>data_dir</td><td>Directory where submitted job information is stored</td><td><code>${HOME}/composer</code></td></tr>
+        <tr><td>modules_list_url</td><td>URL of the JSON catalog of available environment modules, used by the <code>module_load</code> and <code>dependent_module_select</code> widgets and by the automatic GPU badge (see <a href="#network-dependencies">Network and external dependencies</a> in section 1). Empty disables the feature</td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">5. Templates &amp; Scripts</h4>
+      <p>
+        Which applications and templates users can reach, and how the script browser is offered to them.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>generic_apps_dir</td><td>Directory containing hidden generic apps (e.g. a generic Slurm form) that are not shown in the main app listing but can be linked to directly</td><td><code>./generic_apps</code></td></tr>
+        <tr><td>external_reload_app</td><td>Subfolder inside <code>generic_apps_dir</code> to open when loading an external (non-OpenComposer) job from the History page</td><td><code>Slurm</code></td></tr>
+        <tr><td>show_load_script</td><td>Show the "Load or Create a Script from Disk" button, which opens the full-page file browser, on the Selected Templates and New Custom Template pages (<code>true</code> or <code>false</code>)</td><td><code>true</code></td></tr>
+        <tr><td>load_script_label</td><td>Label of the "Load or Create a Script from Disk" button. Also used as the heading and page title of the file browser page</td><td><code>Load or Create a Script from Disk</code></td></tr>
+        <tr><td>new_script_featured_category</td><td>Name of the <code>manifest.yml</code> category whose templates are listed first on the All Templates and New Script pages. Matched case-insensitively; the remaining templates follow in alphabetical order</td><td><code>Slurm Submit Templates</code></td></tr>
+      </table>
+
+      <h4 class="mt-4">6. History</h4>
+      <p>
+        What the History page shows, and how much of each job Open Composer stores itself rather than reading it back from the scheduler. The column keys are listed in <a href="#history">section 2.5</a>.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>history</td><td>Additional display fields on the history page (see <a href="#history">section 2.5</a>). If this setting is omitted, all seven special variables are shown</td><td><code>OC_HISTORY_JOB_NAME</code>, <code>OC_HISTORY_PARTITION</code>, <code>OC_HISTORY_SUBMISSION_TIME</code>, <code>OC_HISTORY_START_TIME</code>, <code>OC_HISTORY_END_TIME</code>, <code>OC_HISTORY_OUTPUT_FILE</code>, <code>OC_HISTORY_ERROR_FILE</code></td></tr>
+        <tr><td>history_store_script</td><td>Whether to store the full batch script text in the history database. Set to <code>false</code> to always fetch it live via <code>sacct -B</code></td><td><code>true</code></td></tr>
+        <tr><td>history_efficiency</td><td>Show a <strong>Job Efficiency</strong> section (Wall Time, CPU, Memory, and GPU where the scheduler recorded it) in the job details modal for completed, failed, and canceled jobs. Uses <code>sacct --json</code>, which requires Slurm 20.11+. Set to <code>true</code> to enable. The <em>GPU Memory</em> percentage also needs <code>gpu_memory</code> below; without it that row shows the amount used but no percentage</td><td><code>false</code></td></tr>
+        <tr><td>gpu_memory</td><td>Memory capacity in GB of each GPU model on the cluster, used only to work out the <em>GPU Memory</em> percentage in the Job Efficiency section. Model names are matched case-insensitively against the job's <code>gpu:&lt;model&gt;</code> resources. Give each model a plain number, or a hash when cards of the same model differ in memory and the scheduler reports them under a single GRES name — an A100 is <code>gpu:a100</code> whether it holds 40&nbsp;GB or 80&nbsp;GB. The hash keys are partition names, plus <code>default</code> for every other partition:
+          <pre>gpu_memory:
+  l4:   23
+  h100: 94
+  a100:
+    default: 80
+    genoa:   40</pre>
+          Partition names are matched case-sensitively, as the scheduler's are. Leaving this unset is safe and is the better choice if the capacities are not known locally: GPU memory used is then reported without a percentage, rather than as a percentage of a wrong total. May also be set per-cluster inside <code>clusters</code></td><td>(None)</td></tr>
+      </table>
+
+      <h4 class="mt-4">7. Form Behavior</h4>
+      <p>
+        Checks applied to an application form when the user presses Submit.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>empty_script_warning</td><td>Show a confirmation dialog when the user submits a batch script that contains no real commands (only blank lines, comments, <code>#SBATCH</code> directives, and <code>module</code> lines). Set to <code>false</code> to disable.</td><td><code>true</code></td></tr>
+      </table>
+
+      <h4 class="mt-4">8. Navigation Bar</h4>
+      <p>
+        The links, logo, search box, colors and separator of the bar across the top of every page. Each link can be hidden with its <code>show_*</code> setting, and given a different label or icon with the matching <code>*_label</code> and <code>*_icon</code> settings; icons accept either a Font Awesome or a Bootstrap Icons class, as both sets are loaded.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>navbar_color</td><td>Background color of navigation bar</td><td rowspan="2" style="color: white; background-color: #3D3B40;">#3D3B40</td></tr>
+        <tr><td>navbar_text_color</td><td>Text color of navigation bar</td></tr>
+        <tr><td>navbar_logo</td><td>Filename of a custom logo image to display in the navigation bar (must be placed in <code>public/</code>)</td><td>(None)</td></tr>
+        <tr><td>show_navbar_logo</td><td>Show the navbar logo (<code>true</code> or <code>false</code>); lets you hide the logo without unsetting <code>navbar_logo</code></td><td><code>true</code></td></tr>
+        <tr><td>show_home_directory</td><td>Show the "Home Directory" link in the navigation bar (<code>true</code> or <code>false</code>)</td><td><code>true</code></td></tr>
+        <tr><td>show_shell_access</td><td>Show the "Shell Access" link in the navigation bar (<code>true</code> or <code>false</code>). Coupled to <code>login_node</code>: the link is rendered whenever this is <code>true</code>, with no check that <code>login_node</code> is set, and its target is <code>&lt;Open OnDemand&gt;/pun/sys/shell/ssh/&lt;login_node&gt;</code>. With <code>login_node</code> unset the host part of that URL is empty and the link cannot open a shell, so either set <code>login_node</code> or set this to <code>false</code></td><td><code>true</code></td></tr>
+        <tr><td>show_open_ondemand</td><td>Show the "Open OnDemand" link in the navigation bar (<code>true</code> or <code>false</code>)</td><td><code>true</code></td></tr>
+        <tr><td>open_ondemand_url</td><td>Override for the "Open OnDemand" navigation bar link and the navbar logo link. Leave this unset and both auto-derive to the Open OnDemand dashboard on the host the request arrived on, so no per-site URL is needed. Set it only when the dashboard lives elsewhere</td><td><code>&lt;this host&gt;/pun/sys/dashboard</code></td></tr>
+        <tr><td>open_ondemand_label</td><td>Label text for the "Open OnDemand" navigation bar link</td><td><code>Open OnDemand</code></td></tr>
+        <tr><td>navbar_search_placeholder</td><td>Placeholder text for the navigation bar search box. The box searches every template by name, category and description — including applications hidden from the home page and the user's own saved custom templates — and replaces the page's list with the matches</td><td><code>Search apps…</code></td></tr>
+        <tr><td>show_search</td><td>Show the search box on the right-hand side of the navigation bar (<code>true</code> or <code>false</code>)</td><td><code>true</code></td></tr>
+        <tr><td>home_directory_label</td><td>Label text for the "Home Directory" navigation bar link</td><td><code>Home Directory</code></td></tr>
+        <tr><td>home_directory_icon</td><td>Icon class for the "Home Directory" link. Either a Font Awesome class (e.g. <code>fas fa-folder</code>) or a Bootstrap Icons class (e.g. <code>bi bi-folder-fill</code>); both icon sets are loaded</td><td><code>fas fa-home</code></td></tr>
+        <tr><td>shell_access_label</td><td>Label text for the "Shell Access" navigation bar link</td><td><code>Shell Access</code></td></tr>
+        <tr><td>shell_access_icon</td><td>Icon class for the "Shell Access" link (Font Awesome or Bootstrap Icons)</td><td><code>fas fa-terminal</code></td></tr>
+        <tr><td>open_ondemand_icon</td><td>Icon class for the "Open OnDemand" link (Font Awesome or Bootstrap Icons)</td><td><code>bi bi-grid-fill</code></td></tr>
+        <tr><td>open_ondemand_new_tab</td><td>Open the "Open OnDemand" link and the navbar logo in a new browser tab. Set to <code>false</code> to open them in the same tab</td><td><code>true</code></td></tr>
+        <tr><td>show_navbar_separator</td><td>Horizontal separator rule drawn directly under the navigation bar. Accepted values: <code>false</code> or <code>none</code> for no separator; <code>true</code> or <code>gradient</code> for a 6px gradient rule fading to transparent; <code>solid</code> or <code>line</code> for a 1px solid rule; <code>accent</code> for a 3px colored bar. Any other value is treated as <code>gradient</code>. The separator is never drawn on the All Templates page, which has its own bordered list</td><td><code>false</code></td></tr>
+        <tr><td>navbar_separator_color</td><td>Color of the <code>solid</code>/<code>line</code> and <code>accent</code> separator styles. The <code>gradient</code> style uses a fixed gray and ignores this setting</td><td style="background-color: #C3C8C8;">#C3C8C8</td></tr>
+      </table>
+
+      <h4 class="mt-4">9. Appearance</h4>
+      <p>
+        Colors and layout of everything below the navigation bar. Note that a few of these fall back to the value of another setting rather than to a fixed color, so changing one can affect several; the Default value column shows where that happens.
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>home_format</td><td>Layout of the home page application grid. <code>big</code> for large tiles (icon + name) or <code>small</code> for compact list-style tiles</td><td><code>big</code></td></tr>
         <tr><td>thumbnail_width</td><td>Width of thumbnails for each application on the home page</td><td>100</td></tr>
-        <tr><td>highlight_theme</td><td>The theme name for <a target="_blank" href="https://highlightjs.org/">highlight.js</a> used in the <code>script</code>/<code>submit</code> sections</td><td><code>vs</code></td></tr>
-        <tr><td>directive_color</td><td>The text color of scheduler directives in the <code>script</code>/<code>submit</code> sections</td><td style="background-color: #D73A49;">#D73A49</td></tr>
-        <tr><td>navbar_color</td><td>Color of navigation bar</td><td rowspan="3" style="color: white; background-color: #3D3B40;">#3D3B40</td></tr>
-        <tr><td>dropdown_color</td><td>Color of dropdown menu</td></tr>
-        <tr><td>footer_color</td><td>Color of footer</td></tr>
-        <tr><td>category_color</td><td>Background color of the home page category</td><td rowspan="2" style="color: white; background-color: #5522BB;">#5522BB</td></tr>
-        <tr><td>description_color</td><td>Background color of the application description in the application page</td></tr>
+        <tr><td>accent_color</td><td>Accent color used for the Bootstrap overrides in <code>views/layout.erb</code>: links, the primary buttons (<strong>Submit</strong>, <strong>Confirm</strong>, <strong>Save</strong>), the focus ring on inputs and the script editor, ticked checkboxes and radios, and the hover state of the History sort links. Defaults to Bootstrap's own accent, so leaving it unset looks like stock Bootstrap</td><td style="color: white; background-color: #0D6EFD;">#0D6EFD</td></tr>
+        <tr><td>accent_contrast_color</td><td>Partner to <code>accent_color</code>: used for headings, and for the hover or active state of everything <code>accent_color</code> styles. Should stay legible against white</td><td style="color: white; background-color: #0A58CA;">#0A58CA</td></tr>
+        <tr><td>body_text_color</td><td>Default text color of the page body</td><td style="color: white; background-color: #212529;">#212529</td></tr>
+        <tr><td>highlight_theme</td><td>Theme name for <a target="_blank" href="https://highlightjs.org/">highlight.js</a> used in the <code>script</code>/<code>submit</code> sections</td><td><code>vs</code></td></tr>
+        <tr><td>directive_color</td><td>Text color of scheduler directives in the <code>script</code>/<code>submit</code> sections</td><td style="background-color: #D73A49;">#D73A49</td></tr>
+        <tr><td>category_color</td><td>Background color of the home page category headers</td><td rowspan="2" style="color: white; background-color: #5522BB;">#5522BB</td></tr>
+        <tr><td>category_text_color</td><td>Text color of the home page category headers</td></tr>
+        <tr><td>description_color</td><td>Background color of the band at the top of the application page, which holds the application title, its description and the header fields. Falls back to <code>category_color</code>, so recoloring the home page category headers recolors this band too, unless it is set explicitly</td><td style="color: white; background-color: #5522BB;">Value of category_color (#5522BB)</td></tr>
+        <tr><td>description_text_color</td><td>Text color used on that band — including the header field labels ("Script location", "Script name", "Job name"). Also the fallback for the two settings below</td><td><code>#FFFFFF</code></td></tr>
+        <tr><td>app_title_color</td><td>Color of the <strong>application title</strong> (the application name shown at the top of the application page). Set this separately when the title needs to differ from the rest of the band — for example because a heading color inherited from the surrounding theme is hard to read against <code>description_color</code></td><td>Value of <code>description_text_color</code></td></tr>
+        <tr><td>app_description_text_color</td><td>Color of the <strong>application description</strong> shown beneath the title on the application page (taken from <code>description</code> in the app's <code>manifest.yml</code>)</td><td>Value of <code>description_text_color</code></td></tr>
         <tr><td>form_color</td><td>Background color of the text area in the application page</td><td style="background-color: #BFCFE7;">#BFCFE7</td></tr>
         <tr><td>non_script_color</td><td>Background color of the form that does not affect the <code>script</code> section</td><td style="background-color: #FFE28A;">#FFE28A</td></tr>
         <tr><td>non_script_button_color</td><td>Background color of buttons that do not affect the <code>script</code> section</td><td style="background-color: #FFBF00;">#FFBF00</td></tr>
         <tr><td>submit_color</td><td>Background color of the form that affects only the <code>submit</code> section</td><td style="background-color: #FFCCCC;">#FFCCCC</td></tr>
         <tr><td>submit_button_color</td><td>Background color of buttons that affect only the <code>submit</code> section</td><td style="background-color: #FFAAAA">#FFAAAA</td></tr>
+        <tr><td>history_action_color</td><td>Background color of the "Cancel Job" and "Delete Info" action buttons on the history page</td><td style="color: white; background-color: #DC3545;">#DC3545</td></tr>
+        <tr><td>favicon</td><td>Filename of the browser tab icon (must be placed in <code>public/</code>). Leave empty to send no favicon link</td><td>(None)</td></tr>
+        <tr><td>app_description</td><td>Descriptive text shown above the category list on the Selected Templates page. HTML is allowed; it is rendered with <code>description_color</code> and <code>description_text_color</code>. Leave empty to hide it</td><td>(None)</td></tr>
+        <tr><td>category_badge_colors</td><td>Map of category name to badge background color, used by the All Templates and New Script lists and by the navbar search results. Categories not listed use <code>#6C757D</code>; the "My Template" badge is always <code>#6F42C1</code></td><td>(None)</td></tr>
+        <tr><td>all_templates_footer</td><td>Note shown directly below the All Templates list, above the footer bar. HTML is allowed. Only rendered on the All Templates page, and only when <code>show_footer</code> is <code>true</code></td><td>(None)</td></tr>
       </table>
+
+      <h4 class="mt-4">10. Footer</h4>
       <p>
-        The <code>apps_dir</code> and <code>scheduler</code> are required. However, the <code>scheduler</code> may be defined inside <code>clusters</code>.
+        The bar across the bottom of every page. Set <code>show_footer: false</code> when embedding Open Composer inside Open OnDemand, so OOD's own footer is used instead.
       </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Item name</th><th>Setting</th><th>Default value</th></tr>
+        <tr><td>show_footer</td><td>Show or hide the footer bar (<code>true</code> or <code>false</code>). Set to <code>false</code> when embedding inside OOD so OOD's own footer is used</td><td><code>true</code></td></tr>
+        <tr><td>footer</td><td>Text or HTML shown in the footer bar. Defaults to a non-breaking space, so an unconfigured footer is still drawn at full height — use <code>show_footer: false</code> to remove the bar entirely</td><td><code>&amp;nbsp;</code></td></tr>
+        <tr><td>footer_color</td><td>Background color of footer. Falls back to <code>navbar_color</code>, so recoloring the navigation bar recolors the footer too, unless this is set explicitly</td><td style="color: white; background-color: #3D3B40;">Value of navbar_color (#3D3B40)</td></tr>
+        <tr><td>footer_text_color</td><td>Text color of footer</td><td>#FFFFFF</td></tr>
+        <tr><td>footer_padding</td><td>Bootstrap padding class applied to the footer bar (e.g. <code>p-1</code> through <code>p-5</code>)</td><td><code>p-3</code></td></tr>
+        <tr><td>footer_ood_logo</td><td>Show the bundled Open OnDemand "Powered by" logo in the footer (<code>true</code> or <code>false</code>). Only consulted while <code>footer_brand_logo</code> is unset — a custom brand logo is always shown. Set <code>footer_ood_logo: false</code> <em>and</em> leave <code>footer_brand_logo</code> empty for no footer logo at all</td><td><code>true</code></td></tr>
+        <tr><td>footer_logo_height</td><td>Height of the footer brand logo — either <code>footer_brand_logo</code>, or the bundled Open OnDemand logo when that is unset. Any CSS length</td><td><code>24px</code></td></tr>
+        <tr><td>footer_brand_logo</td><td>Filename of the "Powered by" brand image shown at the bottom left of the footer (must be placed in <code>public/</code>). When unset, the Open OnDemand logo is used instead unless <code>footer_ood_logo</code> is <code>false</code></td><td>(None)</td></tr>
+        <tr><td>footer_brand_url</td><td>URL opened by the footer brand logo</td><td><code>https://openondemand.org/</code></td></tr>
+        <tr><td>footer_brand_alt</td><td>Alt text of the footer brand logo</td><td><code>Powered by Open OnDemand</code> when the Open OnDemand logo is used, otherwise <code>Powered by</code></td></tr>
+      </table>
 
       <h3 id="clusters">2.1. clusters</h3>
       <p>
@@ -105,7 +315,52 @@ clusters:
   prepost:
     ssh_wrapper "ssh prepost.example.net"</pre>
 
-      <h3 id="scheduler_env">2.2. scheduler_env</h3>
+      <h3 id="bin_overrides">2.2. bin_overrides</h3>
+      <p>
+  Set the path for each command. This setting is optional. Unlike <code>bin</code>, an override is used exactly as written, with no check that the file exists, which makes it the setting to use when the commands live on a remote host reached through <code>ssh_wrapper</code>.
+      </p>
+      <p>
+  Override only the commands you need; any command left out falls back to <code>bin</code> and then to the bare command name. Note that overriding only the submission command leaves the History and Nodes pages using whatever the PUN's <code>PATH</code> finds.
+      </p>
+      <p>
+  If the job scheduler is <code>slurm</code>, the commands used are <code>sbatch</code> (submission), <code>scontrol</code> (job details), <code>scancel</code> (cancellation), <code>sacct</code> (History table, job details, batch script and Job Efficiency), <code>squeue</code> (queued and running jobs added to the History table) and <code>sinfo</code> (Nodes page).
+      </p>
+      <pre>bin_overrides:
+  sbatch:   "/usr/local/bin/sbatch"
+  scontrol: "/usr/local/bin/scontrol"
+  scancel:  "/usr/local/bin/scancel"
+  sacct:    "/usr/local/bin/sacct"
+  squeue:   "/usr/local/bin/squeue"
+  sinfo:    "/usr/local/bin/sinfo"</pre>
+
+      <p>
+  If the job scheduler is <code>pbspro</code>, the commands used are <code>qsub</code> (submission), <code>qstat</code> (job details and History table), <code>qdel</code> (cancellation) and <code>pbsnodes</code> (Nodes page). The <code>miyabi</code> scheduler inherits the PBS Pro class and uses the same command names.
+      </p>
+      <pre>bin_overrides:
+  qsub:     "/usr/local/bin/qsub"
+  qstat:    "/usr/local/bin/qstat"
+  qdel:     "/usr/local/bin/qdel"
+  pbsnodes: "/usr/local/bin/pbsnodes"</pre>
+
+      <p>
+  If the job scheduler is <code>sge</code>, the commands used are <code>qsub</code> (submission), <code>qstat</code> (active jobs), <code>qdel</code> (cancellation), <code>qacct</code> (completed jobs in the History table) and <code>qhost</code> (Nodes page).
+      </p>
+      <pre>bin_overrides:
+  qsub:  "/usr/local/bin/qsub"
+  qstat: "/usr/local/bin/qstat"
+  qdel:  "/usr/local/bin/qdel"
+  qacct: "/usr/local/bin/qacct"
+  qhost: "/usr/local/bin/qhost"</pre>
+
+      <p>
+  If the job scheduler is <code>fujitsu_tcs</code>, the commands used are <code>pjsub</code> (submission), <code>pjstat</code> (job details, History table and Nodes page) and <code>pjdel</code> (cancellation).
+      </p>
+      <pre>bin_overrides:
+  pjsub:  "/usr/local/bin/pjsub"
+  pjstat: "/usr/local/bin/pjstat"
+  pjdel:  "/usr/local/bin/pjdel"</pre>
+
+      <h3 id="scheduler_env">2.3. scheduler_env</h3>
       <p>
   Set environment variables added when running job scheduler commands. This setting is optional.
   For example, this can be used when <code>SLURM_CONF_SERVER</code> is required for a Slurm configless setup.
@@ -124,8 +379,11 @@ clusters:
   When <code>ssh_wrapper</code> is used to run job scheduler commands on a remote host, <code>scheduler_env</code> is applied to the local <code>ssh</code> command.
   If the environment variables are also required on the remote side, configure SSH or a wrapper script accordingly.
       </p>
+      <p>
+  <strong>Scope.</strong> <code>scheduler_env</code> is applied to every scheduler command Open Composer runs, not just job submission: the History table (<code>sacct_all_jobs()</code>, <code>squeue_active_jobs()</code>), the Nodes page (<code>sinfo_nodes()</code>), the job details modal (<code>sacct_job()</code>, <code>scontrol_job()</code>), the Job Efficiency section (<code>efficiency()</code>) and batch script retrieval (<code>batch_script()</code>) all receive it. So a variable such as <code>SLURM_CONF_SERVER</code>, required for a configless Slurm setup, is enough on its own to make every page work.
+      </p>
 
-      <h3 id="copy_environment">2.3. copy_environment</h3>
+      <h3 id="copy_environment">2.4. copy_environment</h3>
       <p>
   Set this to <code>true</code> to submit Slurm jobs with <code>--export=ALL</code>. The default is <code>false</code>, which keeps the existing behavior of submitting Slurm jobs with <code>--export=NONE</code>.
   This setting is only used by Slurm.
@@ -141,57 +399,36 @@ clusters:
       <p>
   This copies the PUN environment when issuing Slurm commands. Be careful because the PUN environment can be different from a regular login shell environment.
       </p>
-
-      <h3 id="bin_overrides">2.4. bin_overrides</h3>
       <p>
-  Set the path for each command. This setting is optional.
+  The <code>--export</code> flag is only synthesized when the application supplied no submit options of its own. If the application's <code>submit</code> section sets a non-empty <code>OC_SUBMIT_OPTIONS</code>, that string is passed to <code>sbatch</code> as-is and <code>copy_environment</code> is ignored entirely, so such an application must include its own <code>--export=…</code> if it needs one.
       </p>
-      <p>
-  If the job scheduler is <code>slurm</code>, set <code>sbatch</code>, <code>scontrol</code>, <code>scancel</code>, and <code>sacct</code> as follows.
-      </p>
-      <pre>bin_overrides:
-  sbatch:   "/usr/local/bin/sbatch"
-  scontrol: "/usr/local/bin/scontrol"
-  scancel:  "/usr/local/bin/scancel"
-  sacct:    "/usr/local/bin/sacct"</pre>
-
-      <p>
-  If the job scheduler is <code>pbspro</code>, set <code>qsub</code>, <code>qstat</code>, and <code>qdel</code> as follows.
-      </p>
-      <pre>bin_overrides:
-  qsub:   "/usr/local/bin/qsub"
-  qstat: "/usr/local/bin/qstat"
-  qdel:  "/usr/local/bin/qdel"</pre>
-
-      <p>
-  If the job scheduler is <code>sge</code>, set <code>qsub</code>, <code>qstat</code>, <code>qdel</code>, and <code>qacct</code> as follows.
-      </p>
-      <pre>bin_overrides:
-  qsub:   "/usr/local/bin/qsub"
-  qstat: "/usr/local/bin/qstat"
-  qdel:  "/usr/local/bin/qdel"
-  qacct: "/usr/local/bin/qacct"</pre>
-
-      <p>
-  If the job scheduler is <code>fujitsu_tcs</code>, set <code>pjsub</code>, <code>pjstat</code>, and <code>pjdel</code> as follows.
-      </p>
-      <pre>bin_overrides:
-  pjsub:  "/usr/local/bin/pjsub"
-  pjstat: "/usr/local/bin/pjstat"
-  pjdel:  "/usr/local/bin/pjdel"</pre>
 
       <h3 id="history">2.5. history</h3>
       <p>
         The mandatory fields to be displayed on the history page are "Job ID", "Application", "Script Location", "Script Name", and "Status".
-        In addition to these, the <code>history</code> allows you to set additional fields to display.
-        If this setting is omitted, "Job Name", "Partition", and "Submission Time" are automatically set.
-        This is equivalent to the code shown below.
-        <code>OC_HISTORY_JOB_NAME</code>, <code>OC_HISTORY_PARTITION</code>, and <code>OC_HISTORY_SUBMISSION_TIME</code> are special variables that correspond to "Job Name", "Partition", and "Submission Time", respectively.
+        In addition to these, the <code>history</code> setting controls which extra fields appear.
+        If this setting is omitted, all of the special variables are included by default.
+        The available special variables are:
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Special variable</th><th>Displayed as</th></tr>
+        <tr><td><code>OC_HISTORY_JOB_NAME</code></td><td>Job Name</td></tr>
+        <tr><td><code>OC_HISTORY_PARTITION</code></td><td>Partition — the queue or partition the job ran in</td></tr>
+        <tr><td><code>OC_HISTORY_SUBMISSION_TIME</code></td><td>Submission Time — when the job was submitted</td></tr>
+        <tr><td><code>OC_HISTORY_START_TIME</code></td><td>Start Time — the job start time reported by the scheduler</td></tr>
+        <tr><td><code>OC_HISTORY_END_TIME</code></td><td>End Time — the job end time reported by the scheduler</td></tr>
+        <tr><td><code>OC_HISTORY_OUTPUT_FILE</code></td><td>Output — the scheduler's stdout file for the job. Clicking the filename opens the file content in an overlay panel.</td></tr>
+        <tr><td><code>OC_HISTORY_ERROR_FILE</code></td><td>Error — the scheduler's stderr file for the job. Clicking the filename opens the file content in an overlay panel.</td></tr>
+      </table>
+      <p>
+        A typical configuration showing job name, start time, and end time with custom labels:
       </p>
       <pre>history:
   OC_HISTORY_JOB_NAME:
-  OC_HISTORY_PARTITION:
-  OC_HISTORY_SUBMISSION_TIME:</pre>
+  OC_HISTORY_START_TIME:
+    label: "Start Time"
+  OC_HISTORY_END_TIME:
+    label: "End Time"</pre>
       <img alt="history table" width="800" src="./img/history_page.png">
       <p>
   If you want to disable additional display fields, define an empty array.
@@ -199,10 +436,15 @@ clusters:
       <pre>history: []</pre>
       <img alt="history table" width="800" src="./img/history_page2.png">
       <p>
-  You can set profile values obtained from the job scheduler as display fields.
-  Specify in <code>history</code> the value shown in the left column of the table that appears when you click "Job ID".
-  By using <code>label</code>, you can define a display label.
-  If <code>label</code> is not specified, the profile value is used as is.
+  You can also add fields taken directly from the job scheduler's own accounting output. A key in <code>history</code> that is not one of the <code>OC_HISTORY_*</code> variables above is looked up verbatim in the record that the scheduler class's <code>sacct_all_jobs()</code> method returned for that job, so only the field names that method actually requests produce a value; any other name gives an empty column. The lookup is an exact hash lookup, so the name is case-sensitive and must be spelled as shown below. Note that the longer field list shown in the modal that opens when you click "Job ID" comes from a different command, and most of those names do <em>not</em> work here.
+      </p>
+      <p>
+  For <code>slurm</code> the usable names are
+  <code>JobID</code>, <code>JobName</code>, <code>Partition</code>, <code>State</code>, <code>Submit</code>, <code>Start</code>, <code>End</code>, <code>Elapsed</code>, <code>WorkDir</code>, <code>Account</code>, <code>TotalCPU</code>, <code>AllocCPUS</code>, <code>ReqMem</code>, <code>ExitCode</code>, <code>NodeList</code>, <code>StdOut</code>, <code>StdErr</code> and <code>SubmitLine</code>.
+  Any field the local Slurm build does not support is dropped. For the other schedulers the usable names are the keys their own <code>sacct_all_jobs()</code> builds — see <code>lib/schedulers/</code>.
+      </p>
+      <p>
+  Use <code>label</code> to set the column heading; without it the field name is used as the heading.
       </p>
       <img alt="history table" width="400" src="./img/history_table3.png">
       <pre>history:
@@ -215,11 +457,11 @@ clusters:
       <h2 id="registor">3. Registration</h2>
       <p>
         When you save Open Composer to <code>/var/www/ood/apps/sys/</code>, the Open Composer icon will be displayed on the Open OnDemand home page.
-If it is not displayed, check <code>/var/www/ood/apps/sys/OpenComposer/manifest.yml</code>.
+If it is not displayed, check <code>/var/www/ood/apps/sys/opencomposer/manifest.yml</code>.
       </p>
       <p>
   You can also display Open Composer applications on the Open OnDemand home page.
-  For example, if you want to display an application <code>/var/www/ood/apps/sys/OpenComposer/sample_apps/Slurm</code>,
+  For example, if you want to display an application <code>/var/www/ood/apps/sys/opencomposer/sample_apps/Slurm</code>,
   create a directory with the same name in the Open OnDemand application directory (<code># mkdir /var/www/ood/apps/sys/Slurm</code>).
   Then, create the following Open OnDemand configuration file <code>manifest.yml</code> in that directory.
       </p>
@@ -227,9 +469,129 @@ If it is not displayed, check <code>/var/www/ood/apps/sys/OpenComposer/manifest.
       <pre># /var/www/ood/apps/sys/Slurm/manifest.yml
 ---
 name: Slurm
-url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
+url: https://&lt;your Open OnDemand URL&gt;/pun/sys/opencomposer/Slurm</pre>
 
-      <h2 id="general">4. Installation by general user</h2>
+      <h2 id="ood-integration">4. OOD-Integrated Installation</h2>
+      <p>
+        By default, clicking the Open Composer tile in Open OnDemand opens the application in a new tab.
+        The files in <code>ood_integration/</code> enable an <strong>embedded mode</strong> where Open Composer is rendered directly inside the OOD page — OOD's real navigation bar stays at the top, Open Composer fills the middle, and OOD's own footer is shown at the bottom. The user never leaves the OOD interface.
+      </p>
+      <p>
+        The page is a single document rendered in OOD's own dashboard layout, so the header and footer are OOD's live chrome — dynamic menus, user/help dropdowns and notifications — and no Content-Security-Policy changes are needed.
+      </p>
+      <p>
+        This requires Open OnDemand 3.x or later and administrator access to <code>/etc/ood/config/</code>.
+      </p>
+
+      <h3>How it works</h3>
+      <p>
+        The initializer <code>opencomposer_embed.rb</code> mounts a small reverse-proxy controller inside the OOD dashboard at <code>/pun/sys/dashboard/oc</code> and intercepts the Open Composer tile so it lands there. For each request the proxy:
+      </p>
+      <ol>
+        <li>Forwards the request to the real Open Composer app at <code>/pun/sys/opencomposer/…</code> over the loopback through Apache (on the same port the browser used), forwarding the user's session cookie so the call is authenticated as that user.</li>
+        <li>Rewrites Open Composer's URL prefix <code>/pun/sys/opencomposer</code> → <code>/pun/sys/dashboard/oc</code> in every text response, so all links, form actions, assets and AJAX stay on the proxy path — every page therefore stays wrapped in OOD's chrome.</li>
+        <li>Splices Open Composer's <code>&lt;head&gt;</code> assets and <code>&lt;body&gt;</code> into the dashboard's layout via <code>opencomposer_embed.html.erb</code>, giving the live OOD navbar and footer. CSS/JS are streamed through (prefix-rewritten); images and fonts pass through unchanged; redirects are relayed with their <code>Location</code> rewritten onto the proxy path.</li>
+      </ol>
+
+      <h3>Step 1 — Install Open Composer as a sys app (same as section 1)</h3>
+      <pre>$ cd /var/www/ood/apps/sys/
+$ sudo git clone https://github.com/RIKEN-RCCS/OpenComposer.git opencomposer</pre>
+
+      <h4 class="mt-3">Pre-initialize gems <span class="badge bg-secondary" style="font-size: 0.7em; vertical-align: middle;">Optional but recommended</span></h4>
+      <p>
+        Open Composer will install its Ruby gem dependencies automatically the first time a user opens the app.
+        To avoid users seeing a loading delay on that first visit, you can pre-install the gems as the administrator:
+      </p>
+      <pre>$ cd /var/www/ood/apps/sys/opencomposer
+$ sudo cp misc/Gemfile .
+$ sudo bundle install</pre>
+      <p>
+        Re-run <code>bundle install</code> after any <code>git pull</code> that updates the <code>Gemfile</code>.
+      </p>
+
+      <h3>Step 2 — Configure Open Composer for embedded mode (same as section 2)</h3>
+      <pre>$ cd /var/www/ood/apps/sys/opencomposer
+$ sudo cp conf.yml.erb.sample conf.yml.erb</pre>
+      <p>
+        For OOD-integrated mode, set the following in <code>conf.yml.erb</code> to avoid duplicating UI elements that OOD already provides:
+      </p>
+      <pre>show_home_directory: false   # OOD's Files menu links to the home directory
+show_shell_access:   false   # OOD's Clusters menu provides shell access
+show_open_ondemand:  false   # No need to link back to OOD from inside OOD
+navbar_logo: ~               # OOD's navbar already shows the site logo
+show_footer: false           # OOD's footer is shown below the embedded view</pre>
+
+      <h3>Step 3 — Force same-tab navigation</h3>
+      <p>
+        Add <code>new_window: false</code> to <code>manifest.yml</code> so clicking the tile stays in the same tab instead of opening a new window:
+      </p>
+      <pre># /var/www/ood/apps/sys/opencomposer/manifest.yml
+name: Open Composer
+category: Jobs
+description: |
+  Open Composer is an application that creates and submits batch job scripts.
+icon: fas://hat-wizard
+new_window: false</pre>
+
+      <h3>Step 4 — Copy the integration files</h3>
+      <pre>$ sudo mkdir -p /etc/ood/config/apps/dashboard/initializers
+$ sudo mkdir -p /etc/ood/config/apps/dashboard/views/apps
+
+$ sudo cp /var/www/ood/apps/sys/opencomposer/ood_integration/initializers/opencomposer_embed.rb \
+          /etc/ood/config/apps/dashboard/initializers/
+
+$ sudo cp /var/www/ood/apps/sys/opencomposer/ood_integration/views/apps/opencomposer_embed.html.erb \
+          /etc/ood/config/apps/dashboard/views/apps/</pre>
+
+      <h3>Step 5 — Restart the OOD web server</h3>
+      <p>In the OOD dashboard: <strong>Help → Restart Web Server</strong>, or from the command line:</p>
+      <pre>$ sudo httpd -k graceful</pre>
+      <p>
+        Clicking the Open Composer tile will now open it embedded within OOD's page.
+      </p>
+
+      <h3>Deploying to another OOD facility</h3>
+      <p>
+        The integration uses only standard OOD mechanisms (a dashboard initializer and the normal <code>/pun</code> request flow) and is multi-user-safe — each request forwards the requesting user's own session cookie, so Apache authenticates and routes to that user's instance. It should port to other Open OnDemand sites, but a few environment assumptions are worth checking. Overrides are read from the dashboard's env file <code>/etc/ood/config/apps/dashboard/env</code>; a fully commented template is provided at <code>ood_integration/dashboard.env.example</code>:
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Assumption</th><th>If your site differs</th></tr>
+        <tr>
+          <td>Open Composer is installed as the sys app <code>opencomposer</code> (i.e. served at <code>/pun/sys/opencomposer</code>).</td>
+          <td>Set <code>OC_EMBED_APP_NAME</code> to your install directory name (for example <code>OpenComposer</code>).</td>
+        </tr>
+        <tr>
+          <td>OOD's Apache (the portal vhost) is reachable on the loopback at the same port/scheme the browser used — true for a standard host serving HTTPS on 443.</td>
+          <td>If a TLS-terminating load balancer fronts OOD and the portal vhost actually listens on a different port/scheme, set <code>OC_EMBED_UPSTREAM_HOST</code>, <code>OC_EMBED_UPSTREAM_PORT</code>, <code>OC_EMBED_UPSTREAM_SCHEME</code> (<code>http</code>/<code>https</code>) and/or <code>OC_EMBED_UPSTREAM_IP</code> accordingly.</td>
+        </tr>
+        <tr>
+          <td>Authentication is <code>mod_auth_openidc</code>; its session cookie is sent to the dashboard on <code>/pun</code> (the stock <code>ood-portal.conf</code> only strips it on <code>/node</code> and <code>/rnode</code>).</td>
+          <td>If your site uses a different auth module or strips cookies more aggressively, confirm the dashboard still receives the auth cookie so the proxy's upstream call is authenticated.</td>
+        </tr>
+        <tr>
+          <td>You may install a custom Rails initializer under <code>/etc/ood/config/apps/dashboard/initializers/</code>.</td>
+          <td>Managed/locked-down deployments may not permit this, or may require a security review (the initializer makes a server-side HTTP call). Confirm with the facility's OOD administrators.</td>
+        </tr>
+      </table>
+      <p>
+        <strong>Performance note.</strong> Every Open Composer response — including CSS, JS, images and fonts — is proxied through the dashboard Ruby process. This is fine for typical interactive use; if you expect heavy concurrent load, account for the extra dashboard traffic.
+      </p>
+
+      <h3>Uninstalling OOD-integrated mode</h3>
+      <p>
+        Remove the two integration files and reload Apache:
+      </p>
+      <pre>$ sudo rm /etc/ood/config/apps/dashboard/initializers/opencomposer_embed.rb
+$ sudo rm /etc/ood/config/apps/dashboard/views/apps/opencomposer_embed.html.erb
+$ sudo httpd -k graceful</pre>
+      <p>
+        After this, clicking the tile will open Open Composer as a full-page app in the same browser tab (because <code>new_window: false</code> is still set in <code>manifest.yml</code>).
+        If you also want to restore the original new-tab behavior, remove or revert that line:
+      </p>
+      <pre># /var/www/ood/apps/sys/opencomposer/manifest.yml
+new_window: true   # or remove the line entirely — true is the OOD default</pre>
+
+      <h2 id="general">5. Installation by general user</h2>
       <p>
   You can also install Open Composer with general user privileges.
   However, the <a target="_blank" href="https://osc.github.io/ood-documentation/latest/how-tos/app-development/enabling-development-mode.html">App Development</a> feature in Open OnDemand needs to be enabled in advance by an administrator.
@@ -255,7 +617,7 @@ url: https://&lt;your Open OnDemand URL&gt;/pun/sys/OpenComposer/Slurm</pre>
       </p>
       <img src="img/bundle.png" width="800" alt="Bundle Install">
 
-      <h2 id="local">5. Local Development</h2>
+      <h2 id="local">6. Local Development</h2>
       <p>
         The procedure for starting Open Composer locally is as follows:
       </p>
@@ -270,7 +632,7 @@ $ RACK_ENV=development bundle exec rackup</pre>
         Note that there are restrictions, such as the inability to submit jobs.
       </p>
 
-      <h2 id="test">6. Testing</h2>
+      <h2 id="test">7. Testing</h2>
       <p>
         <code>misc/tests/run_tests.rb</code> is a smoke test that verifies every <code>form.yml</code> in the documentation and the sample applications is processed correctly. Run it as follows:
       </p>
@@ -283,31 +645,52 @@ $ RACK_ENV=development bundle exec rackup</pre>
         <li>the <code>form</code> section passes the same validations as <code>run.rb</code>,</li>
         <li>HTML generation raises no exception and is non-empty,</li>
         <li>every widget key appears as an element id in the generated HTML,</li>
-        <li>the generated JavaScript is syntactically valid (using <code>node --check</code>; skipped if <code>node</code> is not installed).</li>
+        <li>the generated JavaScript is syntactically valid (using <code>node --check</code>, falling back to macOS's bundled <code>jsc</code>; skipped if neither is available).</li>
       </ol>
       <p>
         If all samples pass, it exits with code 0 and prints the following. If any sample fails, its name and cause are shown and the exit code is 1.
       </p>
       <pre>----------------------------------------
-42/42 samples passed</pre>
+44/44 samples passed</pre>
       <p>
         These are smoke tests: they guarantee that every sample builds without errors, but they do not cover browser-side behavior (such as operating a widget and observing the effect of the Dynamic Form Widget). Verify that layer in a real browser.
       </p>
 
-      <h2 id="jobscheduler">7. Adding a Job Scheduler</h2>
+      <h2 id="jobscheduler">8. Adding a Job Scheduler</h2>
       <p>
-        If you want to add a job scheduler, create a Ruby script for the job scheduler under <code>lib/schedulers/</code> using the superclass Scheduler defined in <code>lib/scheduler.rb</code> as a reference. Inherit the Scheduler class as shown in the PBS Pro example below (<code>lib/schedulers/pbspro.rb</code>).
-  You must define the <code>submit()</code> method for submitting a job, the <code>cancel()</code> method for canceling a job, and the <code>query()</code> method for querying job information.
+        If you want to add a job scheduler, create a Ruby script for it under <code>lib/schedulers/</code> that subclasses the <code>Scheduler</code> class defined in <code>lib/scheduler.rb</code>, as PBS Pro does in <code>lib/schedulers/pbspro.rb</code>.
       </p>
       <pre>class Pbspro &lt; Scheduler</pre>
       <p>
-        Also, in some clusters, job scheduler commands (e.g., <code>qstat</code>) are wrapper scripts, making it impossible for users to execute the original commands. In such cases, you may be able to address this issue by making minor changes to the existing scheduler script. For example, in <code>lib/schedulers/miyabi.rb</code>, a new class, Miyabi, is defined by inheriting the PBS Pro scheduler, as shown below. The Miyabi class defines only the <code>query()</code> method, while the other methods use those defined in <code>lib/schedulers/pbspro.rb</code>.
+        <code>Scheduler</code> declares <code>submit()</code>, <code>cancel()</code> and <code>query()</code> as abstract, and supplies a working but empty default for every other hook. Because those defaults never fail, a class that implements only submission and cancellation will submit and cancel jobs while the History and Nodes pages stay silently empty. The hooks are:
+      </p>
+      <table class="table" style="vertical-align: middle;">
+        <tr><th>Method</th><th>What it drives</th><th>If not overridden</th></tr>
+        <tr><td><code>submit()</code></td><td>Job submission from an application page</td><td>Must be implemented</td></tr>
+        <tr><td><code>cancel()</code></td><td>"Cancel Job" on the history page</td><td>Must be implemented</td></tr>
+        <tr><td><code>query()</code></td><td>Part of the superclass interface; job state on the history page comes from <code>sacct_all_jobs()</code> instead</td><td>Must be implemented if it is ever called</td></tr>
+        <tr><td><code>sacct_all_jobs()</code></td><td>The entire history page. It is the sole source of which jobs exist, and of their state, times, working directory and stdout/stderr paths</td><td>Returns nothing, so the history page always shows "(No Jobs)"</td></tr>
+        <tr><td><code>state_to_oc_status()</code></td><td>Maps the scheduler's raw state strings onto the Queued / Running / Completed / Cancelled / Failed badges</td><td>Every job is reported with unknown status</td></tr>
+        <tr><td><code>valid_job_id?()</code></td><td>Decides which job IDs from the scheduler are accepted into the history table</td><td>Only all-digit IDs are accepted, so array-job and other composite IDs are silently dropped</td></tr>
+        <tr><td><code>sinfo_nodes()</code></td><td>The nodes page. Returns one array per node: name, state, CPUs (allocated/idle/other/total), memory, free memory, generic resources, generic resources in use</td><td>The nodes page shows no rows</td></tr>
+        <tr><td><code>sacct_job()</code> and <code>scontrol_job()</code></td><td>The job details modal opened by clicking a job ID — the accounting record and the live record respectively</td><td>Optional. The modal reports that no details are available</td></tr>
+        <tr><td><code>batch_script()</code></td><td>Fetching the submitted script back from the scheduler. Used by the job script view, and required when <code>history_store_script</code> is <code>false</code></td><td>Optional. No script is shown for jobs whose script is not in the history database</td></tr>
+        <tr><td><code>squeue_active_jobs()</code></td><td>Supplements <code>sacct_all_jobs()</code> with queued and running jobs the accounting command has not reported yet. Must return the same key names as <code>sacct_all_jobs()</code></td><td>Optional. Freshly submitted jobs may be missing from the history page until accounting catches up</td></tr>
+        <tr><td><code>squeue_start_times()</code></td><td>Estimated start times for pending jobs. Declared on <code>Scheduler</code> for completeness; like <code>query()</code>, no current code path calls it</td><td>Optional; nothing depends on it today</td></tr>
+        <tr><td><code>efficiency()</code></td><td>The Job Efficiency section, when <code>history_efficiency</code> is <code>true</code></td><td>Optional. The section reports that efficiency is not supported by this scheduler</td></tr>
+      </table>
+      <p>
+        Every hook receives <code>bin</code>, <code>bin_overrides</code>, <code>ssh_wrapper</code> and <code>scheduler_env</code> as its trailing arguments. Run each command through the inherited <code>capture_scheduler_command(scheduler_env, command)</code> helper rather than calling <code>Open3.capture3</code> directly, so that <code>scheduler_env</code> (see <a href="#scheduler_env">section 2.3</a>) is honored.
+      </p>
+      <p>
+        Also, in some clusters, job scheduler commands (e.g., <code>qstat</code>) are wrapper scripts, making it impossible for users to execute the original commands. In such cases, you may be able to address this issue by making minor changes to an existing scheduler script. For example, <code>lib/schedulers/miyabi.rb</code> defines a <code>Miyabi</code> class that inherits the PBS Pro scheduler and overrides just two methods, <code>query()</code> and <code>sacct_all_jobs()</code>, because Miyabi needs a site-specific <code>qstat -H --hday</code> form for completed jobs. Every other method comes from <code>lib/schedulers/pbspro.rb</code>.
       </p>
       <pre>class Miyabi &lt; Pbspro</pre>
       <p>
         After creating the job scheduler script, specify the scheduler in <code>./conf.yml.erb</code> as shown below.
       </p>
       <pre>scheduler: miyabi</pre>
+
     </main>
   </div>
 

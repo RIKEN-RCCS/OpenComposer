@@ -1,5 +1,43 @@
 # Changelog
 
+## [Unreleased]
+### Add
+- Add an OOD-integrated (embedded) mode that renders Open Composer inside Open OnDemand's own navbar and footer, via a reverse-proxy dashboard initializer under `ood_integration/` and without an iframe.
+- Add an All Templates page (`/all_templates`) listing every template as one flat list, including applications hidden from the index page.
+- Add custom templates: save the current form values as a reusable template, then rename, re-describe, delete or reorder them from the index page.
+- Add a "Load or Create a Script from Disk" file browser that opens an existing batch script in the generic scheduler form with its location and name pre-filled.
+- Add New Script and New Custom Template pickers for choosing which application to start from.
+- Add a Nodes page listing the cluster's compute nodes with their state, CPU, memory and generic resources, with one dynamically discovered column per GRES type.
+- Add a `module_load` widget: a dropdown of every available version of an environment module, which rewrites the existing `module load` line in place so surrounding script lines are preserved.
+- Add a `dependent_module_select` widget whose module list follows the value of another widget.
+- Add `remember_last` to `select` widgets, restoring the user's previous choice from browser storage.
+- Add script-to-form parsing, so editing the script pane, or opening a job from the history page, reconstructs the form from the script's scheduler directives.
+- Add an empty-script submission warning (`empty_script_warning`).
+- Add a Job Efficiency panel to the history page (`history_efficiency`), reporting wall time, CPU, memory and, for GPU jobs, GPU utilization and GPU memory.
+- Add output and error columns to the history page, with an in-page file viewer.
+- Add "Cancel All Jobs", "Delete All History" and "Refresh" actions to the history page, plus per-job cancellation with progress reporting.
+- Add optional SSH key provisioning on submit (`ensure_ssh_key`), disabled by default.
+- Add a `modules_list_url` setting for the module catalog behind the module widgets.
+- Add `home_format`, `category_badge_colors`, `accent_color`, `body_text_color`, `gpu_memory` and `favicon` settings.
+- Add `hidden`, `documentation` and `tags` manifest keys, and allow `category` to be given as a list.
+
+### Changed
+- Use `sacct` as the source of truth on the history page, so jobs submitted outside Open Composer also appear, with their script fetched live.
+- Move the generic per-scheduler script templates to `generic_apps_dir`, reachable at `/_generic/<directory>` and used as the fallback when an application's `form.yml` is missing.
+- Replace the hard-coded accent palette and GPU memory capacities with settings, so a site can be restyled without editing a view.
+- Reorganize `conf.yml.erb.sample` into ten numbered sections, matching section 2 of `docs/install.html`.
+- Pass `scheduler_env` to every scheduler command, not only to submission, cancellation and status queries.
+- Extend the `form.yml` smoke tests to cover the new widgets, and fall back to macOS's bundled `jsc` when `node` is unavailable.
+
+### Fixed
+- Anchor the `enable-<key>-<option>` regex, so an option name that is a prefix of another can be targeted alone.
+- Gate the Shell Access navbar link on `show_shell_access`, and hide it when no login node is configured.
+- Give `OC_HISTORY_PARTITION` and `OC_HISTORY_SUBMISSION_TIME` real column definitions instead of rendering permanently empty columns.
+- Export `sge_root` on every request, so the history and nodes pages run `qstat`/`qacct`/`qhost` with `SGE_ROOT` set.
+- List an application under each of its categories when `category` is given as a list.
+- Pass `dependent_module_select` values to the `check` section, which previously saw `nil`.
+- Expand a hidden section only on a directive line unique to it when loading a script, so shared directives no longer tick unrelated toggles.
+
 ## [2.0.2] - 2026-07-27
 ### Add
 - Support the Dynamic Form Widget in `multi_select` widgets.

@@ -1,0 +1,6 @@
+---
+name: Job Script (Slurm - Generic)
+category: Application
+icon: Slurm_logo.svg
+description: |
+  This application generates an arbitrary job script in Slurm.

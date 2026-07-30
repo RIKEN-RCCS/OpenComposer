@@ -8,12 +8,63 @@
 <%= output_action_modal("CancelJob") %>
 <%= output_action_modal("DeleteInfo") %>
 
+<div class="modal" id="_historyCancelAll" aria-hidden="true" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- Phase 1: confirmation -->
+      <div id="_cancelAllPhase1">
+        <div class="modal-body">
+          Cancel <strong>all</strong> queued and running jobs?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1">No</button>
+          <button type="button" class="btn btn-danger" tabindex="-1" onclick="ocHistory.startCancelAll()">Yes, cancel all</button>
+        </div>
+      </div>
+      <!-- Phase 2: progress + abort -->
+      <div id="_cancelAllPhase2" class="d-none">
+        <div class="modal-body" id="_cancelAllProgressArea"></div>
+        <div class="modal-footer">
+          <button type="button" id="_cancelAllAbortBtn" class="btn btn-warning">Abort</button>
+          <button type="button" id="_cancelAllCloseBtn" class="btn btn-secondary d-none" onclick="window.location.reload()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="_historyDeleteAll" aria-hidden="true" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-body">
+        Delete <strong>all</strong> job history? This cannot be undone.
+      </div>
+      <div class="modal-footer">
+        <form action="<%= history_path_with_query %>" method="post">
+          <input type="hidden" name="action" value="DeleteAll">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" tabindex="-1">No</button>
+          <button type="submit" class="btn btn-primary" tabindex="-1">Yes, delete all</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row px-3">
-  <div class="text-white bg-gradient" style="background:<%= @conf['description_color'] %>;">
+  <div class="bg-gradient" style="background:<%= @conf['description_color'] %>; color:<%= @conf['description_text_color'] %>;">
     <div class="d-flex justify-content-between align-items-end mb-2">
       <div>
         <%= output_action_badge("CancelJob") %>
         <%= output_action_badge("DeleteInfo") %>
+        <button class="btn btn-sm" style="background-color:<%= @conf['history_action_color'] %>;border-color:<%= @conf['history_action_color'] %>;color:#fff;" data-bs-toggle="modal" data-bs-target="#_historyCancelAll">
+          Cancel All Jobs
+        </button>
+        <button class="btn btn-sm" style="background-color:<%= @conf['history_action_color'] %>;border-color:<%= @conf['history_action_color'] %>;color:#fff;" data-bs-toggle="modal" data-bs-target="#_historyDeleteAll">
+          Delete All History
+        </button>
+        <button class="btn btn-sm btn-secondary" onclick="window.location.reload()">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
       </div>
       <div class="text-end">
         <div class="d-inline-block text-start" id="_historyFilterGroup">
@@ -107,9 +158,17 @@
             <input class="form-check-input" type="checkbox" name="_historyStatusCompleted" id="_historyStatusCompleted" value="completed" <%= 'checked' if @statuses&.include?('completed') %>>
             <label class="form-check-label" for="_historyStatusCompleted">Completed</label>
           </div>
-          <div class="form-check form-check-inline me-1">
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="checkbox" name="_historyStatusCancelled" id="_historyStatusCancelled" value="cancelled" <%= 'checked' if @statuses&.include?('cancelled') %>>
+            <label class="form-check-label" for="_historyStatusCancelled">Cancelled</label>
+          </div>
+          <div class="form-check form-check-inline">
             <input class="form-check-input" type="checkbox" name="_historyStatusFailed" id="_historyStatusFailed" value="failed" <%= 'checked' if @statuses&.include?('failed') %>>
             <label class="form-check-label" for="_historyStatusFailed">Failed</label>
+          </div>
+          <div class="form-check form-check-inline me-1">
+            <input class="form-check-input" type="checkbox" name="_historyStatusUnknown" id="_historyStatusUnknown" value="unknown" <%= 'checked' if @statuses&.include?('unknown') %>>
+            <label class="form-check-label" for="_historyStatusUnknown">Unknown</label>
           </div>
         </div>
         <% if @conf.key?("clusters") && @conf["clusters"].size > 1 %>
@@ -129,6 +188,19 @@
   </div>
 </div>
 
+<% if @sacct_error %>
+  <div class="alert alert-warning mx-3 mt-2 mb-0">
+    <strong>sacct error:</strong> <%= escape_html(@sacct_error) %>
+  </div>
+<% end %>
+<% if @squeue_error %>
+  <div class="alert alert-warning mx-3 mt-2 mb-0">
+    <strong>squeue error:</strong> <%= escape_html(@squeue_error) %>
+  </div>
+<% end %>
+
+<% _has_file_link_col = (@conf_history_cols || []).any? { |c| c["type"] == "file_link" } %>
+
 <% if @jobs.nil? || @jobs.empty? %>
   <div class="mt-3 ms-2">
     <p>(No Jobs)</p>
@@ -136,7 +208,11 @@
 <% else %>
   <% @jobs.each do |job| %>
     <%= output_job_id_modal(job, @filter) %>
-    <%= output_job_script_modal(job, @filter) %>
+    <% if job[JOB_DIR_NAME].to_s.strip.empty? %>
+      <%= output_job_slurm_script_modal(job) %>
+    <% else %>
+      <%= output_job_script_modal(job, @filter) %>
+    <% end %>
   <% end %>
 
   <div class="row px-3 table-responsive-sm">
@@ -160,11 +236,11 @@
             <span>Script Name</span>
             <%= output_history_sort_controls(HEADER_SCRIPT_NAME) %>
           </th>
-          <% @history_hash.each do |history_key, value| %>
-          <% table_key = HISTORY_KEY_MAP.fetch(history_key, history_key) %>
-          <th class="text-wrap text-break d-none d-lg-table-cell">
-            <span><%= value %></span>
-            <%= output_history_sort_controls(table_key) %>
+          <% (@conf_history_cols || []).each do |col| %>
+          <% _col_cls = col["responsive"] ? " d-none d-lg-table-cell" : "" %>
+          <th class="text-wrap text-break<%= _col_cls %>">
+            <span><%= escape_html(col["label"]) %></span>
+            <% if col["sortable"] %><%= output_history_sort_controls(col["job_key"]) %><% end %>
           </th>
           <% end %>
           <th class="text-wrap text-break">
@@ -176,50 +252,67 @@
       <tbody class="text-center" id="_historyTbody">
         <% cached_related_apps = {} %>
         <% @jobs.each do |job| %>
-          <% job_id_filter = history_highlight_filter(@filter, @filter_column, JOB_ID) %>
-          <% app_name_filter = history_highlight_filter(@filter, @filter_column, JOB_APP_NAME) %>
-          <% script_location_filter = history_highlight_filter(@filter, @filter_column, HEADER_SCRIPT_LOCATION) %>
-          <% script_name_filter = history_highlight_filter(@filter, @filter_column, HEADER_SCRIPT_NAME) %>
+          <% job_id_filter       = history_highlight_filter(@filter, @filter_column, JOB_ID) %>
+          <% app_name_filter     = history_highlight_filter(@filter, @filter_column, JOB_APP_NAME) %>
+          <% script_loc_filter   = history_highlight_filter(@filter, @filter_column, HEADER_SCRIPT_LOCATION) %>
+          <% script_name_filter  = history_highlight_filter(@filter, @filter_column, HEADER_SCRIPT_NAME) %>
+          <% job_name_filter     = history_highlight_filter(@filter, @filter_column, JOB_NAME) %>
           <% job_details_modal_match = job_details_modal_matches_filter?(job, job_id_filter) %>
-          <% job_script_modal_match = job_script_modal_matches_filter?(job, script_name_filter) %>
+          <% job_script_modal_match  = job_script_modal_matches_filter?(job, script_name_filter) %>
           <tr data-status="<%= job[JOB_STATUS_ID] %>">
             <td class="table-primary">
               <input class="form-check-input" type="checkbox" id="ocJobId-<%= job[JOB_ID] %>" value="-1">
             </td>
             <td class="text-wrap text-break text-end history-modal-match-cell <%= 'history-modal-match-active' if job_details_modal_match %>">
-              <% if job[JOB_KEYS].nil? %>
-              <%= output_text(job[JOB_ID], job_id_filter) %>
-              <% else %>
               <a href="#" data-bs-toggle="modal" data-bs-target="#_historyJobId<%= job[JOB_ID] %>"><%= output_text(job[JOB_ID], job_id_filter) %></a>
+            </td>
+            <td class="text-wrap text-break">
+              <% if !job[JOB_DIR_NAME].to_s.strip.empty? %>
+                <a href="<%= File.join(@script_name.to_s, job[JOB_DIR_NAME].to_s) %>"><%= output_text(job[JOB_APP_NAME], app_name_filter) %></a>
+                <% directory_path = File.join(@apps_dir.to_s, job[JOB_DIR_NAME].to_s) %>
+                <% unless cached_related_apps.key?(directory_path) %>
+                <%   related_apps = create_manifest(directory_path)&.related_apps %>
+                <%   cached_related_apps[directory_path] = output_related_apps_icon(job[JOB_DIR_NAME].to_s, related_apps) %>
+                <% end %>
+                <% cached_related_apps[directory_path].each do |r| %>
+                  <%= r %>
+                <% end %>
+              <% else %>
+                <%= output_text(job[JOB_APP_NAME], app_name_filter) %>
               <% end %>
             </td>
             <td class="text-wrap text-break">
-              <a href="<%= File.join(@script_name.to_s, job[JOB_DIR_NAME].to_s) %>"><%= output_text(job[JOB_APP_NAME], app_name_filter) %></a>
-              <% directory_path = File.join(@apps_dir.to_s, job[JOB_DIR_NAME].to_s) %>
-              <% unless cached_related_apps.key?(directory_path) %>
-              <%   related_apps = create_manifest(directory_path)&.related_apps %>
-              <%   cached_related_apps[directory_path] = output_related_apps_icon(job[JOB_DIR_NAME].to_s, related_apps) %>
-              <% end %>
-              <% cached_related_apps[directory_path].each do |r| %>
-                <%= r %>
-              <% end %>
-            </td>
-            <td class="text-wrap text-break">
-              <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files/fs<%= job[HEADER_SCRIPT_LOCATION] %>"><%= output_text(job[HEADER_SCRIPT_LOCATION], script_location_filter) %></a>
-              <% unless @login_node.nil? %>
-                <a style="color: black; text-decoration: none; vertical-align: middle;" target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>/<%= job[HEADER_SCRIPT_LOCATION] %>">
-                  <i class="bi bi-terminal-fill fs-5"></i>
-                </a>
+              <% unless job[HEADER_SCRIPT_LOCATION].to_s.strip.empty? %>
+                <a target="_blank" href="<%= @my_ood_url %>/pun/sys/dashboard/files/fs<%= job[HEADER_SCRIPT_LOCATION] %>"><%= output_text(job[HEADER_SCRIPT_LOCATION], script_loc_filter) %></a>
+                <% unless @login_node.nil? %>
+                  <a style="color: black; text-decoration: none; vertical-align: middle;" target="_blank" href="<%= @my_ood_url %>/pun/sys/shell/ssh/<%= @login_node %>/<%= job[HEADER_SCRIPT_LOCATION] %>">
+                    <i class="bi bi-terminal-fill fs-5"></i>
+                  </a>
+                <% end %>
               <% end %>
             </td>
             <td class="text-wrap text-break history-modal-match-cell <%= 'history-modal-match-active' if job_script_modal_match %>">
-              <a href="#" data-bs-toggle="modal" data-bs-target="#_historyJobScript<%= job[JOB_ID] %>"><%= output_text(job[HEADER_SCRIPT_NAME], script_name_filter) %></a>
+              <% if !job[HEADER_SCRIPT_NAME].to_s.strip.empty? %>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#_historyJobScript<%= job[JOB_ID] %>"><%= output_text(job[HEADER_SCRIPT_NAME], script_name_filter) %></a>
+              <% else %>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#_historyJobScript<%= job[JOB_ID] %>">Job</a>
+              <% end %>
             </td>
-            <% @history_hash.each_key do |k| %>
-              <td class="text-wrap text-break d-none d-lg-table-cell">
-                <% key = HISTORY_KEY_MAP.fetch(k, k) %>
-                <%= output_text(format_history_table_value(key, job[key]), history_highlight_filter(@filter, @filter_column, key)) %>
-              </td>
+            <% (@conf_history_cols || []).each do |col| %>
+            <% _col_cls = col["responsive"] ? " d-none d-lg-table-cell" : "" %>
+            <% case col["type"]
+               when "job_name" %>
+            <td class="text-wrap text-break<%= _col_cls %>"><%= output_text(job[col["job_key"]], job_name_filter) %></td>
+            <% when "file_link" %>
+            <td class="text-wrap text-break<%= _col_cls %>">
+              <% _fp = job[col["job_key"]].to_s.strip %>
+              <% unless _fp.empty? %>
+                <a href="#" title="<%= escape_html(_fp) %>" onclick="ocHistory.openFileOverlay('<%= escape_html(_fp) %>'); return false;"><%= escape_html(File.basename(_fp)) %></a>
+              <% end %>
+            </td>
+            <% else %>
+            <td class="text-wrap text-break<%= _col_cls %>"><%= escape_html(job[col["job_key"]].to_s) %></td>
+            <% end %>
             <% end %>
             <td class="text-wrap text-break"><%= output_status(job[JOB_STATUS_ID]) %></td>
           </tr>
@@ -245,4 +338,22 @@
 </div>
 <% end %>
 
-<script src="./history.js"></script>
+<% if _has_file_link_col %>
+<div class="modal" id="_historyFileOverlay" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-xl">
+    <div class="modal-content" style="resize: horizontal; padding-right: 16px;">
+      <div class="modal-header">
+        <h5 class="text-break" id="_historyFileOverlayTitle">File</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="_historyFileOverlayBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<% end %>
+
+<script src="<%= @script_name %>/history.js"></script>
+<script>ocHistory.cancelCommandPrefix = <%= @cancel_command_prefix.to_json %>;</script>

@@ -1,0 +1,24 @@
+<%# ── New Script: choose a template ──────────────────────────────────────── %>
+<%# Reached from the "New Script" button on the Load/Create file browser. Mirrors %>
+<%# the All Templates page: a single vertical list of EVERY app (hidden ones      %>
+<%# included), with category/GPU badges and descriptions. The featured Slurm      %>
+<%# templates (GPU Job Script + Job Script) are pulled to the top; the navbar      %>
+<%# search filters this list (its id is oc-all-list, same as All Templates).       %>
+<%# Each row links to that app's form, carrying ?new_template=1 in template mode.  %>
+<%
+  # Carry the browsed directory (and template mode) onto every template link so
+  # the chosen app's form opens with its script location already set to it.
+  _q = []
+  _q << "path=#{ERB::Util.url_encode(@ns_path)}" unless @ns_path.to_s.empty?
+  _q << "new_template=1" if @ls_new_template
+  suffix = _q.empty? ? "" : "?#{_q.join('&')}"
+%>
+
+<div style="display:flex; flex-direction:column; height:calc(100vh - 56px);">
+  <div class="px-3 py-2 small text-muted border-bottom" style="background:#F3F4F4;">
+    Choose a template to start a new job script. Type in the search box above to filter.
+  </div>
+  <div id="oc-all-list" style="background:#F3F4F4; flex:1; overflow-y:auto;">
+    <% @ns_manifests.each do |m| %><%= output_all_template_row(m, suffix) %><% end %>
+  </div>
+</div>

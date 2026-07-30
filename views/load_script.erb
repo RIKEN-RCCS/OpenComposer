@@ -1,0 +1,367 @@
+<%# ── Load or Create a Script: full-page file browser ─────────────────────── %>
+<%# Reached via /load_script (optionally ?new_template=1, ?path=/abs/dir). An    %>
+<%# OOD-Files-style browser rendered inside the Open Composer chrome (not a      %>
+<%# modal): a path box you can type into, Refresh, breadcrumbs, an optional      %>
+<%# Owner/Mode column pair, a sortable table, a quick filter, and a "New Script" %>
+<%# action. The current directory is mirrored into the URL (?path=) and pushed   %>
+<%# to history, so the browser Back/Forward buttons walk the directory history.  %>
+<%# Opening a script (or creating one) reuses the History page's ocExtLoad flow: %>
+<%# read the file, POST history/save_external_script, stash the payload in       %>
+<%# sessionStorage, navigate with ?ocExtLoad= to the generic Slurm editor.       %>
+<style>
+  #oc-ls-page .oc-ls-table-wrap {
+    /* Fill the page below the toolbar; the table body scrolls, header stays. */
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+  }
+  #oc-ls-page .oc-ls-table-wrap thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: var(--bs-body-bg, #fff);
+    cursor: pointer; white-space: nowrap; user-select: none;
+  }
+  #oc-ls-page .oc-ls-table-wrap tbody tr.oc-ls-row { cursor: pointer; }
+  #oc-ls-page .oc-ls-table-wrap tbody tr.oc-ls-disabled { cursor: default; }
+  #oc-ls-page .oc-ls-crumbs a { text-decoration: none; }
+  #oc-ls-page .oc-ls-crumbs a:hover { text-decoration: underline; }
+  /* Owner/Mode columns hidden until the toggle is ticked. */
+  #oc-ls-page.oc-ls-hide-ownermode .oc-ls-col-owner,
+  #oc-ls-page.oc-ls-hide-ownermode .oc-ls-col-mode { display: none; }
+  #oc-ls-page td.oc-ls-col-mode { font-family: var(--bs-font-monospace, monospace); }
+</style>
+
+<div id="oc-ls-page" class="mx-1 my-2 oc-ls-hide-ownermode">
+  <%# ── Toolbar row 1: title + path box + actions ───────────────────────── %>
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <h5 class="mb-0 me-2 text-nowrap"><i class="bi bi-folder2-open me-1"></i><%= ERB::Util.h(@conf.fetch('load_script_label', 'Load or Create a Script from Disk')) %></h5>
+    <button type="button" id="oc-ls-home" class="btn btn-sm btn-outline-secondary text-nowrap" title="Go to home directory">
+      <i class="bi bi-house"></i>
+    </button>
+    <button type="button" id="oc-ls-up" class="btn btn-sm btn-outline-secondary text-nowrap" title="Go to parent directory">
+      <i class="bi bi-arrow-90deg-up"></i>
+    </button>
+    <button type="button" id="oc-ls-refresh" class="btn btn-sm btn-outline-secondary text-nowrap" title="Refresh this directory">
+      <i class="bi bi-arrow-clockwise"></i>
+    </button>
+    <form id="oc-ls-pathform" class="d-flex flex-grow-1" style="min-width: 12rem;" autocomplete="off">
+      <input type="text" id="oc-ls-pathbox" class="form-control form-control-sm font-monospace" placeholder="/path/to/directory" spellcheck="false">
+    </form>
+    <a href="<%= @script_name %>/new_script?path=<%= ERB::Util.url_encode(@ls_home) %><%= @ls_new_template ? '&new_template=1' : '' %>" id="oc-ls-new" class="btn btn-sm btn-success text-nowrap" title="Create a new script from a template (in the current directory)">
+      <i class="bi bi-file-earmark-plus me-1"></i>New Script
+    </a>
+  </div>
+
+  <%# ── Toolbar row 2: breadcrumbs + filter + toggles ───────────────────── %>
+  <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+    <nav class="oc-ls-crumbs small text-truncate flex-grow-1" id="oc-ls-crumbs" style="min-width: 8rem;"></nav>
+    <span id="oc-ls-status" class="small text-muted text-nowrap"></span>
+    <input type="search" id="oc-ls-filter" class="form-control form-control-sm" placeholder="Filter…" style="max-width: 14rem;">
+    <div class="form-check m-0 text-nowrap">
+      <input type="checkbox" class="form-check-input" id="oc-ls-ownermode">
+      <label class="form-check-label small" for="oc-ls-ownermode">Owner &amp; mode</label>
+    </div>
+    <div class="form-check m-0 text-nowrap">
+      <input type="checkbox" class="form-check-input" id="oc-ls-hidden">
+      <label class="form-check-label small" for="oc-ls-hidden">Show hidden</label>
+    </div>
+  </div>
+
+  <div class="small text-muted mb-2">
+    Click a <code>.sl</code>, <code>.sh</code>, <code>.bash</code>, <code>.sbatch</code>, <code>.batch</code> or <code>.slurm</code> file to open it in the Slurm script editor, or use <strong>New Script</strong> to start a new one here.
+  </div>
+  <div class="oc-ls-table-wrap border rounded">
+    <table class="table table-sm table-hover mb-0 align-middle">
+      <thead>
+        <tr>
+          <th data-sort="name">Name <span class="oc-ls-sort-ind" data-for="name"></span></th>
+          <th data-sort="size" class="text-end">Size <span class="oc-ls-sort-ind" data-for="size"></span></th>
+          <th data-sort="mtime">Modified <span class="oc-ls-sort-ind" data-for="mtime"></span></th>
+          <th data-sort="owner" class="oc-ls-col-owner">Owner <span class="oc-ls-sort-ind" data-for="owner"></span></th>
+          <th class="oc-ls-col-mode">Mode</th>
+        </tr>
+      </thead>
+      <tbody id="oc-ls-list"></tbody>
+    </table>
+  </div>
+  <div id="oc-ls-error" class="text-danger small mt-2" style="display: none;"></div>
+</div>
+
+<script>
+// ── Load or Create a Script (full-page browser) ────────────────────────────
+(function() {
+  var pageEl   = document.getElementById('oc-ls-page');
+  if (!pageEl) return;
+  var base     = '<%= @script_name %>';
+  var listEl   = document.getElementById('oc-ls-list');
+  var crumbEl  = document.getElementById('oc-ls-crumbs');
+  var upBtn    = document.getElementById('oc-ls-up');
+  var homeBtn  = document.getElementById('oc-ls-home');
+  var refreshBtn = document.getElementById('oc-ls-refresh');
+  var newLink  = document.getElementById('oc-ls-new');
+  var pathForm = document.getElementById('oc-ls-pathform');
+  var pathBox  = document.getElementById('oc-ls-pathbox');
+  var hiddenCb = document.getElementById('oc-ls-hidden');
+  var ownerCb  = document.getElementById('oc-ls-ownermode');
+  var filterEl = document.getElementById('oc-ls-filter');
+  var statusEl = document.getElementById('oc-ls-status');
+  var errEl    = document.getElementById('oc-ls-error');
+  var HOME     = '<%= Dir.home %>';
+  var NEW_TEMPLATE = <%= @ls_new_template ? 'true' : 'false' %>;
+  var SCRIPT_RE = /\.(sl|sh|sbatch|batch|slurm|bash)$/i;
+  var current  = HOME;
+  var entries  = [];
+  var sortKey  = 'name';
+  var sortDir  = 1; // 1 = ascending, -1 = descending
+  var loading  = false; // re-entry guard so a double click can't start two loads
+  var colCount = 5;
+
+  function setError(msg) {
+    errEl.textContent = msg || '';
+    errEl.style.display = msg ? '' : 'none';
+  }
+
+  function fmtSize(b) {
+    if (b == null) return '';
+    var u = ['B', 'KB', 'MB', 'GB', 'TB'], i = 0, n = b;
+    while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? n : n.toFixed(1)) + ' ' + u[i];
+  }
+
+  function fmtDate(epoch) {
+    if (!epoch) return '';
+    var d = new Date(epoch * 1000);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // Folders first, then the chosen column. Hidden + filter applied here too.
+  function visibleEntries() {
+    var showHidden = hiddenCb.checked;
+    var q = (filterEl.value || '').toLowerCase();
+    var list = entries.filter(function(e) {
+      if (!showHidden && e.name.charAt(0) === '.') return false;
+      if (q && e.name.toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    list.sort(function(a, b) {
+      var ad = a.type === 'directory', bd = b.type === 'directory';
+      if (ad !== bd) return ad ? -1 : 1;
+      var av, bv;
+      if (sortKey === 'size')       { av = a.size || 0;  bv = b.size || 0; }
+      else if (sortKey === 'mtime') { av = a.mtime || 0; bv = b.mtime || 0; }
+      else if (sortKey === 'owner') { av = (a.owner || '').toLowerCase(); bv = (b.owner || '').toLowerCase(); }
+      else                          { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+      if (av < bv) return -sortDir;
+      if (av > bv) return sortDir;
+      return 0;
+    });
+    return list;
+  }
+
+  function updateSortIndicators() {
+    pageEl.querySelectorAll('.oc-ls-sort-ind').forEach(function(s) {
+      s.textContent = (s.dataset.for === sortKey) ? (sortDir === 1 ? '▲' : '▼') : '';
+    });
+  }
+
+  function cell(text, cls) {
+    var td = document.createElement('td');
+    if (cls) td.className = cls;
+    td.textContent = text || '';
+    return td;
+  }
+
+  function render() {
+    listEl.innerHTML = '';
+    updateSortIndicators();
+    var rows = visibleEntries();
+    var shown = 0;
+    rows.forEach(function(e) {
+      var isDir    = e.type === 'directory';
+      var isScript = !isDir && SCRIPT_RE.test(e.name);
+      shown++;
+
+      var tr = document.createElement('tr');
+      tr.className = 'oc-ls-row';
+
+      var nameTd = document.createElement('td');
+      var icon = document.createElement('i');
+      icon.className = isDir ? 'bi bi-folder-fill text-warning me-2'
+                    : isScript ? 'bi bi-file-earmark-code text-primary me-2'
+                    : 'bi bi-file-earmark text-muted me-2';
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = e.name + (isDir ? '/' : '');
+      nameTd.appendChild(icon);
+      nameTd.appendChild(nameSpan);
+
+      tr.appendChild(nameTd);
+      tr.appendChild(cell(isDir ? '' : fmtSize(e.size), 'text-end text-muted small'));
+      tr.appendChild(cell(fmtDate(e.mtime), 'text-muted small'));
+      tr.appendChild(cell(e.owner, 'text-muted small oc-ls-col-owner'));
+      tr.appendChild(cell(e.mode ? (isDir ? 'd' : '-') + e.mode : '', 'text-muted small oc-ls-col-mode'));
+
+      if (isDir) {
+        tr.addEventListener('click', function() { browse(e.path); });
+      } else if (isScript) {
+        // File-manager feel: clicking a script opens it straight in the editor.
+        tr.addEventListener('click', function() { openInEditor(e.path); });
+      } else {
+        // Non-script file: shown for context (like OOD Files) but not loadable.
+        tr.className = 'oc-ls-disabled text-muted';
+        nameSpan.style.opacity = '0.6';
+        tr.title = 'Not a recognized script file';
+      }
+      listEl.appendChild(tr);
+    });
+    if (shown === 0) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.colSpan = colCount;
+      td.className = 'small text-muted text-center py-3';
+      td.textContent = 'Nothing to show here.';
+      tr.appendChild(td);
+      listEl.appendChild(tr);
+    }
+  }
+
+  function renderCrumbs() {
+    crumbEl.innerHTML = '';
+    var parts = current.split('/').filter(Boolean);
+    var acc = '';
+
+    function addCrumb(label, path, isLast) {
+      if (isLast) {
+        var span = document.createElement('span');
+        span.className = 'fw-semibold';
+        span.textContent = label;
+        crumbEl.appendChild(span);
+      } else {
+        var a = document.createElement('a');
+        a.href = '#';
+        a.textContent = label;
+        a.addEventListener('click', function(ev) { ev.preventDefault(); browse(path); });
+        crumbEl.appendChild(a);
+      }
+    }
+
+    addCrumb('/', '/', parts.length === 0);
+    parts.forEach(function(p, i) {
+      acc += '/' + p;
+      crumbEl.appendChild(document.createTextNode(' / '));
+      addCrumb(p, acc, i === parts.length - 1);
+    });
+  }
+
+  // Mirror the directory into the page URL so Back/Forward + reload work.
+  function pageUrl(path) {
+    var q = 'path=' + encodeURIComponent(path);
+    if (NEW_TEMPLATE) q += '&new_template=1';
+    return location.pathname + '?' + q;
+  }
+
+  // push: true -> pushState (normal navigation), false -> no history entry
+  // (used for popstate and the initial load, which uses replaceState instead).
+  function browse(path, push) {
+    setError('');
+    fetch(base + '/_files?path=' + encodeURIComponent(path))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!Array.isArray(data.files)) { setError('Cannot open ' + path); return; }
+        current = path;
+        entries = data.files;
+        pathBox.value = path;
+        // Keep "New Script" pointed at the directory currently shown.
+        newLink.href = base + '/new_script?path=' + encodeURIComponent(path) +
+                       (NEW_TEMPLATE ? '&new_template=1' : '');
+        renderCrumbs();
+        render();
+        if (push !== false) { history.pushState({ path: path }, '', pageUrl(path)); }
+      })
+      .catch(function(e) { setError('Error: ' + e.message); });
+  }
+
+  // Read the chosen script from disk and open it in the generic Slurm editor.
+  function openInEditor(path) {
+    if (loading) return;
+    loading = true;
+    setError('');
+    statusEl.textContent = 'Loading ' + path.split('/').pop() + '…';
+
+    fetch(base + '/_read_file?path=' + encodeURIComponent(path))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.error) { throw new Error(data.error); }
+        var script = data.empty ? '' : (data.content || '');
+        if (data.truncated) { setError('Warning: file is larger than 1 MB and was truncated.'); }
+        return fetch(base + '/history/save_external_script', { method: 'POST' })
+          .then(function(r) { return r.json(); })
+          .then(function(target) {
+            if (!target.url) { throw new Error(target.error || 'No target app URL'); }
+            var payload = {
+              script:         script,
+              scriptLocation: path.replace(/\/[^/]*$/, '') || '/',
+              scriptName:     path.split('/').pop(),
+              jobName:        ''
+            };
+            var key = '_oc_ext_' + Date.now();
+            sessionStorage.setItem(key, JSON.stringify(payload));
+            var sep = target.url.indexOf('?') >= 0 ? '&' : '?';
+            var extra = NEW_TEMPLATE ? '&new_template=1' : '';
+            window.location.href = target.url + sep + 'ocExtLoad=' + encodeURIComponent(key) + extra;
+          });
+      })
+      .catch(function(e) {
+        loading = false;
+        statusEl.textContent = '';
+        setError('Error: ' + e.message);
+      });
+  }
+
+  homeBtn.addEventListener('click', function() { browse(HOME); });
+  upBtn.addEventListener('click', function() {
+    if (current === '/') return;
+    browse(current.replace(/\/[^/]*$/, '') || '/');
+  });
+  refreshBtn.addEventListener('click', function() { browse(current, false); });
+
+  pathForm.addEventListener('submit', function(ev) {
+    ev.preventDefault();
+    var p = pathBox.value.trim();
+    if (p) browse(p);
+  });
+
+  hiddenCb.addEventListener('change', render);
+  filterEl.addEventListener('input', render);
+  ownerCb.addEventListener('change', function() {
+    pageEl.classList.toggle('oc-ls-hide-ownermode', !ownerCb.checked);
+  });
+
+  // Sortable column headers: re-clicking the active column flips direction.
+  pageEl.querySelectorAll('thead th[data-sort]').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var key = th.dataset.sort;
+      if (sortKey === key) { sortDir = -sortDir; }
+      else { sortKey = key; sortDir = 1; }
+      render();
+    });
+  });
+
+  // Reset the load guard whenever the page is shown — including when the browser
+  // restores it from the back/forward cache after opening a script. Without this,
+  // `loading` stays true from the previous open and clicks are silently ignored.
+  window.addEventListener('pageshow', function() {
+    loading = false;
+    statusEl.textContent = '';
+  });
+
+  // Browser Back/Forward walk the directory history.
+  window.addEventListener('popstate', function(e) {
+    var p = (e.state && e.state.path) ||
+            new URLSearchParams(location.search).get('path') || HOME;
+    browse(p, false);
+  });
+
+  // Initial directory: ?path= from the URL (so reload/bookmark stays put), else HOME.
+  var startPath = new URLSearchParams(location.search).get('path') || HOME;
+  history.replaceState({ path: startPath }, '', pageUrl(startPath));
+  browse(startPath, false);
+})();
+</script>

@@ -25,7 +25,9 @@
         <li class="nav-item ms-3"><a href="#radio" class="nav-link">2.6. radioウィジット</a></li>
         <li class="nav-item ms-3"><a href="#checkbox" class="nav-link">2.7. checkboxウィジット</a></li>
         <li class="nav-item ms-3"><a href="#path" class="nav-link">2.8. pathウィジット</a></li>
-        <li class="nav-item ms-3"><a href="#functions" class="nav-link">2.9. 関数</a></li>
+        <li class="nav-item ms-3"><a href="#module_load" class="nav-link">2.9. module_loadウィジット</a></li>
+        <li class="nav-item ms-3"><a href="#dependent_module_select" class="nav-link">2.10. dependent_module_selectウィジット</a></li>
+        <li class="nav-item ms-3"><a href="#functions" class="nav-link">2.11. 関数</a></li>
         <li class="nav-item"><a href="#dynamic" class="nav-link">3. Dynamic Form Widget</a></li>
         <li class="nav-item ms-3"><a href="#set" class="nav-link">3.1. ウィジットの設定</a></li>
         <li class="nav-item ms-3"><a href="#disable" class="nav-link">3.2. ウィジットの無効化</a></li>
@@ -36,11 +38,16 @@
         <li class="nav-item ms-3"><a href="#save" class="nav-link">5.2. ファイルの保存</a></li>
         <li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. 非表示化</a></li>
         <li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. 特殊な変数</a></li>
-        <li class="nav-item ms-3"><a href="#overwrite_warning" class="nav-link">5.5. 警告の無効化</a></li>
+        <li class="nav-item ms-3"><a href="#reverse-parse" class="nav-link">5.5. フォームへのスクリプトの読み戻し</a></li>
         <li class="nav-item"><a href="#check" class="nav-link">6. checkセクション</a></li>
         <li class="nav-item"><a href="#submit" class="nav-link">7. submitセクション</a></li>
+        <li class="nav-item ms-3"><a href="#empty-script-warning" class="nav-link">7.1. 空のスクリプトの警告</a></li>
         <li class="nav-item"><a href="#header" class="nav-link">8. headerセクション</a></li>
-        <li class="nav-item"><a href="#supplement" class="nav-link">9. 補足</a></li>
+        <li class="nav-item"><a href="#erb" class="nav-link">9. ERBと動的な設定</a></li>
+        <li class="nav-item ms-3"><a href="#erb-conf" class="nav-link">9.1. @confへのアクセス</a></li>
+        <li class="nav-item ms-3"><a href="#erb-command" class="nav-link">9.2. シェルコマンドによるドロップダウンの生成</a></li>
+        <li class="nav-item ms-3"><a href="#erb-read-yaml" class="nav-link">9.3. read_yamlによる基底フォームの継承</a></li>
+        <li class="nav-item"><a href="#supplement" class="nav-link">10. 補足</a></li>
       </ul>
     </nav>
 
@@ -395,7 +402,123 @@ script: |
       </p>
       <img style="border-style: solid; border-width: 1px;" width="600" src="img/path2.png" alt="path">
 
-    <h3 id="functions">2.9. 関数</h3>
+      <h3 id="module_load">2.9. module_loadウィジット</h3>
+      <p>
+        指定した1つの環境モジュールについて、インストールされているバージョンを一覧するドロップダウンを表示します。
+        項目は<code>form.yml</code>には記述しません。ウィジットは<code>Loading…</code>と表示された1つのドロップダウンを描画し、ページの読み込み後にブラウザがアプリケーションの<code>/_module_avail</code>にそのモジュールのバージョンを問い合わせて項目を埋めます。
+      </p>
+      <p>
+        <code>module</code>キーは必須であり、検索するモジュール名を指定します。
+        モジュール名は大文字と小文字を区別せずにモジュールの一覧と照合され、提示される項目は、その一覧で用いられている表記から組み立てられた完全な<code>Name/version</code>の文字列です。
+        項目は<em>文字列</em>の降順に並びます。バージョンを考慮した比較ではなく単純な文字列の比較であるため、<code>Python/3.9.5</code>が<code>Python/3.11.6</code>より上に並びます。その後、一覧がデフォルトのバージョンを示しており、かつそのバージョンがそのモジュール自身のバージョンに含まれている場合に限り、それが先頭に移動されます。
+      </p>
+      <p>
+        <code>module</code>のほかに有効なキーは<code>label</code>、<code>value</code>、<code>help</code>、<code>indent</code>です。
+        <code>value</code>は、完全な<code>Name/version</code>の形式で記述し、それと完全に一致する項目を既定で選択します。一致するものがない場合は先頭の項目が選択されます。
+        <code>options</code>キーは無視されます。項目は常にモジュールの一覧から取得されます。
+        <code>required</code>は受け付けられますが、その効果はラベルにアスタリスクを付加することのみであり、フォームの投入時に強制されることはありません。
+      </p>
+      <pre>form:
+  gromacs_module:
+    widget: module_load
+    label:  GROMACS module
+    module: GROMACS
+    help:   Only versions installed on the cluster are listed.
+
+script: |
+  module load #{gromacs_module}
+  gmx mdrun -s topol.tpr</pre>
+      <p>
+        モジュール名が一覧に無い場合、または<code>module</code>キーが無い場合、ドロップダウンは<code>No modules found</code>というラベルの空の項目1つだけになります。問い合わせ自体が失敗した場合は<code>Error loading modules</code>と表示されます。
+        いずれの場合もウィジットの値は空になるため、それを参照するスクリプトの行はジョブスクリプトから除かれます。ただし、参照を<code>#{:gromacs_module}</code>と記述した場合は除かれません（<a href="#supplement">10. 補足</a>を参照）。
+      </p>
+      <p>
+        このウィジットが<code>script</code>セクションや<code>submit</code>セクションで参照されている場合、選択を変更すると、スクリプトを再生成するのではなく、既存の<code>module load</code>の行がその場で書き換えられます。
+        <code>module load</code>のみからなる行、および<code>module load</code>に続いてこのウィジット自身のモジュール名（バージョンの有無は問いません）が記述されている行はすべて、<code>module load</code>と新しい選択に置き換えられ、その行の元のインデントは維持されます。テキストエリア内のそれ以外の部分は、ユーザが入力した行を含めて一切変更されません。
+        該当する行がまだ存在しない場合は、通常のスクリプトの更新に戻り、テンプレートから行が挿入されます。
+      </p>
+      <p>
+        モジュールの一覧そのものは、<code>data_dir</code>以下に<code>.module-list-cache.json</code>としてキャッシュされるJSONファイルであり、更新は最大でも24時間に1回です。同じ一覧がすべてのクラスタで使用されます。取得元については、インストールマニュアルの<a target="_blank" href="install_ja.html#network-dependencies">ネットワークと外部への依存</a>を参照してください。
+        このウィジットは自身の<code>options</code>を持たないため、<a href="#dynamic">3. Dynamic Form Widget</a>で説明する動作の起点にはなれませんが、その対象にはなれます（例えば<code>hide-gromacs_module</code>や<code>disable-gromacs_module</code>）。
+      </p>
+
+      <h3 id="dependent_module_select">2.10. dependent_module_selectウィジット</h3>
+      <p>
+        <strong>driver</strong>となるウィジットの現在の選択値に応じて、選択肢が動的に読み込まれるドロップダウンを表示します。
+        あるselectウィジット（例えばアプリケーションのバージョン）が、2つ目のselectで提示すべきモジュールの集合を決定する場合に使用します。
+        <code>module_load</code>ウィジット（<a href="#module_load">2.9. module_loadウィジット</a>）と同様に、項目はページの読み込み後に<code>/_module_avail</code>から取得され、それが届くまでドロップダウンは<code>Loading…</code>と表示します。
+      </p>
+      <p>
+        <code>driver</code>キーは、値を監視する対象の項目名を指定します。同じページに描画されるウィジットを指定しなければなりません。そうでない場合、ドロップダウンは<code>Loading…</code>のままになります。
+        判定に用いられる文字列は、driverの選択肢の<em>値</em>、すなわち<code>options</code>配列の2つ目の要素であり、ドロップダウンに表示される文字列ではありません（他の箇所と同様に、2つ目の要素が無い選択肢は1つ目の要素が代わりに用いられます）。
+      </p>
+      <p>
+        <code>options</code>キーは、照合条件の一覧です。各項目は<code>module</code>を指定し、任意で次の2つの照合方法のいずれかを指定します。
+      </p>
+      <ul>
+  <li><code>prefix:</code> driverの値が指定した文字列で<em>始まる</em>場合に一致します。</li>
+  <li><code>contains:</code> driverの値が指定した文字列をどこかに含む場合に一致します。</li>
+      </ul>
+      <p>
+        項目は記述された順に試され、最初に一致したものが採用されるため、より限定的な条件をより一般的な条件より前に記述してください。1つの項目の中では、<code>prefix:</code>が<code>contains:</code>より先に判定されます。
+        どの項目も一致しない場合は、一覧の<strong>最後</strong>の項目の<code>module</code>がフォールバックとして使用されます。そのため、一般的な場合を最後に置くのが自然です（<code>module</code>のみで照合方法を持たない項目は、それ自体では決して一致しないため、最後の項目として置くと純粋に既定値として機能します）。
+        解決されたモジュール名が変化するたびにバージョンの一覧が再取得され、新しい一覧の先頭の項目が選択されます。解決された名前が変化しない場合、ドロップダウンはそのままになります。
+      </p>
+      <pre>form:
+  alphafold_module:
+    widget: select
+    label: AlphaFold Module
+    options:
+      - [AlphaFold 2.3.2, AlphaFold/2.3.2]
+      - [AlphaFold 3.0.0, AlphaFold/3.0.0]
+      - [AlphaFold 3.0.1, AlphaFold/3.0.1]
+      - [AlphaFold 3.0.2, AlphaFold/3.0.2]
+
+  alphafold_db_module:
+    widget: dependent_module_select
+    label: AlphaFold Database Module
+    driver: alphafold_module
+    options:
+      - prefix: AlphaFold/2.
+        module: AlphaFold2DB
+      - prefix: AlphaFold/3.
+        module: AlphaFold3DB
+
+script: |
+  module load #{alphafold_module}
+  module load #{alphafold_db_module}</pre>
+      <p>
+        この例では、driverで<code>AlphaFold/2.3.2</code>を選択すると<code>AlphaFold2DB</code>の利用可能なバージョンが読み込まれ、<code>AlphaFold/3.0.0</code>、<code>AlphaFold/3.0.1</code>、<code>AlphaFold/3.0.2</code>のいずれかを選択すると<code>AlphaFold3DB</code>のバージョンが読み込まれます。
+        接頭辞は、ドロップダウンに表示されるラベルではなく、選択肢の値（<code>AlphaFold/2.3.2</code>など）に対して判定されることに注意してください。
+      </p>
+      <img src="img/dependent_module_select.png" width="800" alt="dependent_module_select example">
+      <p class="mt-3">
+        下記の例では、driverの値を区別する部分が文字列の先頭にないため、代わりに<code>contains:</code>を使用しています。
+        値に<code>-gpu</code>を含むCUDAのバージョンは<code>cuDNN-GPU</code>を選択し、それ以外は最後の項目に到達します。最後の項目は照合方法を持たないため、既定値として機能します。
+      </p>
+      <pre>form:
+  cuda_module:
+    widget: select
+    label: CUDA Module
+    options:
+      - [CUDA 11.8,        CUDA/11.8.0     ]
+      - [CUDA 12.0 (GPU),  CUDA/12.0.0-gpu ]
+      - [CUDA 12.3 (GPU),  CUDA/12.3.0-gpu ]
+
+  cudnn_module:
+    widget: dependent_module_select
+    label: cuDNN Module
+    driver: cuda_module
+    options:
+      - contains: -gpu
+        module: cuDNN-GPU
+      - module: cuDNN
+
+script: |
+  module load #{cuda_module}
+  module load #{cudnn_module}</pre>
+
+    <h3 id="functions">2.11. 関数</h3>
     <p>
       関数<code>zeropadding(key, digit)</code>は数値に対してゼロパディングを行います。第2引数<code>digit</code>に指定した桁数に満たない場合、不足分を「0」で埋めます。
     </p>
@@ -613,7 +736,7 @@ script: |
       <table class="table">
   <thead>
     <tr style="vertical-align:middle">
-      <th>Widget</th><th>label, value, help,<br>required, indent</th><th>options<br></th><th>size</th><th>separator</th><th>direction</th><th>min, max,<br>step</th>
+      <th>Widget</th><th>label, value, help,<br>required, indent</th><th>options</th><th>size</th><th>separator</th><th>direction</th><th>min, max,<br>step</th>
       <th>show_files,<br>favorites</th>
     </tr>
   </thead>
@@ -715,27 +838,48 @@ script:
         <li>#{OC_APP_NAME}: <code>manifest.yml</code>の<code>name</code>で定義しているアプリケーション名</li>
         <li>#{OC_DIR_NAME}: <code>manifest.yml</code>などのファイルが保存されているディレクトリ名（各アプリケーションのURLの最後のパス要素）</li>
         <li>#{OC_SCRIPT_LOCATION}: ヘッダで定義されている<code>Script location</code></li>
-        <li>#{OC_CLUSTER_NAME}: ヘッダで定義されている<code>Cluster name</code>（<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合に有効）</li>
+        <li>#{OC_CLUSTER_NAME}: ヘッダで定義されている<code>Cluster name</code>（<code>./conf.yml.erb</code>の<code>clusters:</code>に複数のクラスタが定義されている場合にのみ有効です。その場合にのみ<code>lib/header.yml.erb</code>が<code>_cluster_name</code>ウィジットを描画するためです）</li>
         <li>#{OC_SCRIPT_NAME}: ヘッダで定義されている<code>Script Name</code></li>
         <li>#{OC_JOB_NAME}: ヘッダで定義されている<code>Job Name</code></li>
       </ul>
 
-      <h3 id="overwrite_warning">5.5. 警告の無効化</h3>
+      <h3 id="reverse-parse">5.5. フォームへのスクリプトの読み戻し</h3>
       <p>
-        <code>script</code>セクションや<code>submit</code>セクションを手動で変更した後に、それらを変更するウィジットを変更しようとすると、下記のような警告が表示されます。"Discard and continue"をクリックすると、各セクションに加えられた変更は消去され、新しいスクリプトが生成されます。
-      <p>
-        <img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
-      <p>
-        この警告を無効化するには、無効化したいセクションの設定で<code>overwrite_warning: false</code>を指定します。
+        スクリプトの領域は双方向に動作します。ウィジットがスクリプトを書き出すだけでなく、Open Composerはスクリプトを読み取ってウィジットを更新します。保存されたスクリプトが読み込まれたとき（履歴ページから、またはファイルブラウザ経由でディスクから）、フォームはスクリプトの内容から復元されます。また、ユーザがスクリプトを手動で編集している間も、最後のキー入力から約0.5秒後にウィジットが追従します。
+        これは、スクリプトの各行を、<code>script</code>テンプレートの対応する行から導出したパターンと照合することで行われます。そのため、ある項目をスクリプトから復元できるかどうかは、そのテンプレートの行の書き方によって決まります。
       </p>
-
-      <pre>script:
-  overwrite_warning: false
-  content: |</pre>
-
-      <pre>submit:
-  overwrite_warning: false
-  content: |</pre>
+      <p>
+        テンプレートの行を記述する際に従うべき規則は次のとおりです。
+      </p>
+      <ul>
+  <li>すべての行にリテラルの接頭辞を与えてください。行に対してパターンが登録されるのは、最初の<code>#{...}</code>より前のテキストが空でない場合のみです。そのため、補間から始まる行（例えば<code>#{command} -n 4</code>）は、決してウィジットに読み戻されません。</li>
+  <li>それらの接頭辞は互いに区別できるようにしてください。各パターンは、それが一致するスクリプトの最初の行に適用されます。そのため、2つのテンプレートの行が同じテキストで始まる場合（例えば異なる2つの項目がどちらも<code>#SBATCH --ntasks=</code>を書き出す場合）、両方の項目が同じスクリプトの行を読み取ってしまいます。</li>
+  <li>読み戻したい行では、テンプレートの関数を使用しないでください。補間で<code>calc()</code>、<code>zeropadding()</code>、<code>dirname()</code>、<code>basename()</code>を用いている行は、逆方向に解析できません。その行のパターンは配置の目的でのみ登録され、項目は関連付けられません。単純な<code>#{key}</code>の補間は逆方向に解析され、1つの行にいくつでも記述できます。それぞれがキャプチャグループとなり、そのテキストが対応するウィジットに書き戻されます。</li>
+  <li>前の規則には例外が1つだけあります。<code>#SBATCH --time=</code>で始まり、かつそれらの関数を使用している行は、Slurmの時刻専用の解析処理で扱われます。この処理はSlurmの<code>--time</code>のすべての形式（<code>D-HH:MM:SS</code>、<code>D-HH:MM</code>、<code>D-HH</code>、<code>HH:MM:SS</code>、<code>MM:SS</code>、<code>MM</code>）を受け付け、その行の項目をテンプレートに現れる順に、日、時、分、秒で埋めます。4つ目より後の項目は<code>0</code>に設定されるため、時刻の項目は必ずこの順序で記述してください。</li>
+      </ul>
+      <p>
+        キャプチャされたテキストは、対象のウィジットに応じて適用されます。
+      </p>
+      <ul>
+  <li><code>number</code>、<code>text</code>、<code>email</code>: 入力欄にそのまま書き込まれます。</li>
+  <li><code>select</code>、<code>module_load</code>、<code>dependent_module_select</code>: 値（<code>options</code>配列の2つ目の要素）がキャプチャされたテキストと等しい選択肢が選択されます。一致する選択肢が無い場合、およびウィジットが無効になっている間は、何も起こりません。</li>
+  <li><code>radio</code>: 値がキャプチャされたテキストと等しいボタンが選択されます。</li>
+  <li><code>checkbox</code>: キャプチャされたテキストがウィジットの<code>separator</code>（設定が無い場合はカンマ）で分割され、その結果に値が含まれるすべての選択肢がチェックされます。</li>
+  <li><code>multi_select</code>と<code>path</code>: <strong>適用されません。</strong>逆方向の解析処理はこの2つのウィジットの種類に対応していないため、これらのためにキャプチャされたテキストは破棄され、項目は元の値を保持します。例えば<a href="#path">2.8. pathウィジット</a>の<code>cd #{working_dir}</code>の行は読み戻されません。ただし、<code>path</code>の項目は、後述する履歴ページの場合において、そのテンプレートの行が<code>#SBATCH</code>で始まるときはサーバ側で入力されます。</li>
+      </ul>
+      <p>
+        スクリプトが読み込まれる際、一致した行が非表示の区画を開くこともあります。その行が属する項目が無効になっている場合、その項目を制御する<code>enable-</code>の動作が発火し、読み込まれた値が入った状態で区画が現れます。
+        number、text、email、Slurmの時刻の場合、これはその行がその項目に固有であるときにのみ起こります。同じ行が別のウィジットに属するパターンにも一致する場合、値は適用されますが、区画は開きません。
+        例えば、2つの項目がどちらも<code>#SBATCH --ntasks=</code>を出力する場合、詳細設定の区画は、その区画だけに属する行（例えばその区画自身の<code>#SBATCH --cpus-per-task=</code>の行）によってのみ開かれます。
+        ユーザがスクリプトの領域で入力している間は、区画が開くことは決してなく、無効になっている項目も変更されません。
+      </p>
+      <p>
+        ジョブのスクリプトが履歴のデータベースに保持されていない場合、すなわち<code>history_store_script</code>が<code>false</code>である場合、またはOpen Composerがそのジョブを投入したのではない場合、スクリプトは<code>sacct -B</code>でジョブスケジューラから取得され、さらにページの描画前に、サーバ側でウィジットの<code>value</code>キーがあらかじめ入力されます。この経路は上記の処理より狭い範囲を対象とします。テンプレートの行は<code>#SBATCH</code>で始まるものだけが考慮され、照合の対象も<code>#SBATCH</code>で始まるスクリプトの行だけです。通常の履歴からの読み込みでは、保存されたスクリプトがそのまま使用され、ウィジットの復元はすべてブラウザ内で行われます。
+        スクリプトのそれ以外の行は無視されるため、Slurm以外のジョブスケジューラでは、このサーバ側の処理は何も行いません。
+        そこでは<code>zeropadding(field, N)</code>は解釈されますが、他の関数は解釈されず、それらのキャプチャは破棄されます。
+        また、スクリプトのテンプレートは単なるテキストとして読まれるため、<code>label:</code>と<code>content:</code>のキーでスクリプトを記述するアプリケーション（<a href="#label">5.1. ラベルの変更</a>を参照）では、サーバ側での事前入力は行われません。
+        これらのいずれの場合も、ブラウザ内での解析は引き続き実行されるため、フォームは最終的に読み込まれたスクリプトと一致した状態になります。
+      </p>
 
       <h2 id="check">6. checkセクション</h2>
       <p>
@@ -829,12 +973,32 @@ submit:
       </p>
       <img src="img/submit2.png" width="600" alt="Submit">
 
+      <h3 id="empty-script-warning">7.1. 空のスクリプトの警告</h3>
+      <p>
+        ユーザがフォームを投入するとき、すなわち<strong>「Submit」</strong>ボタン、または<code>action: confirm</code>のアプリケーションで確認のダイアログ内にある<strong>「Submit」</strong>ボタンがクリックされたとき（<strong>「Confirm」</strong>のクリック自体はそのダイアログを開くだけです）、Open Composerはバッチスクリプトに実際のコマンドが含まれているかどうかを自動的に確認します。
+        行は、空行である場合、<code>#</code>で始まる場合（コメント、<code>#SBATCH</code>のディレクティブ、シバンの行）、または<code>module</code>で始まる場合に、定型的な行と見なされて無視されます。
+        実際のコマンドが見つからない場合、ジョブを投入する前にブラウザの確認のダイアログが表示されます。
+      </p>
+      <pre>No commands have been added to the batch script.
+
+Are you sure you want to submit?</pre>
+      <p>
+        <strong>「Cancel」</strong>をクリックすると、投入せずにフォームに戻ります。
+        <strong>「OK」</strong>をクリックすると、通常どおり投入を続行します。
+        この確認は自動的に行われ、デフォルトで有効です。<code>script</code>セクションで<code>action: save</code>を設定しているアプリケーションには適用されません。その場合は、ジョブを投入するのではなくファイルを保存するためです。
+      </p>
+      <p>
+        この警告を無効にするには、<code>conf.yml.erb</code>で<code>empty_script_warning: false</code>を設定します。
+      </p>
+      <pre>empty_script_warning: false</pre>
+      <img src="img/no_entry_warning_message.png" width="600" alt="Empty script warning">
+
       <h2 id="header">8. headerセクション</h2>
       <p>
   <code>header</code>セクションを定義できます。ただし、<code>lib/header.yml.erb</code>で定義されているウィジットは必ず定義してください。
       </p>
       <p>
-  下記の例は、ジョブスクリプトを隠す新しいウィジット<code>script_content</code>を定義しています。<code>_script_location</code>と<code>_script</code>は<code>lib/header.yml.erb</code>で定義されているウィジットです（<code>./conf.yml.erb</code>で<code>cluster</code>が定義されている場合は、<code>_cluster_name</code>の定義も必要です）。
+  下記の例は、ジョブスクリプトを隠す新しいウィジット<code>script_content</code>を定義しています。<code>_script_location</code>と<code>_script</code>は<code>lib/header.yml.erb</code>で定義されているウィジットです（<code>./conf.yml.erb</code>の<code>clusters:</code>に複数のクラスタが定義されている場合は、<code>_cluster_name</code>の定義も必要です）。
       </p>
 
       <pre>header:
@@ -878,15 +1042,123 @@ queue:
     - [large]
 &lt;% end %&gt;</pre>
 
-      <h2 id="supplement">9. 補足</h2>
+      <h2 id="erb">9. ERBと動的な設定</h2>
+      <p>
+        フォームのファイル名が<code>form.yml.erb</code>である場合、Open ComposerはYAMLとして解析する前に、そのファイルをEmbedded Ruby（ERB）として処理します。
+        これにより、ページの読み込み時にフォームの内容を動的に生成できます。例えば、シェルコマンドを実行してドロップダウンの選択肢の一覧を組み立てたり、Open Composerの設定から値を読み取ったりできます。
+      </p>
+
+      <h3 id="erb-conf">9.1. @confへのアクセス</h3>
+      <p>
+        変数<code>@conf</code>は<code>form.yml.erb</code>の中で利用でき、<code>conf.yml.erb</code>から読み込まれたOpen Composerの設定のハッシュ全体を保持します。
+        これはページが描画されている間のみ設定されます。同じ<code>form.yml.erb</code>はフォームの投入時にも再評価されますが、その要求では<code>@conf</code>は<code>nil</code>になります。そのため、必ず安全ナビゲーション演算子（<code>@conf&amp;.fetch('login_node', nil)</code>）を使用するか、参照を<code>begin</code>/<code>rescue</code>で囲んでください。そうしないと、フォームの投入がジョブの投入ではなく<code>NoMethodError</code>のページで失敗します。
+        ログインノードのホスト名など、サイト固有の設定を読み取るために使用します。
+      </p>
+      <pre>&lt;%
+  login_node = @conf&amp;.fetch('login_node', nil)
+%&gt;
+---
+form:
+  my_field:
+    widget: text
+    label: Login node is &lt;%= login_node %&gt;</pre>
+
+      <h3 id="erb-command">9.2. シェルコマンドによるドロップダウンの生成</h3>
+      <p>
+        ERBの中でシェルコマンドを実行し、ページの読み込み時に<code>select</code>ウィジットの<code>options</code>の一覧を生成することができます。
+        OODのWebサーバがジョブスケジューラのデーモンに直接アクセスできない場合は、コマンドの前にログインノードへの<code>ssh</code>を付加してください。その際は、ユーザが選択したクラスタについてOpen Composerがすでに解決済みの<code>@login_node</code>を使用します（<code>@cluster_name</code>も利用できます）。<code>@conf['login_node']</code>は設定の生の値であり、複数のクラスタがあるサイトではクラスタ名をキーとするハッシュになります。
+      </p>
+      <p>
+        下記の例は、<code>sacctmgr</code>をSSH経由で実行し、ユーザのSlurmのアソシエーションから「Project」のドロップダウンを生成します。
+        アカウントが見つからない場合でもエラーにはならず、選択肢の一覧が空の<code>select</code>ウィジットが常に描画されます。
+      </p>
+      <pre>&lt;%
+  begin
+    _login_node = (@conf&amp;.fetch('login_node', nil) rescue nil)
+    _login_node = _login_node.is_a?(Hash) ? _login_node.values.compact.first : _login_node
+    _ssh_prefix = _login_node ? "ssh -o BatchMode=yes -o ConnectTimeout=10 #{_login_node}" : ""
+    _accounts = `#{_ssh_prefix} sacctmgr -n -P show user #{ENV['USER']} withassoc format=Account 2&gt;/dev/null`
+                .split("\n").map(&amp;:strip).reject(&amp;:empty?).uniq.sort
+  rescue
+    _accounts = []
+  end
+%&gt;
+---
+form:
+  account:
+    widget: select
+    label: Project
+&lt;% if _accounts.empty? %&gt;
+    options: []
+&lt;% else %&gt;
+    options:
+&lt;% _accounts.each do |a| %&gt;
+      - ["&lt;%= a %&gt;", "&lt;%= a %&gt;"]
+&lt;% end %&gt;
+&lt;% end %&gt;
+
+script: |
+  #SBATCH --account=#{account}</pre>
+      <p>
+        要点は次のとおりです。
+      </p>
+      <ul>
+        <li>シェルコマンドは<code>begin</code>/<code>rescue</code>のブロックで囲み、コマンドが失敗した場合にフォームのエラーではなく空の一覧になるようにしてください。</li>
+        <li>一覧が空の場合は、キーを省略するのではなく<code>options: []</code>と記述してください。<code>options</code>キーが無いとYAMLでは<code>nil</code>として解析され、実行時エラーになります。</li>
+        <li><code>BatchMode=yes</code>は、SSHがパスワードの入力を待って停止することを防ぎます。<code>ConnectTimeout=10</code>は、ログインノードに到達できない場合にページが停止することを防ぎます。</li>
+        <li>PassengerのWebプロセスはOODにログインしているユーザとして動作するため、そのユーザのログインノードへのSSH鍵があらかじめ設定されている必要があります。</li>
+      </ul>
+
+      <h3 id="erb-read-yaml">9.3. read_yamlによる基底フォームの継承</h3>
+      <p>
+        <code>read_yaml(path)</code>のヘルパを使用すると、別のフォームのファイル（<code>.erb</code>のファイルを含む）を読み込み、その内容を変更してからYAMLとして出力できます。
+        <code>apps/</code>ディレクトリのアプリケーションは、この方法で共通のSlurmの項目を2つの基底フォームのいずれかから継承しています。CPUのジョブには<code>SlurmBasic</code>を、GPUのジョブには<code>SlurmGPU</code>を使用します。後者はパーティションに応じたGPUの種類とGPU数の選択、および対応する<code>--gpus-per-node</code>のスクリプトの行を追加します。<code>base_path</code>は、自分のアプリケーションに合う方を指定してください。
+      </p>
+      <p>
+        <code>form.yml.erb</code>の中では、ローカル変数<code>yml_path</code>が、処理中のフォームのファイルのパスを保持します。この値は常に<code>.erb</code>の接尾辞を除いた形（例えば<code>./apps/MyApp/form.yml</code>）で記述されるため、<code>File.dirname(yml_path)</code>がそのアプリケーション自身のディレクトリになります。
+      </p>
+      <pre>&lt;%
+base_path = File.join(File.dirname(yml_path), '../SlurmBasic/form.yml')
+base = read_yaml(base_path)
+
+# 時刻のウィジットの前にアプリケーション固有の項目を挿入する
+new_form = {}
+base['form'].each do |k, v|
+  if k == 'time_days_hours_minutes'
+    new_form['myapp_module'] = {
+      'widget' =&gt; 'module_load',
+      'module' =&gt; 'myapp',
+      'label'  =&gt; 'MyApp Module'
+    }
+  end
+  new_form[k] = v
+end
+
+base['form']   = new_form
+base['script'] = base['script'].rstrip + "\n\n" + &lt;&lt;~'APP_SCRIPT'
+  module load #{myapp_module}
+APP_SCRIPT
+%&gt;
+&lt;%= base.to_yaml -%&gt;</pre>
+      <p>
+        シングルクォートのヒアドキュメント（<code>&lt;&lt;~'APP_SCRIPT'</code>）に注意してください。<code>#{...}</code>を含むスクリプトのテキストは、必ずシングルクォートのヒアドキュメントか、シングルクォートのRubyの文字列で記述しなければなりません。<code>#{...}</code>はOpen Composerの<em>フォーム</em>の補間の構文ですが、<code>&lt;% %&gt;</code>のブロックの中でダブルクォートの文字列を使うと、Rubyが先にウィジット名を補間しようとするため、<code>NameError: undefined local variable or method 'myapp_module'</code>でページが失敗します。
+      </p>
+      <p>
+        <code>read_yaml</code>は、対象のファイルの<code>.erb</code>版が存在する場合、それを自動的に見つけて処理します。そのため、<code>SlurmBasic</code>のERBのヘッダ（「Project」のドロップダウンを生成する部分）は、継承された場合にも正しく実行されます。
+      </p>
+
+      <h2 id="supplement">10. 補足</h2>
       <ul>
   <li>本ページのサンプルはすべてbash言語で記述されていますが、他のシェルも利用することができます。ただし、<code>submit</code>セクションだけはbash言語しか記述できません。</li>
   <li>ウィジット名に利用できるのは英数字とアンダースコアのみです。数字とアンダースコアを先頭に用いることもできません。末尾がアンダースコア+数字のウィジット名（例：<code>nodes_1</code>）も利用しないで下さい。アプリケーションを保存するディレクトリ名も同様です。ただし、<code>header</code>セクションを<code>form.yml</code>で定義する場合、<code>lib/header.yml.erb</code>で用いられているアンダースコアで始まるウィジット名（例：<code>_script_location</code>）は利用可能です。</li>
   <li><code>options</code>で2つ目の要素がない場合、1つ目の要素が代わりに用いられます。</li>
+  <li><code>label</code>と<code>help</code>のテキストは、プレーンテキストではなくHTMLとしてページに挿入されます。そのため、<code>&lt;br&gt;</code>、<code>&lt;b&gt;</code>、<code>&lt;code&gt;</code>、<code>&lt;a href="…" target="_blank"&gt;</code>のリンクといった簡単なマークアップを利用できます。<code>set-label-</code>や<code>set-help-</code>の動作で与えるテキストも同様です。このため、リテラルの<code>&lt;</code>は<code>&amp;lt;</code>と、リテラルの<code>&amp;</code>は<code>&amp;amp;</code>と記述しなければなりません。また、<code>label</code>中のダブルクォートは、そのラベルがコピーされる属性を壊すため、<code>&amp;quot;</code>と記述してください。なお、後から<code>set-required-</code>の動作がそのラベルを書き換えた場合、ラベル中のマークアップはプレーンテキストに平坦化されます。<code>options</code>配列の1つ目と2つ目の要素はエスケープされ、常にそのまま表示されます。</li>
+  <li><code>module_load</code>と<code>dependent_module_select</code>の値は、選択された<code>Name/version</code>の文字列として<code>check</code>セクションに渡されます。そのため、<code>@my_module</code>は他のテキストの項目と同様に検証できます。</li>
   <li><code>script</code>セクションにおいて、ある行で利用されている変数が値を持たない場合、その行は表示されません。ただし、その変数の先頭にコロンを付加する（例：<code>#{:nodes}</code>や<code>#{basename(:input_file)}</code>）と、その変数が値を持たなくても行は出力されます。</li>
   <li>Open Composerがジョブスクリプトを投入するまでに行われる処理の順番は下記の通りです。
     <ol>
       <li>アプリケーションページで「Submit」ボタンがクリックされる</li>
+      <li><code>empty_script_warning</code>が有効な場合、バッチスクリプトに実際のコマンドが含まれているかどうかを確認し、含まれていなければ確認のダイアログを表示（<a href="#empty-script-warning">7.1. 空のスクリプトの警告</a>を参照）</li>
       <li><code>form.yml</code>の<code>check</code>セクションに記述されたスクリプトを実行（<code>check</code>セクションがある場合）</li>
       <li><code>form.yml</code>の<code>submit</code>セクションに記述されたスクリプトを実行（<code>submit</code>セクションがある場合）</li>
       <li>ジョブスクリプトが投入される</li>
