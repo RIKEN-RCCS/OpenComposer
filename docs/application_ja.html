@@ -36,7 +36,7 @@
         <li class="nav-item ms-3"><a href="#save" class="nav-link">5.2. ファイルの保存</a></li>
         <li class="nav-item ms-3"><a href="#hide-script" class="nav-link">5.3. 非表示化</a></li>
         <li class="nav-item ms-3"><a href="#variables" class="nav-link">5.4. 特殊な変数</a></li>
-        <li class="nav-item ms-3"><a href="#overwrite_warning" class="nav-link">5.5. 警告の無効化</a></li>
+        <li class="nav-item ms-3"><a href="#reverse-parse" class="nav-link">5.5. フォームへのスクリプトの読み戻し</a></li>
         <li class="nav-item"><a href="#check" class="nav-link">6. checkセクション</a></li>
         <li class="nav-item"><a href="#submit" class="nav-link">7. submitセクション</a></li>
         <li class="nav-item"><a href="#header" class="nav-link">8. headerセクション</a></li>
@@ -720,22 +720,55 @@ script:
         <li>#{OC_JOB_NAME}: ヘッダで定義されている<code>Job Name</code></li>
       </ul>
 
-      <h3 id="overwrite_warning">5.5. 警告の無効化</h3>
+      <h3 id="reverse-parse">5.5. フォームへのスクリプトの読み戻し</h3>
       <p>
-        <code>script</code>セクションや<code>submit</code>セクションを手動で変更した後に、それらを変更するウィジットを変更しようとすると、下記のような警告が表示されます。"Discard and continue"をクリックすると、各セクションに加えられた変更は消去され、新しいスクリプトが生成されます。
-      <p>
-        <img style="border-style: solid; border-width: 1px;" src="img/overwrite_warning.png" width="400" alt="warning">
-      <p>
-        この警告を無効化するには、無効化したいセクションの設定で<code>overwrite_warning: false</code>を指定します。
+        formやheaderの項目を変更すると、それに応じてスクリプトの内容も変更されます。逆に、スクリプトの内容を変更した場合も、可能であればformやheaderの項目が更新されます。
       </p>
-
-      <pre>script:
-  overwrite_warning: false
-  content: |</pre>
-
-      <pre>submit:
-  overwrite_warning: false
-  content: |</pre>
+      <p>
+        行を読み戻せるかどうかは、次の3つの規則で決まります。
+      </p>
+      <ul>
+  <li>リテラルのテキストで始まること。<code>#{command} -n 4</code>のように補間から始まる行は、決して一致しません。</li>
+  <li>先頭のテキストが一意であること。各パターンは最初に一致したスクリプトの行を使用するため、2つのテンプレートの行が同じ先頭を持つ場合、両方が同じ行を読み取ってしまいます。</li>
+  <li><code>calc()</code>、<code>dirname()</code>、<code>basename()</code>を使用しないこと。これらは情報が失われるため逆算できません。そのような行も所定の位置で書き換えられますが、項目は関連付けられません。<code>zeropadding()</code>は例外です（後述の表を参照）。</li>
+      </ul>
+      <p>
+        <code>#SBATCH --time=</code>は個別に扱われます。この行は専用の解析処理で扱われ、Slurmのすべての形式（<code>D-HH:MM:SS</code>、<code>D-HH:MM</code>、<code>D-HH</code>、<code>HH:MM:SS</code>、<code>MM:SS</code>、<code>MM</code>）を受け付けて、その行の項目を日、時、分、秒で埋めます。そのため、これらの項目はテンプレートにこの順序で記述する必要があります。
+      </p>
+      <p>
+        キャプチャされたテキストは、対象のウィジットに応じて適用されます。
+      </p>
+      <table class="table">
+  <thead>
+    <tr><th>ウィジット</th><th>スクリプトからの読み戻し</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>number, text, email, path</td><td>入力欄にそのまま書き込まれます。</td></tr>
+    <tr><td>select, radio</td><td>値（<code>options</code>の要素の2つ目）がテキストと等しい選択肢が選択されます。</td></tr>
+    <tr><td>checkbox</td><td>ウィジットの<code>separator</code>（既定はカンマ）で分割されます。一致する選択肢はチェックされ、それ以外はチェックが外れるため、行から値を削除するとその選択肢のチェックも外れます。</td></tr>
+    <tr><td>multi_select</td><td><strong>適用されません。</strong>バッジは元の状態を保持し、その行への編集は次にウィジットを変更した時点でバッジの内容から再生成されます。</td></tr>
+  </tbody>
+      </table>
+      <p>
+        テンプレートの関数のうち、読み戻せるのは<code>zeropadding()</code>だけです。
+      </p>
+      <table class="table">
+  <thead>
+    <tr><th>関数</th><th>スクリプトからの読み戻し</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>zeropadding(field, N)</code></td><td>桁を埋めた数字に一致し、その埋めた分が取り除かれます。例えば<code>run-0125.log</code>からは<code>125</code>が項目に入ります。桁を埋めるだけなので情報は失われません。</td></tr>
+    <tr><td><code>calc()</code></td><td><strong>適用されません。</strong>計算結果からは元の値の組を一意に定められません。例えば<code>28</code>はどの因数の組でもあり得ます。</td></tr>
+    <tr><td><code>dirname()</code>、<code>basename()</code></td><td><strong>適用されません。</strong>いずれもパスの一部を捨てるため、項目の値を復元できません。</td></tr>
+    <tr><td><code>zeropadding(calc(...), N)</code></td><td><strong>適用されません。</strong>入れ子になった<code>calc()</code>は逆算できないままです。</td></tr>
+  </tbody>
+      </table>
+      <p>
+        <code>zeropadding()</code>を含む行が読み戻されるのは、その行のすべての補間が、単純な補間または<code>zeropadding(field, N)</code>そのものであり、かつ補間どうしがリテラルのテキストで区切られている場合だけです。<code>#{zeropadding(h, 2)}#{zeropadding(m, 2)}</code>のように2つの補間が隣接している場合は分割できないため、その行は書き換えの対象にはなりますが、読み戻しは行われません。
+      </p>
+      <p>
+        スクリプトの読み込み時には、非表示の区画が開くこともあります。一致した項目が無効になっている場合、その項目を制御する<code>enable-</code>の動作が発火し、値が入った状態で区画が現れます。これは、他のどの項目も同じ行を書き出せない場合にのみ起こります。例えば2つの項目がどちらも<code>#$ -o </code>で始まる行を書き出す場合、読み込まれた<code>#$ -o out.log</code>はどちらの項目のものか判別できないため、値は入力されますが区画は開きません。
+      </p>
 
       <h2 id="check">6. checkセクション</h2>
       <p>

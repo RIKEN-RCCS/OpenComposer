@@ -145,8 +145,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onfocus=\"ocForm.storePreviousValue('#{id}')\" " \
-                "oninput=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}');})\""
+        html << "oninput=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
       else
         html << "style=\"background-color: #{@conf["non_script_color"]};\""
@@ -228,13 +227,32 @@ helpers do
   end
 
   # Output a JavaScript code based on a given yml, line in script, and matches data.
+  # Returns [show_js, pattern_js]:
+  #   show_js    - pushes the rendered line into selectedValues (script generation),
+  #   pattern_js - registers the line in ocForm.scriptLinePatterns so form.js can
+  #                patch just this line in place and parse it back into the widgets.
   def output_script_js(form, line, app_name, dir_name)
     line = normalize_interpolation(line)
     line = substitute_oc_constants(line, app_name, dir_name)
+    raw_line = line.dup
     line = escape_js_string(line)
 
     matches = line.scan(/\#\{.+?\}/)
-    return "  selectedValues.push(\'#{line}\');\n" if matches.empty?
+    if matches.empty?
+      # A literal line has no widget behind it, but it still needs a pattern so
+      # patchScript() recognises it as template-owned rather than user-typed.
+      # literal:true marks it as never regenerated: since no widget can alter
+      # it, a difference from the template means the user edited it, and
+      # patchScript keeps their version. This must NOT be set on the
+      # prefix-only patterns emitted below for calc()/zeropadding() lines,
+      # which do change when their widgets change.
+      pattern_js = ""
+      unless raw_line.empty?
+        prefix_js  = escape_js_string(raw_line)
+        pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:null, keys:[], widgets:[], separators:[], canHide:[], literal:true});\n"
+      end
+      return ["  selectedValues.push(\'#{line}\');\n", pattern_js]
+    end
 
     keys = matches.flat_map do |str|
       inner = str[2..-2] # "#{time_1}" -> "time_1"
@@ -317,9 +335,85 @@ helpers do
       can_hide_array      = "["  + can_hide.map { |r| r }.join(", ") + "]"
       separators_array    = "["  + separators.map { |s| s.nil? ? 'null'  : "'#{s}'" }.join(", ") + "]"
 
-      return "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
+      show_js = "  ocForm.showLine(selectedValues, '#{line}', #{keys_array}, #{widgets_array}, #{can_hide_array}, #{separators_array});\n"
+
+      # The prefix (text before the first #{...}) identifies this line in the
+      # script textarea. The regex additionally captures each widget's value so
+      # the line can be read back into the form.
+      has_complex = raw_line.match?(/\#\{(calc|zeropadding|dirname|basename)\(/)
+      raw_parts   = raw_line.split(/\#\{[^}]+\}/, -1)
+      prefix      = raw_parts[0]
+      # The interpolation expressions in order, e.g. ["days", "zeropadding(hours, 2)"].
+      # Split and scan use the same [^}]+, so interps[i] is the expression that
+      # produced the capture between raw_parts[i] and raw_parts[i + 1].
+      interps     = raw_line.scan(/\#\{([^}]+)\}/).flatten
+
+      # zeropadding(field, N) is the one function that can be inverted: it only
+      # pads, so the original value is recovered by matching digits. calc()
+      # loses its inputs, dirname()/basename() discard half the path, and a
+      # nested zeropadding(calc(...), N) inherits calc()'s problem. A line using
+      # only bare zeropadding() is therefore still parseable.
+      #
+      # exist_keys must also line up 1:1 with the captures — each bare
+      # zeropadding() contributes exactly one key, but a key naming a widget
+      # that does not exist is dropped above, which would shift every later
+      # capture onto the wrong field.
+      #
+      # Two captures with no literal text between them also cannot be split:
+      # "(\d+)(\d+)" against "0230" is ambiguous, and the first capture would
+      # greedily swallow the second field's padding. Such a line is left
+      # patch-only rather than parsed wrongly.
+      adjacent_captures = (1...(raw_parts.length - 1)).any? { |i| raw_parts[i].empty? }
+
+      zeropad_only = has_complex &&
+                     !adjacent_captures &&
+                     exist_keys.length == interps.length &&
+                     interps.all? do |e|
+                       e !~ /\A(?:calc|zeropadding|dirname|basename)\(/ ||
+                         e =~ /\Azeropadding\(\s*:?[A-Za-z_]\w*\s*,\s*\d+\s*\)\z/
+                     end
+
+      pattern_js = ""
+      unless prefix.empty?
+        prefix_js = escape_js_string(prefix)
+
+        if has_complex && raw_line.lstrip.start_with?("#SBATCH --time=")
+          # Keeps precedence over zeropad inversion: the dedicated parser accepts
+          # every Slurm --time format, which a regex built from one template line
+          # could not (a hand-typed "--time=60" would simply fail to match).
+          pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:null, keys:#{keys_array}, widgets:#{widgets_array}, separators:#{separators_array}, canHide:#{can_hide_array}, parseType:'slurm_time'});\n"
+        elsif has_complex && !zeropad_only
+          # A computed value cannot be inverted, so only the prefix is registered
+          # — enough to patch the line, not to parse it.
+          pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:null, keys:[], widgets:[], separators:[], canHide:[]});\n"
+        else
+          zero_pad    = []
+          regex_parts = []
+          raw_parts.each_with_index do |part, i|
+            regex_parts << Regexp.escape(part)
+            next unless i < raw_parts.length - 1
+
+            if zeropad_only && interps[i] =~ /\Azeropadding\(/
+              # A padded field is always digits, so match digits rather than
+              # anything — this also stops the capture swallowing the padding
+              # of a neighbouring field when two sit next to each other.
+              regex_parts << "(\\d+)"
+              zero_pad   << "true"
+            else
+              # The last capture is greedy so a trailing value keeps any spaces.
+              regex_parts << (i < raw_parts.length - 2 ? "(.*?)" : "(.*)")
+              zero_pad   << "false"
+            end
+          end
+          regex_str = ("^" + regex_parts.join("") + "$").gsub("/", "\\/")
+          extra     = zero_pad.include?("true") ? ", zeroPad:[#{zero_pad.join(', ')}]" : ""
+          pattern_js = "  ocForm.scriptLinePatterns.push({prefix:'#{prefix_js}', regex:/#{regex_str}/, keys:#{keys_array}, widgets:#{widgets_array}, separators:#{separators_array}, canHide:#{can_hide_array}#{extra}});\n"
+        end
+      end
+
+      return [show_js, pattern_js]
     else
-      return "  selectedValues.push('#{line}');\n"
+      return ["  selectedValues.push('#{line}');\n", ""]
     end
   end
 
@@ -339,8 +433,7 @@ helpers do
              'submit'
            end
     if type
-      html << "onfocus=\"ocForm.storePreviousValue('#{key}')\" " \
-              "onchange=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}');})\""
+      html << "onchange=\"ocForm.updateArea('#{type}', '#{key}')\""
       html << " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html << "onchange=\"ocForm.execDynamicWidget('#{key}')\" " \
@@ -460,7 +553,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\" oninput=\"ocForm.storePreviousValue('#{id}')\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -510,7 +603,7 @@ helpers do
                'submit'
              end
       if type
-        html << "onchange=\"ocForm.confirmOverwrite('#{type}', '#{id}', function(){ocForm.updateArea('#{type}', '#{id}')})\""
+        html << "onchange=\"ocForm.updateArea('#{type}', '#{id}')\""
         html << " style=\"background-color: #{@conf["submit_button_color"]};\"" if type == 'submit'
         html << ">\n"
       else
@@ -530,6 +623,24 @@ helpers do
   # If "required: true", the submit button cannot be pressed.
   def output_checkbox_js(key, value)
     return !value['required'].is_a?(Array) && value['required'].to_s == "true" ? "  ocForm.validateCheckboxForSubmit('#{key}');" : ""
+  end
+
+  # Generate JS that populates ocForm.enabledBy: maps each field key to the checkbox
+  # option IDs that enable it. Used by parseScriptToWidgets() to reopen a collapsed
+  # section (e.g. "Show advanced options") when a loaded script sets a field inside it.
+  def output_enabled_by_js(key, options)
+    js = ""
+    return js if options.nil?
+    options.each_with_index do |option, i|
+      next unless option.is_a?(Array)
+      (option[2..-1] || []).each do |action|
+        next unless action.is_a?(String) && action.start_with?("enable-")
+        target     = action.sub(/^enable-/, '')
+        enabler_id = "#{key}_#{i + 1}"
+        js += "  (ocForm.enabledBy[#{target.to_json}] = ocForm.enabledBy[#{target.to_json}] || []).push(#{enabler_id.to_json});\n"
+      end
+    end
+    js
   end
 
   # Output a path widget.
@@ -554,19 +665,14 @@ helpers do
              'submit'
            end
     if type
-      html += "oninput=\"ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updateArea('#{type}', '#{key}')})\" "
-      html += "onfocus=\"ocForm.storePreviousValue('#{key}')\""
+      html += "oninput=\"ocForm.updateArea('#{type}', '#{key}')\""
       html += " style=\"background-color: #{@conf["submit_color"]};\"" if type == 'submit'
     else
       html += "style=\"background-color: #{@conf["non_script_color"]};\""
     end
     html += ">\n"
     html += "<button type=\"button\" class=\"btn btn-dark mt-0 text-nowrap\" data-bs-toggle=\"modal\" data-bs-target=\"#modal-#{key}\" tabindex=\"-1\" "
-    if type
-      html += "onclick=\"ocForm.storePreviousValue('#{key}'); ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
-    else
-      html += "onclick=\"ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
-    end
+    html += "onclick=\"ocForm.loadFiles('#{@script_name}', '#{current_path}', '#{key}', #{show_files}, '#{Dir.home}', true)\">Select Path</button>\n"
     html += <<~HTML
     </div>
     <div class="modal" id="modal-#{key}">
@@ -638,7 +744,7 @@ helpers do
 HTML
     html += "<button type=\"button\" class=\"btn btn-primary\" data-bs-dismiss=\"modal\" tabindex=\"-1\" "
     onclick = if type
-                "ocForm.confirmOverwrite('#{type}', '#{key}', function(){ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')})"
+                "ocForm.updatePath('#{key}'); ocForm.updateArea('#{type}', '#{key}')"
               else
                 "ocForm.updatePath('#{key}')"
               end
@@ -989,7 +1095,7 @@ HTML
   def output_body(body, header, app_name, dir_name)
     return "" unless body&.key?("form")
 
-    @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "" }
+    @js ||= { "init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "", "script_patterns" => "" }
     form = body["form"].merge({OC_SCRIPT_CONTENT => {"widget" => "textarea"}})
     obj = form.merge(header)
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
@@ -1018,9 +1124,10 @@ HTML
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         html += output_radio_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'checkbox'
-        @js["init_dw"] += output_init_dw_js(value["options"], obj)
-        @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        @js["exec_dw"] += output_checkbox_js(key, value)
+        @js["init_dw"]         += output_init_dw_js(value["options"], obj)
+        @js["exec_dw"]         += output_exec_dw_js(key, value["options"], obj)
+        @js["exec_dw"]         += output_checkbox_js(key, value)
+        @js["script_patterns"] += output_enabled_by_js(key, value["options"])
         html += output_checkbox_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'path'
         html += output_path_html(key, value, script_content, submit_content, app_name, dir_name)
@@ -1032,13 +1139,18 @@ HTML
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     if !script_content.nil?
       script_content.split("\n").each do |line|
-        @js["script"] += output_script_js(obj, line, app_name, dir_name)
+        show_js, pat_js = output_script_js(obj, line, app_name, dir_name)
+        @js["script"]          += show_js
+        @js["script_patterns"] += pat_js
       end
     end
 
+    # Only the script section is patched and parsed in place, so the submit
+    # section's patterns are discarded.
     if !submit_content.nil?
       submit_content.split("\n").each do |line|
-        @js["submit"] += output_script_js(obj, line, app_name, dir_name)
+        show_js, _pat_js = output_script_js(obj, line, app_name, dir_name)
+        @js["submit"] += show_js
       end
     end
 
@@ -1049,7 +1161,7 @@ HTML
   def output_header(body, header, app_name="A", dir_name="B")
     return "" if header.nil? || header.empty?
 
-    @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => ""}
+    @js = {"init_dw" => "", "exec_dw" => "", "script" => "", "once" => "", "submit" => "", "script_patterns" => ""}
     script_content = body["script"].is_a?(Hash) ? body.dig("script", "content") : body["script"]
     submit_content = body["submit"].is_a?(Hash) ? body.dig("submit", "content") : body["submit"]
 
@@ -1078,9 +1190,10 @@ HTML
         @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
         html += output_radio_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'checkbox'
-        @js["init_dw"] += output_init_dw_js(value["options"], obj)
-        @js["exec_dw"] += output_exec_dw_js(key, value["options"], obj)
-        @js["exec_dw"] += output_checkbox_js(key, value)
+        @js["init_dw"]         += output_init_dw_js(value["options"], obj)
+        @js["exec_dw"]         += output_exec_dw_js(key, value["options"], obj)
+        @js["exec_dw"]         += output_checkbox_js(key, value)
+        @js["script_patterns"] += output_enabled_by_js(key, value["options"])
         html += output_checkbox_html(key, value, script_content, submit_content, app_name, dir_name)
       when 'path'
         html += output_path_html(key, value, script_content, submit_content, app_name, dir_name)
