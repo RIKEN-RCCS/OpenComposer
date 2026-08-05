@@ -42,10 +42,6 @@ FORM_LAYOUT            ||= "_form_layout"
 SUBMIT_BUTTON          ||= "_submitButton"
 SUBMIT_CONFIRM         ||= "_submitConfirm"
 SUBMIT_CONTENT         ||= "_submit_content"
-WARNING_MODAL          ||= "_warning_modal"
-WARNING_MODAL_CANCEL   ||= "_warning_cancel"
-WARNING_MODAL_DISCARD  ||= "_warning_discard"
-WARNING_MESSAGE        ||= "_warning_message"
 SUBMIT_FORM            ||= "_submit_form"
 JOB_NAME               ||= "Job Name"
 JOB_PARTITION          ||= "Partition"
@@ -283,25 +279,6 @@ def get_form_action(body)
   end
 end
 
-# Determine whether to show the overwrite warning when script content will be regenerated.
-# Default: true
-def check_overwrite_warning?(content)
-  return true unless content.is_a?(Hash)
-
-  raw_value = content["overwrite_warning"]
-
-  return true if raw_value.nil?
-  return raw_value if [true, false].include?(raw_value)
-
-  if raw_value.is_a?(String)
-    normalized = raw_value.strip.downcase
-    return true if ["true", "1", "yes", "on"].include?(normalized)
-    return false if ["false", "0", "no", "off"].include?(normalized)
-  end
-
-  !!raw_value
-end
-
 # Create a website of Home, Application, and History.
 def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path = nil)
   @conf          = create_conf
@@ -397,8 +374,6 @@ def show_website(job_id = nil, error_msg = nil, error_params = nil, script_path 
       end
 
       @form_action = get_form_action(@body)
-      @script_overwrite_warning_enabled = check_overwrite_warning?(@body["script"])
-      @submit_overwrite_warning_enabled = check_overwrite_warning?(@body["submit"])
 
       # Since the widget name is used as a variable in Ruby, it should consist of only
       # alphanumeric characters and underscores, and numbers should not be used at the

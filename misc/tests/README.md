@@ -1,8 +1,11 @@
-# Smoke tests for form.yml processing
+# Tests for form.yml processing
 
 ```
-ruby misc/tests/run_tests.rb
+ruby misc/tests/run_tests.rb            # smoke tests over every documented sample
+ruby misc/tests/test_script_patterns.rb # unit tests for the script-line patterns
 ```
+
+## Smoke tests
 
 `run_tests.rb` first executes `extract_samples.rb`, which extracts every
 `form.yml` sample from `docs/application.html` into `samples/` (one
