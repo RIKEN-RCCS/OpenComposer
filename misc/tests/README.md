@@ -34,3 +34,21 @@ These are smoke tests: they guarantee that every documented sample builds
 cleanly, but they do not exercise browser-side behavior (clicking a widget
 and observing the Dynamic Form Widget's effect). Test that layer in a real
 browser.
+
+## Script-line pattern tests
+
+`test_script_patterns.rb` covers `output_script_js()`, which turns each line of
+a `script:` template into the pattern that lets the browser patch that line in
+place and read it back into the widgets (see section 5.5 of
+`docs/application.html`). It checks:
+
+1. which lines get a capture regex, which are registered for placement only,
+   which are literal, and which are not registered at all,
+2. that each generated regex, run against a rendered line, captures the text
+   the widgets would have written,
+3. the `zeropadding()` round trip — pad a value the way the browser does, match
+   it, strip the padding, and compare with the original,
+4. that `keys` stay aligned with the capture groups.
+
+Unlike the smoke tests it needs no samples and no node/jsc, so it runs on its
+own in well under a second.
