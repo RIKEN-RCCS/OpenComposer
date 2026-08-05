@@ -7,7 +7,14 @@ Gemfile.lock
 vendor/
 .bundle
 TODO_ja.md
+
+# Site-local runtime files. conf.yml.erb is this deployment's configuration,
+# apps/ holds its applications (apps_dir), and tmp/restart.txt is the Passenger
+# restart trigger. All three are created for the local Docker OnDemand
+# environment by ../docker_open_ondemand/bootstrap.sh; see its README.
 conf.yml.erb
+apps/
+tmp/
 
 # Regenerated from docs by misc/tests/run_tests.rb
 misc/tests/samples/

@@ -15,6 +15,7 @@
 
 require "cgi"
 require "erb"
+require "json"   # lib/form.rb calls to_json when emitting the enabledBy map
 require "set"
 require "yaml"
 require "tmpdir"
@@ -84,15 +85,31 @@ DEFAULT_HEADER = YAML.load(
 )["header"]
 
 NODE = system("node --version > /dev/null 2>&1")
-warn "node not found: skipping JavaScript syntax checks" unless NODE
+# macOS ships JavaScriptCore's shell, which parses the same syntax. Used as a
+# fallback so the JS check still runs on developer Macs without Node installed.
+JSC = "/System/Library/Frameworks/JavaScriptCore.framework/Versions/A/Helpers/jsc"
+JSC_OK = !NODE && File.executable?(JSC)
+warn "node not found: using #{JSC} for JavaScript syntax checks" if JSC_OK
+warn "neither node nor jsc found: skipping JavaScript syntax checks" if !NODE && !JSC_OK
 
 def check_js_syntax(js, name, errors)
-  return unless NODE
+  return unless NODE || JSC_OK
   Dir.mktmpdir do |tmp|
     path = File.join(tmp, "#{name}.js")
     File.write(path, js)
-    out = `node --check #{path} 2>&1`
-    errors << "generated JS is invalid:\n#{out}" unless $?.success?
+    if NODE
+      out = `node --check #{path} 2>&1`
+      errors << "generated JS is invalid:\n#{out}" unless $?.success?
+    else
+      # new Function() parses without executing, matching `node --check`.
+      script = File.join(tmp, "check.js")
+      File.write(script, <<~JS)
+        try { new Function(readFile(#{path.to_json})); }
+        catch (e) { print("" + e); }
+      JS
+      out = `#{JSC} #{script} 2>&1`.strip
+      errors << "generated JS is invalid:\n#{out}" unless out.empty?
+    end
   end
 end
 
@@ -100,6 +117,9 @@ end
 def assemble_js(js)
   <<~JS
     var ocForm = {};
+    ocForm.scriptLinePatterns = [];
+    ocForm.enabledBy = {};
+    #{js["script_patterns"]}
     ocForm.onceExec = function() {
     #{js["once"]}
     };
